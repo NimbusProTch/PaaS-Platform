@@ -1,0 +1,31 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  labels:
+    environment: prod
+    managed-by: infraforge
+    tenant: demo
+  name: demo-postgres
+  namespace: demo-prod
+spec:
+  bootstrap:
+    initdb:
+      database: demo
+      owner: demo
+  instances: 3
+  postgresql:
+    parameters:
+      effective_cache_size: 1GB
+      max_connections: "200"
+      shared_buffers: 256MB
+  primaryUpdateStrategy: unsupervised
+  resources:
+    limits:
+      cpu: "1"
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  storage:
+    size: 10Gi
+    storageClass: standard

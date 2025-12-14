@@ -1,13 +1,13 @@
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
-  name: infraforge-dev
+  name: infraforge-prod
   namespace: infraforge-argocd
 spec:
   clusterResourceWhitelist:
     - group: '*'
       kind: '*'
-  description: InfraForge Dev Environment
+  description: InfraForge Prod Environment
   destinations:
     - namespace: '*'
       server: https://kubernetes.default.svc
@@ -17,9 +17,10 @@ spec:
   roles:
     - name: admin
       policies:
-        - p, proj:infraforge-dev:admin, applications, *, infraforge-dev/*, allow
+        - p, proj:infraforge-prod:admin, applications, *, infraforge-prod/*, allow
     - name: developer
       policies:
-        - p, proj:infraforge-dev:developer, applications, *, infraforge-dev/*, allow
+        - p, proj:infraforge-prod:developer, applications, get, infraforge-prod/*, allow
+        - p, proj:infraforge-prod:developer, applications, sync, infraforge-prod/*, allow, * * 6-14 * 1-5
   sourceRepos:
     - '*'
