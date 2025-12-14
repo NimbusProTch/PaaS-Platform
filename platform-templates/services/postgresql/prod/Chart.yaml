@@ -1,0 +1,19 @@
+apiVersion: v2
+name: postgresql-prod
+description: Production-grade PostgreSQL cluster with HA, backup, and connection pooling
+version: 1.0.0
+appVersion: "16.1"
+type: application
+
+keywords:
+  - postgresql
+  - database
+  - sql
+  - cloudnativepg
+  - high-availability
+  - backup
+  - production
+
+maintainers:
+  - name: InfraForge Platform Team
+    email: platform@infraforge.io

@@ -1,0 +1,63 @@
+# PostgreSQL Non-Production Configuration
+# These values are used as templates and will be rendered by the generator
+
+# Cluster naming
+clusterName: "{{ .ServiceName | default "postgresql" }}"
+namespace: "{{ .Tenant }}-{{ .Environment }}"
+
+# PostgreSQL version
+postgresVersion: "{{ .PostgresVersion | default "16.1" }}"
+
+# Instance configuration
+replicas: {{ .Replicas | default 1 }}
+
+# Storage configuration
+storage:
+  size: "{{ .StorageSize | default "10Gi" }}"
+  storageClass: "{{ .StorageClass | default "standard" }}"
+
+# PostgreSQL parameters (basic nonprod config)
+postgresql:
+  parameters:
+    max_connections: "{{ .MaxConnections | default "100" }}"
+    shared_buffers: "256MB"
+    effective_cache_size: "768MB"
+    maintenance_work_mem: "64MB"
+    checkpoint_completion_target: "0.7"
+    wal_buffers: "8MB"
+    default_statistics_target: "100"
+    random_page_cost: "4"
+    effective_io_concurrency: "2"
+    work_mem: "2621kB"
+    min_wal_size: "1GB"
+    max_wal_size: "4GB"
+
+# Resource limits (nonprod)
+resources:
+  requests:
+    cpu: "{{ .Resources.Requests.CPU | default "500m" }}"
+    memory: "{{ .Resources.Requests.Memory | default "1Gi" }}"
+  limits:
+    cpu: "{{ .Resources.Limits.CPU | default "2000m" }}"
+    memory: "{{ .Resources.Limits.Memory | default "4Gi" }}"
+
+# Monitoring (basic)
+monitoring:
+  enabled: {{ .Monitoring.Enabled | default true }}
+  prometheusRule:
+    enabled: false  # No alerting for nonprod
+
+# Backup (disabled for nonprod)
+backup:
+  enabled: false
+
+# Connection pooler (disabled for nonprod)
+pooler:
+  enabled: false
+
+# Bootstrap (for initial cluster creation)
+bootstrap:
+  initdb:
+    database: "{{ .DatabaseName | default "app" }}"
+    owner: "{{ .DatabaseUser | default "app" }}"
+    # Password will be auto-generated if not provided

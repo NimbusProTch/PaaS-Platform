@@ -1,5 +1,0 @@
-labels:
-    environment: dev
-    managed-by: infraforge
-    tenant: finance
-name: finance-dev

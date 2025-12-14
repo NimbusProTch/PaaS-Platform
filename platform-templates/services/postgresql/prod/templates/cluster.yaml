@@ -1,0 +1,123 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Values.clusterName }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: postgresql
+    tenant: {{ .Values.tenant }}
+    environment: {{ .Values.environment }}
+    profile: prod
+    managed-by: infraforge
+spec:
+  # High Availability - 3 instances
+  instances: {{ .Values.replicas }}
+
+  # PostgreSQL version
+  imageName: ghcr.io/cloudnative-pg/postgresql:{{ .Values.postgresVersion }}
+
+  # Automatic failover configuration
+  primaryUpdateStrategy: {{ .Values.highAvailability.primaryUpdateStrategy }}
+
+  # Pod anti-affinity (spread across nodes for resilience)
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: {{ .Values.highAvailability.affinity.topologyKey }}
+    podAntiAffinityType: {{ .Values.highAvailability.affinity.podAntiAffinityType }}
+
+  # Bootstrap configuration
+  bootstrap:
+    initdb:
+      database: {{ .Values.bootstrap.initdb.database }}
+      owner: {{ .Values.bootstrap.initdb.owner }}
+      secret:
+        name: {{ .Values.clusterName }}-app-user
+
+  # Storage configuration (production SSD)
+  storage:
+    size: {{ .Values.storage.size }}
+    {{- if .Values.storage.storageClass }}
+    storageClass: {{ .Values.storage.storageClass }}
+    {{- end }}
+
+  # Resource limits (production-grade)
+  resources:
+    requests:
+      cpu: {{ .Values.resources.requests.cpu }}
+      memory: {{ .Values.resources.requests.memory }}
+    limits:
+      cpu: {{ .Values.resources.limits.cpu }}
+      memory: {{ .Values.resources.limits.memory }}
+
+  # PostgreSQL configuration (production-tuned)
+  postgresql:
+    parameters:
+      {{- range $key, $value := .Values.postgresql.parameters }}
+      {{ $key }}: "{{ $value }}"
+      {{- end }}
+
+    # Enable pg_stat_statements for query analysis
+    pg_hba:
+      - host all all all md5
+
+  # Synchronous replication for data safety
+  {{- if .Values.highAvailability.synchronousReplication.enabled }}
+  minSyncReplicas: {{ .Values.highAvailability.synchronousReplication.number }}
+  maxSyncReplicas: {{ .Values.highAvailability.synchronousReplication.number }}
+  {{- end }}
+
+  # Monitoring configuration
+  monitoring:
+    enabled: {{ .Values.monitoring.enabled }}
+    {{- if .Values.monitoring.enabled }}
+    podMonitorMetricRelabelings:
+      - sourceLabels: [cluster]
+        targetLabel: cnpg_cluster
+        action: replace
+    customQueriesConfigMap:
+      - name: {{ .Values.clusterName }}-monitoring-queries
+        key: custom-queries.yaml
+    {{- end }}
+
+  # Backup to S3/MinIO
+  {{- if .Values.backup.enabled }}
+  backup:
+    barmanObjectStore:
+      destinationPath: {{ .Values.backup.barmanObjectStore.destinationPath }}
+      {{- if .Values.backup.barmanObjectStore.endpointURL }}
+      endpointURL: {{ .Values.backup.barmanObjectStore.endpointURL }}
+      {{- end }}
+      s3Credentials:
+        accessKeyId:
+          name: {{ .Values.backup.barmanObjectStore.s3Credentials.secretName }}
+          key: {{ .Values.backup.barmanObjectStore.s3Credentials.accessKeyId }}
+        secretAccessKey:
+          name: {{ .Values.backup.barmanObjectStore.s3Credentials.secretName }}
+          key: {{ .Values.backup.barmanObjectStore.s3Credentials.secretAccessKey }}
+      wal:
+        compression: {{ .Values.backup.barmanObjectStore.wal.compression }}
+        maxParallel: {{ .Values.backup.barmanObjectStore.wal.maxParallel }}
+      data:
+        compression: {{ .Values.backup.barmanObjectStore.data.compression }}
+        jobs: {{ .Values.backup.barmanObjectStore.data.jobs }}
+    retentionPolicy: {{ .Values.backup.retention }}
+  {{- end }}
+
+  # Superuser secret (auto-generated)
+  superuserSecret:
+    name: {{ .Values.clusterName }}-superuser
+
+  # Managed roles
+  managed:
+    roles:
+      - name: {{ .Values.bootstrap.initdb.owner }}
+        ensure: present
+        login: true
+        superuser: false
+        createdb: true
+        createrole: false
+        inherit: true
+        connectionLimit: -1
+
+  # Service configuration
+  enableSuperuserAccess: true

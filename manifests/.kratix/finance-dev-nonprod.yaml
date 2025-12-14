@@ -1,9 +1,0 @@
-apiVersion: platform.kratix.io/v1alpha1
-kind: Work
-metadata:
-  name: finance-dev
-  namespace: kratix-platform-system
-spec:
-  environment: dev
-  generated: "2025-06-29T13:59:45Z"
-  tenant: finance

@@ -1,0 +1,137 @@
+# PostgreSQL Production Configuration
+# Production-ready settings with HA, backup, and connection pooling
+
+# Cluster naming
+clusterName: "{{ .ServiceName | default "postgresql" }}"
+namespace: "{{ .Tenant }}-{{ .Environment }}"
+
+# PostgreSQL version
+postgresVersion: "{{ .PostgresVersion | default "16.1" }}"
+
+# High Availability - 3 instances minimum
+replicas: {{ .Replicas | default 3 }}
+
+# Storage configuration (production SSD)
+storage:
+  size: "{{ .StorageSize | default "100Gi" }}"
+  storageClass: "{{ .StorageClass | default "fast-ssd" }}"
+
+# PostgreSQL parameters (production-tuned)
+postgresql:
+  parameters:
+    # Connection settings
+    max_connections: "{{ .MaxConnections | default "500" }}"
+
+    # Memory settings (optimized for 4Gi+ RAM)
+    shared_buffers: "2GB"
+    effective_cache_size: "6GB"
+    maintenance_work_mem: "512MB"
+    work_mem: "10MB"
+
+    # WAL settings
+    wal_buffers: "16MB"
+    min_wal_size: "2GB"
+    max_wal_size: "8GB"
+    wal_level: "replica"
+
+    # Checkpoint settings
+    checkpoint_completion_target: "0.9"
+    checkpoint_timeout: "15min"
+
+    # Query planner
+    default_statistics_target: "100"
+    random_page_cost: "1.1"  # For SSD
+    effective_io_concurrency: "200"
+
+    # Logging
+    log_min_duration_statement: "1000"  # Log slow queries > 1s
+    log_line_prefix: "%t [%p]: user=%u,db=%d,app=%a,client=%h "
+
+    # Autovacuum (aggressive for production)
+    autovacuum_max_workers: "4"
+    autovacuum_naptime: "10s"
+
+# Resource limits (production)
+resources:
+  requests:
+    cpu: "{{ .Resources.Requests.CPU | default "2000m" }}"
+    memory: "{{ .Resources.Requests.Memory | default "4Gi" }}"
+  limits:
+    cpu: "{{ .Resources.Limits.CPU | default "4000m" }}"
+    memory: "{{ .Resources.Limits.Memory | default "8Gi" }}"
+
+# High Availability configuration
+highAvailability:
+  # Automatic failover
+  primaryUpdateStrategy: unsupervised
+
+  # Pod anti-affinity (spread across nodes)
+  affinity:
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
+
+  # Enable synchronous replication
+  synchronousReplication:
+    enabled: true
+    number: 1  # At least 1 synchronous replica
+
+# Monitoring (full production monitoring)
+monitoring:
+  enabled: {{ .Monitoring.Enabled | default true }}
+  prometheusRule:
+    enabled: true  # Enable alerting rules
+
+# Backup configuration (S3/MinIO)
+backup:
+  enabled: {{ .BackupEnabled | default true }}
+  schedule: "{{ .BackupSchedule | default "0 2 * * *" }}"  # Daily at 2 AM
+  retention: "{{ .BackupRetention | default "30d" }}"
+
+  # S3-compatible storage (MinIO or AWS S3)
+  barmanObjectStore:
+    destinationPath: "s3://{{ .Tenant }}-postgresql-backups/{{ .ClusterName }}"
+    endpointURL: "{{ .BackupEndpoint }}"  # MinIO endpoint
+    s3Credentials:
+      secretName: "{{ .ClusterName }}-backup-credentials"
+      accessKeyId: "ACCESS_KEY_ID"
+      secretAccessKey: "SECRET_ACCESS_KEY"
+    wal:
+      compression: gzip
+      maxParallel: 2
+    data:
+      compression: gzip
+      jobs: 2
+
+# Connection Pooler (PgBouncer)
+pooler:
+  enabled: {{ .PoolerEnabled | default true }}
+  replicas: {{ .PoolerReplicas | default 3 }}
+  type: rw  # read-write pooler
+
+  # PgBouncer configuration
+  pgbouncer:
+    poolMode: transaction  # or session
+    parameters:
+      max_client_conn: "{{ .PoolerMaxConnections | default "1000" }}"
+      default_pool_size: "{{ .PoolerPoolSize | default "25" }}"
+      min_pool_size: "10"
+      reserve_pool_size: "5"
+      reserve_pool_timeout: "3"
+      max_db_connections: "100"
+      max_user_connections: "100"
+
+  # Pooler resource limits
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+
+# Bootstrap (for initial cluster creation)
+bootstrap:
+  initdb:
+    database: "{{ .DatabaseName | default "app" }}"
+    owner: "{{ .DatabaseUser | default "app" }}"
+    # Password will be auto-generated if not provided

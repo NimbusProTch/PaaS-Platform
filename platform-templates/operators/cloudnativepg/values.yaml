@@ -1,0 +1,50 @@
+# CloudNativePG Operator Configuration
+# These values override the upstream cloudnative-pg Helm chart
+
+cloudnative-pg:
+  # Operator replicas (HA)
+  replicaCount: 1
+
+  # Image configuration (use defaults from upstream)
+  # image:
+  #   repository: ghcr.io/cloudnative-pg/cloudnative-pg
+  #   tag: ""  # Uses appVersion from Chart.yaml
+
+  # Resource limits for operator pod
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # Monitoring
+  monitoring:
+    # Enable Prometheus monitoring
+    podMonitorEnabled: true
+    # Grafana dashboards will be created automatically
+    grafanaDashboard:
+      create: true
+
+  # Webhook configuration
+  webhook:
+    port: 9443
+    mutating:
+      create: true
+    validating:
+      create: true
+
+  # RBAC
+  rbac:
+    create: true
+
+  # Service Account
+  serviceAccount:
+    create: true
+    name: ""  # If empty, a name is generated
+
+  # Additional configuration
+  config:
+    # Data checksums for cluster instances
+    data: {}
