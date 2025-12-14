@@ -1,0 +1,20 @@
+apiVersion: platform.infraforge.io/v1
+kind: InfraForge
+metadata:
+  name: test-postgresql-nonprod
+  namespace: default
+spec:
+  tenant: demo
+  environment: dev
+
+  # Business applications - empty for now
+  business: []
+
+  # Platform services - empty for now
+  platform: []
+
+  # Operators - PostgreSQL with nonprod profile
+  operators:
+    - name: postgresql
+      enabled: true
+      profile: nonprod

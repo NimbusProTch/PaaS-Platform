@@ -1,0 +1,20 @@
+apiVersion: platform.infraforge.io/v1
+kind: InfraForge
+metadata:
+  name: test-postgresql-prod
+  namespace: default
+spec:
+  tenant: finance
+  environment: prod
+
+  # Business applications - empty for now
+  business: []
+
+  # Platform services - empty for now
+  platform: []
+
+  # Operators - PostgreSQL with prod profile (HA + backup + pooling)
+  operators:
+    - name: postgresql
+      enabled: true
+      profile: prod

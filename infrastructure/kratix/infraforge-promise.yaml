@@ -124,6 +124,13 @@ spec:
                         enabled:
                           type: boolean
                           description: Enable/disable this operator
+                        profile:
+                          type: string
+                          description: Deployment profile (nonprod or prod)
+                          enum:
+                          - nonprod
+                          - prod
+                          default: nonprod
         additionalPrinterColumns:
         - name: Tenant
           type: string
