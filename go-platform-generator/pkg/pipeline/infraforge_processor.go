@@ -6,9 +6,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 	"time"
 	"gopkg.in/yaml.v3"
+
+	"github.com/gaskin/go-platform-generator/pkg/template"
 )
 
 // InfraForgeRequest represents the new InfraForge CRD structure
@@ -37,10 +38,11 @@ type ServiceItem struct {
 }
 
 type InfraForgeProcessor struct {
-	request      *InfraForgeRequest
-	outputDir    string
-	gitRepoURL   string
-	gitBranch    string
+	request          *InfraForgeRequest
+	outputDir        string
+	gitRepoURL       string
+	gitBranch        string
+	templateRenderer *template.TemplateRenderer
 }
 
 func NewInfraForgeProcessor(request *InfraForgeRequest, outputDir string) *InfraForgeProcessor {
@@ -55,14 +57,22 @@ func NewInfraForgeProcessor(request *InfraForgeRequest, outputDir string) *Infra
 		gitBranch = "main"
 	}
 
+	// Get templates root from environment or use default
+	templatesRoot := os.Getenv("TEMPLATES_ROOT")
+	if templatesRoot == "" {
+		templatesRoot = "/platform-templates"
+	}
+
 	log.Printf("DEBUG: Using Git Repo URL: %s\n", gitRepoURL)
 	log.Printf("DEBUG: Using Git Branch: %s\n", gitBranch)
+	log.Printf("DEBUG: Using Templates Root: %s\n", templatesRoot)
 
 	return &InfraForgeProcessor{
-		request:    request,
-		outputDir:  outputDir,
-		gitRepoURL: gitRepoURL,
-		gitBranch:  gitBranch,
+		request:          request,
+		outputDir:        outputDir,
+		gitRepoURL:       gitRepoURL,
+		gitBranch:        gitBranch,
+		templateRenderer: template.NewTemplateRenderer(templatesRoot),
 	}
 }
 
@@ -362,31 +372,56 @@ func (p *InfraForgeProcessor) generateAppSet(dir, appType, env string) error {
 
 func (p *InfraForgeProcessor) generateOperators() error {
 	env := p.request.Spec.Environment
-	
+
+	// Track which operator installations we need
+	operatorsNeeded := make(map[string]bool)
+
+	// Determine which operators are needed based on platform services
 	for _, op := range p.request.Spec.Operators {
 		if !op.Enabled {
 			continue
 		}
-		
+
+		// Map service names to their required operators
+		switch op.Name {
+		case "postgresql":
+			operatorsNeeded["cloudnativepg"] = true
+		case "redis":
+			operatorsNeeded["redis-operator"] = true
+		}
+	}
+
+	// Generate operator installations (Helm charts)
+	for operatorName := range operatorsNeeded {
+		if err := p.generateOperatorInstallation(operatorName); err != nil {
+			return fmt.Errorf("failed to generate operator %s: %w", operatorName, err)
+		}
+	}
+
+	// Generate service instances (CRs managed by operators)
+	for _, op := range p.request.Spec.Operators {
+		if !op.Enabled {
+			continue
+		}
+
 		operatorDir := filepath.Join(p.outputDir, "operators", env, op.Name)
 		if err := os.MkdirAll(operatorDir, 0755); err != nil {
 			return err
 		}
-		
-		// Generate operator installation based on type
+
+		// Generate service instance based on type
 		switch op.Name {
+		case "postgresql":
+			if err := p.generatePostgreSQLInstance(operatorDir, op.Profile); err != nil {
+				return err
+			}
 		case "redis":
 			if err := p.generateRedisOperator(operatorDir); err != nil {
 				return err
 			}
-		case "postgresql":
-			if err := p.generatePostgreSQLOperator(operatorDir); err != nil {
-				return err
-			}
-		// Add more operators as needed
 		}
 	}
-	
+
 	return nil
 }
 
@@ -438,178 +473,87 @@ func (p *InfraForgeProcessor) generateRedisOperator(dir string) error {
 	return p.writeYAML(crFile, redisCR)
 }
 
-func (p *InfraForgeProcessor) generatePostgreSQLOperator(dir string) error {
-	// Generate PostgreSQL Cluster CR
-	crFile := filepath.Join(dir, "postgresql-cluster.yaml")
-	
-	namespace := fmt.Sprintf("%s-%s", p.request.Spec.Tenant, p.request.Spec.Environment)
-	
-	pgCluster := map[string]interface{}{
-		"apiVersion": "postgresql.cnpg.io/v1",
-		"kind":       "Cluster",
-		"metadata": map[string]interface{}{
-			"name":      fmt.Sprintf("%s-postgres", p.request.Spec.Tenant),
-			"namespace": namespace,
-			"labels": map[string]interface{}{
-				"tenant":      p.request.Spec.Tenant,
-				"environment": p.request.Spec.Environment,
-				"managed-by":  "infraforge",
-			},
-		},
-		"spec": map[string]interface{}{
-			"instances": 3,
-			"primaryUpdateStrategy": "unsupervised",
-			
-			"postgresql": map[string]interface{}{
-				"parameters": map[string]interface{}{
-					"max_connections": "200",
-					"shared_buffers": "256MB",
-					"effective_cache_size": "1GB",
-				},
-			},
-			
-			"bootstrap": map[string]interface{}{
-				"initdb": map[string]interface{}{
-					"database": p.request.Spec.Tenant,
-					"owner":    p.request.Spec.Tenant,
-				},
-			},
-			
-			"storage": map[string]interface{}{
-				"size": "10Gi",
-				"storageClass": "standard",
-			},
-			
-			"resources": map[string]interface{}{
-				"requests": map[string]interface{}{
-					"cpu":    "500m",
-					"memory": "1Gi",
-				},
-				"limits": map[string]interface{}{
-					"cpu":    "1",
-					"memory": "2Gi",
-				},
-			},
-		},
+// generateOperatorInstallation creates the operator Helm chart structure
+func (p *InfraForgeProcessor) generateOperatorInstallation(operatorName string) error {
+	operatorDir := filepath.Join(p.outputDir, "operators", "installations", operatorName)
+	if err := os.MkdirAll(operatorDir, 0755); err != nil {
+		return err
 	}
-	
-	return p.writeYAML(crFile, pgCluster)
+
+	// For now, just create a marker file - the actual operator installation
+	// should be done cluster-wide via infrastructure/operators/
+	// This is a placeholder for future operator lifecycle management
+	log.Printf("INFO: Operator %s required (should be installed cluster-wide)\n", operatorName)
+
+	return nil
+}
+
+// generatePostgreSQLInstance renders PostgreSQL Cluster CR from templates
+func (p *InfraForgeProcessor) generatePostgreSQLInstance(dir, profile string) error {
+	log.Printf("INFO: Generating PostgreSQL instance with profile: %s\n", profile)
+
+	// Default to nonprod if no profile specified
+	if profile == "" {
+		profile = "nonprod"
+	}
+
+	// Prepare values for template rendering
+	namespace := fmt.Sprintf("%s-%s", p.request.Spec.Tenant, p.request.Spec.Environment)
+	clusterName := fmt.Sprintf("%s-postgres", p.request.Spec.Tenant)
+
+	values := map[string]interface{}{
+		"clusterName": clusterName,
+		"namespace":   namespace,
+		"tenant":      p.request.Spec.Tenant,
+		"environment": p.request.Spec.Environment,
+	}
+
+	// Render PostgreSQL service templates
+	manifests, err := p.templateRenderer.RenderService("postgresql", profile, values)
+	if err != nil {
+		return fmt.Errorf("failed to render PostgreSQL templates: %w", err)
+	}
+
+	// Write each manifest to a separate file
+	for i, manifest := range manifests {
+		// Extract kind from manifest to create meaningful filename
+		var doc map[string]interface{}
+		if err := yaml.Unmarshal(manifest, &doc); err != nil {
+			continue
+		}
+
+		kind, _ := doc["kind"].(string)
+		if kind == "" {
+			kind = "resource"
+		}
+
+		filename := filepath.Join(dir, fmt.Sprintf("%s-%d.yaml", strings.ToLower(kind), i))
+		if err := os.WriteFile(filename, manifest, 0644); err != nil {
+			return fmt.Errorf("failed to write manifest %s: %w", filename, err)
+		}
+
+		log.Printf("INFO: Generated %s\n", filename)
+	}
+
+	return nil
 }
 
 func (p *InfraForgeProcessor) generatePlatformServices() error {
-	env := p.request.Spec.Environment
-	
 	for _, svc := range p.request.Spec.Platform {
 		if !svc.Enabled {
 			continue
 		}
-		
-		svcDir := filepath.Join(p.outputDir, "apps", env, "platform-apps", svc.Name)
-		if err := os.MkdirAll(svcDir, 0755); err != nil {
-			return err
-		}
-		
-		switch svc.Name {
-		case "vault":
-			if err := p.generateVaultService(svcDir); err != nil {
-				return err
-			}
-		case "istio":
-			if err := p.generateIstioService(svcDir); err != nil {
-				return err
-			}
-		}
-	}
-	
-	return nil
-}
 
-func (p *InfraForgeProcessor) generateVaultService(dir string) error {
-	valuesFile := filepath.Join(dir, "values.yaml")
-	chartFile := filepath.Join(dir, "Chart.yaml")
-	
-	// Find the profile from platform services
-	profile := "dev"
-	for _, svc := range p.request.Spec.Platform {
-		if svc.Name == "vault" && svc.Profile != "" {
-			profile = svc.Profile
-			break
-		}
-	}
-	
-	// Load profile values
-	profileData, err := p.loadProfileValues("vault", profile)
-	if err != nil {
-		return fmt.Errorf("failed to load vault profile: %w", err)
-	}
-	
-	// Generate Helm values from template
-	valuesData := map[string]interface{}{
-		"Name":        p.request.Metadata.Name,
-		"Tenant":      p.request.Spec.Tenant,
-		"Environment": p.request.Spec.Environment,
-		"Profile":     profile,
-		"Values":      profileData,
-	}
-	
-	helmValues, err := p.renderTemplate("vault", "helm-values.tmpl", valuesData)
-	if err != nil {
-		return fmt.Errorf("failed to render vault helm values: %w", err)
-	}
-	
-	// Write values.yaml
-	if err := os.WriteFile(valuesFile, []byte(helmValues), 0644); err != nil {
-		return fmt.Errorf("failed to write values.yaml: %w", err)
-	}
-	
-	// Create Chart.yaml pointing to upstream Vault chart
-	chart := map[string]interface{}{
-		"apiVersion": "v2",
-		"name":       "vault",
-		"description": "HashiCorp Vault for " + p.request.Spec.Tenant + "-" + p.request.Spec.Environment,
-		"type":       "application",
-		"version":    "0.1.0",
-		"dependencies": []map[string]interface{}{
-			{
-				"name":       "vault",
-				"version":    "0.25.0",
-				"repository": "https://helm.releases.hashicorp.com",
-			},
-		},
-	}
-	
-	return p.writeYAML(chartFile, chart)
-}
+		log.Printf("INFO: Platform service %s requested but template-based generation not yet implemented\n", svc.Name)
+		log.Printf("INFO: Focus is on operator-based services (PostgreSQL via CloudNativePG)\n")
 
-func (p *InfraForgeProcessor) getVaultValues() string {
-	if p.request.Spec.Environment == "dev" {
-		return `server:
-  dev:
-    enabled: true
-  standalone:
-    enabled: true
-  dataStorage:
-    size: 1Gi`
+		// TODO: Implement template-based platform service generation
+		// This would follow the same pattern as PostgreSQL:
+		// 1. Load service catalog from platform-templates/services/{svc.Name}/
+		// 2. Render templates with profile (nonprod/prod)
+		// 3. Write manifests to output directory
 	}
-	
-	// Production values
-	return `server:
-  ha:
-    enabled: true
-    replicas: 3
-  dataStorage:
-    size: 10Gi
-  resources:
-    requests:
-      memory: 256Mi
-      cpu: 250m
-    limits:
-      memory: 512Mi
-      cpu: 500m`
-}
 
-func (p *InfraForgeProcessor) generateIstioService(dir string) error {
-	// Similar to Vault but for Istio
 	return nil
 }
 
@@ -888,54 +832,8 @@ func (p *InfraForgeProcessor) writeYAML(filename string, data interface{}) error
 		return err
 	}
 	defer file.Close()
-	
+
 	encoder := yaml.NewEncoder(file)
 	encoder.SetIndent(2)
 	return encoder.Encode(data)
-}
-
-func (p *InfraForgeProcessor) loadProfileValues(service, profile string) (map[string]interface{}, error) {
-	profilePath := fmt.Sprintf("/platform-templates/%s/profiles/%s.yaml", service, profile)
-	
-	data, err := os.ReadFile(profilePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read profile %s: %w", profilePath, err)
-	}
-	
-	var values map[string]interface{}
-	if err := yaml.Unmarshal(data, &values); err != nil {
-		return nil, fmt.Errorf("failed to parse profile: %w", err)
-	}
-	
-	return values, nil
-}
-
-func (p *InfraForgeProcessor) renderTemplate(service, templateName string, data interface{}) (string, error) {
-	templatePath := fmt.Sprintf("/platform-templates/%s/%s", service, templateName)
-	
-	tmplData, err := os.ReadFile(templatePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read template: %w", err)
-	}
-	
-	tmpl, err := template.New(templateName).Parse(string(tmplData))
-	if err != nil {
-		return "", fmt.Errorf("failed to parse template: %w", err)
-	}
-	
-	var buf strings.Builder
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", fmt.Errorf("failed to execute template: %w", err)
-	}
-	
-	return buf.String(), nil
-}
-
-func (p *InfraForgeProcessor) generateFromTemplate(service, templateName, outputPath string, data interface{}) error {
-	content, err := p.renderTemplate(service, templateName, data)
-	if err != nil {
-		return err
-	}
-	
-	return os.WriteFile(outputPath, []byte(content), 0644)
 }
