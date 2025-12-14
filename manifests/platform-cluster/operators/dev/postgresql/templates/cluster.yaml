@@ -21,8 +21,6 @@ spec:
     initdb:
       database: {{ .Values.bootstrap.initdb.database }}
       owner: {{ .Values.bootstrap.initdb.owner }}
-      secret:
-        name: {{ .Values.clusterName }}-app-user
 
   # Storage configuration
   storage:
