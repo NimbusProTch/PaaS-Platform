@@ -7,7 +7,7 @@ spec:
   generators:
     - git:
         directories:
-          - path: manifests/operators/dev/*
+          - path: manifests/platform-cluster/operators/dev/*
         repoURL: https://github.com/NimbusProTch/PaaS-Platform.git
         revision: main
   template:
