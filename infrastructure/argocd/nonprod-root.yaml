@@ -12,7 +12,7 @@ spec:
   source:
     repoURL: https://github.com/NimbusProTch/PaaS-Platform.git
     targetRevision: main
-    path: manifests/appsets/dev
+    path: manifests/platform-cluster/appsets/dev
     directory:
       recurse: true
   destination:

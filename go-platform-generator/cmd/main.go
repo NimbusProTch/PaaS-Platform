@@ -51,12 +51,15 @@ func main() {
 			request.Spec.Tenant, request.Spec.Environment)
 		
 		// Create InfraForge processor
+		log.Printf("DEBUG: Creating InfraForge processor...")
 		processor := pipeline.NewInfraForgeProcessor(&request, outputDir)
-		
+
 		// Process the request
+		log.Printf("DEBUG: Calling processor.Process()...")
 		if err := processor.Process(); err != nil {
 			log.Fatalf("Failed to process InfraForge request: %v", err)
 		}
+		log.Printf("DEBUG: processor.Process() completed successfully")
 		
 		// Create metadata for Kratix
 		createMetadata(outputDir, request.Spec.Tenant, request.Spec.Environment)

@@ -159,6 +159,7 @@ spec:
           containers:
           - name: infraforge-generator
             image: docker.io/gaskin23/infraforge-generator:latest
+            imagePullPolicy: IfNotPresent
             command: ["/app/generator"]
             env:
             - name: ENABLE_GIT_SYNC

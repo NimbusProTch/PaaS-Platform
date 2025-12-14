@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -54,6 +55,9 @@ func NewInfraForgeProcessor(request *InfraForgeRequest, outputDir string) *Infra
 		gitBranch = "main"
 	}
 
+	log.Printf("DEBUG: Using Git Repo URL: %s\n", gitRepoURL)
+	log.Printf("DEBUG: Using Git Branch: %s\n", gitBranch)
+
 	return &InfraForgeProcessor{
 		request:    request,
 		outputDir:  outputDir,
@@ -63,42 +67,51 @@ func NewInfraForgeProcessor(request *InfraForgeRequest, outputDir string) *Infra
 }
 
 func (p *InfraForgeProcessor) Process() error {
+	log.Printf("DEBUG: Process() started\n")
+
 	// 1. Generate .kratix metadata
+	log.Printf("DEBUG: Step 1 - Generating kratix metadata\n")
 	if err := p.generateKratixMetadata(); err != nil {
 		return fmt.Errorf("failed to generate kratix metadata: %w", err)
 	}
-	
+
 	// 2. Generate ArgoCD projects
+	log.Printf("DEBUG: Step 2 - Generating ArgoCD projects\n")
 	if err := p.generateArgoProjects(); err != nil {
 		return fmt.Errorf("failed to generate ArgoCD projects: %w", err)
 	}
-	
+
 	// 3. Generate Root Application (only for first deployment)
 	// Disabled - root app should be created manually during platform setup
 	// if err := p.generateRootApplication(); err != nil {
 	// 	return fmt.Errorf("failed to generate root application: %w", err)
 	// }
-	
+
 	// 4. Generate ApplicationSets
+	log.Printf("DEBUG: Step 4 - Generating ApplicationSets\n")
 	if err := p.generateApplicationSets(); err != nil {
 		return fmt.Errorf("failed to generate application sets: %w", err)
 	}
-	
+
 	// 5. Generate Operators
+	log.Printf("DEBUG: Step 5 - Generating Operators\n")
 	if err := p.generateOperators(); err != nil {
 		return fmt.Errorf("failed to generate operators: %w", err)
 	}
-	
+
 	// 6. Generate Platform Services
+	log.Printf("DEBUG: Step 6 - Generating Platform Services\n")
 	if err := p.generatePlatformServices(); err != nil {
 		return fmt.Errorf("failed to generate platform services: %w", err)
 	}
-	
+
 	// 7. Generate Business Applications
+	log.Printf("DEBUG: Step 7 - Generating Business Applications\n")
 	if err := p.generateBusinessApplications(); err != nil {
 		return fmt.Errorf("failed to generate business applications: %w", err)
 	}
-	
+
+	log.Printf("DEBUG: Process() completed successfully\n")
 	return nil
 }
 
@@ -286,13 +299,13 @@ func (p *InfraForgeProcessor) generateAppSet(dir, appType, env string) error {
 	
 	switch appType {
 	case "business":
-		path = fmt.Sprintf("manifests/apps/%s/business-apps/*", env)
+		path = fmt.Sprintf("manifests/platform-cluster/apps/%s/business-apps/*", env)
 		namespace = fmt.Sprintf("%s-%s", p.request.Spec.Tenant, env)
 	case "platform":
-		path = fmt.Sprintf("manifests/apps/%s/platform-apps/*", env)
+		path = fmt.Sprintf("manifests/platform-cluster/apps/%s/platform-apps/*", env)
 		namespace = "{{.path.basename}}"
 	case "operator":
-		path = fmt.Sprintf("manifests/operators/%s/*", env)
+		path = fmt.Sprintf("manifests/platform-cluster/operators/%s/*", env)
 		namespace = "infraforge-operators"
 	}
 	
@@ -304,6 +317,7 @@ func (p *InfraForgeProcessor) generateAppSet(dir, appType, env string) error {
 			"namespace": "infraforge-argocd",
 		},
 		"spec": map[string]interface{}{
+			"goTemplate": true,
 			"generators": []map[string]interface{}{
 				{
 					"git": map[string]interface{}{
@@ -317,7 +331,7 @@ func (p *InfraForgeProcessor) generateAppSet(dir, appType, env string) error {
 			},
 			"template": map[string]interface{}{
 				"metadata": map[string]interface{}{
-					"name":      fmt.Sprintf("%s-%s-{{.path.basenameNormalized}}", env, appType),
+					"name":      fmt.Sprintf("%s-%s-{{.path.basename}}", env, appType),
 					"namespace": "infraforge-argocd",
 				},
 				"spec": map[string]interface{}{
@@ -601,23 +615,27 @@ func (p *InfraForgeProcessor) generateIstioService(dir string) error {
 
 func (p *InfraForgeProcessor) generateBusinessApplications() error {
 	env := p.request.Spec.Environment
-	
+	log.Printf("DEBUG: generateBusinessApplications called, business apps count: %d\n", len(p.request.Spec.Business))
+
 	for _, app := range p.request.Spec.Business {
+		log.Printf("DEBUG: Processing business app: %s, enabled: %v\n", app.Name, app.Enabled)
 		if !app.Enabled {
 			continue
 		}
-		
+
 		appDir := filepath.Join(p.outputDir, "apps", env, "business-apps", app.Name)
+		log.Printf("DEBUG: Creating app directory: %s\n", appDir)
 		if err := os.MkdirAll(appDir, 0755); err != nil {
 			return err
 		}
-		
-		// For business apps, we only generate values.yaml and Chart.yaml
+
+		// For business apps, we generate Chart.yaml, values.yaml, and templates
+		log.Printf("DEBUG: Calling generateBusinessAppHelm for %s\n", app.Name)
 		if err := p.generateBusinessAppHelm(appDir, app.Name, app.Profile); err != nil {
 			return fmt.Errorf("failed to generate business app %s: %w", app.Name, err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -713,9 +731,154 @@ func (p *InfraForgeProcessor) generateBusinessAppHelm(dir, appName, profile stri
 			},
 		}
 	}
-	
+
 	// Write values.yaml
-	return p.writeYAML(valuesFile, values)
+	if err := p.writeYAML(valuesFile, values); err != nil {
+		return fmt.Errorf("failed to write values.yaml: %w", err)
+	}
+
+	// Create templates directory
+	templatesDir := filepath.Join(dir, "templates")
+	log.Printf("DEBUG: Creating templates directory: %s\n", templatesDir)
+	if err := os.MkdirAll(templatesDir, 0755); err != nil {
+		return fmt.Errorf("failed to create templates directory: %w", err)
+	}
+
+	// Generate Helm templates
+	log.Printf("DEBUG: Generating Helm templates for %s\n", appName)
+	if err := p.generateHelmTemplates(templatesDir, appName); err != nil {
+		return fmt.Errorf("failed to generate helm templates: %w", err)
+	}
+	log.Printf("DEBUG: Successfully generated Helm templates\n")
+
+	return nil
+}
+
+func (p *InfraForgeProcessor) generateHelmTemplates(templatesDir, appName string) error {
+	// Generate Deployment template
+	deploymentTemplate := `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "` + appName + `.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ include "` + appName + `.name" . }}
+    tenant: {{ .Values.tenant }}
+    environment: {{ .Values.environment }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "` + appName + `.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "` + appName + `.name" . }}
+        tenant: {{ .Values.tenant }}
+        environment: {{ .Values.environment }}
+    spec:
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.service.port }}
+          protocol: TCP
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+`
+
+	// Generate Service template
+	serviceTemplate := `apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "` + appName + `.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ include "` + appName + `.name" . }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ include "` + appName + `.name" . }}
+`
+
+	// Generate Ingress template
+	ingressTemplate := `{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "` + appName + `.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ include "` + appName + `.name" . }}
+  {{- if .Values.ingress.className }}
+  annotations:
+    kubernetes.io/ingress.class: {{ .Values.ingress.className }}
+  {{- end }}
+spec:
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "` + appName + `.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+      secretName: {{ include "` + appName + `.fullname" . }}-tls
+  {{- end }}
+{{- end }}
+`
+
+	// Generate _helpers.tpl template
+	helpersTemplate := `{{/*
+Expand the name of the chart.
+*/}}
+{{- define "` + appName + `.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Create a default fully qualified app name.
+*/}}
+{{- define "` + appName + `.fullname" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- printf "%s" $name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+`
+
+	// Write template files
+	templates := map[string]string{
+		"deployment.yaml": deploymentTemplate,
+		"service.yaml":    serviceTemplate,
+		"ingress.yaml":    ingressTemplate,
+		"_helpers.tpl":    helpersTemplate,
+	}
+
+	for filename, content := range templates {
+		filePath := filepath.Join(templatesDir, filename)
+		if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+			return fmt.Errorf("failed to write %s: %w", filename, err)
+		}
+	}
+
+	return nil
 }
 
 
