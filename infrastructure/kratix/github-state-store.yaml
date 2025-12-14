@@ -4,10 +4,6 @@ metadata:
   name: github-store
   namespace: kratix-platform-system
 spec:
-  authMethod: basicAuth
   branch: main
   path: manifests
-  secretRef:
-    name: github-credentials
-    namespace: kratix-platform-system
   url: https://github.com/NimbusProTch/PaaS-Platform.git
