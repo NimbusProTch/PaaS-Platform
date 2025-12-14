@@ -67,11 +67,12 @@ func (tr *TemplateRenderer) RenderOperator(operatorName string, values map[strin
 	return yaml.Marshal(output)
 }
 
-// RenderService renders a service with a specific profile
-func (tr *TemplateRenderer) RenderService(serviceName, profile string, values map[string]interface{}) ([][]byte, error) {
+// RenderService copies Helm chart structure with merged values
+// Returns the chart directory for ArgoCD to deploy as Helm release
+func (tr *TemplateRenderer) RenderService(serviceName, profile string, values map[string]interface{}) (string, map[string]interface{}, error) {
 	catalog, err := tr.catalogLoader.LoadServiceCatalog(serviceName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load service catalog: %w", err)
+		return "", nil, fmt.Errorf("failed to load service catalog: %w", err)
 	}
 
 	// Use default profile if not specified
@@ -83,19 +84,7 @@ func (tr *TemplateRenderer) RenderService(serviceName, profile string, values ma
 
 	// Check if profile directory exists
 	if _, err := os.Stat(serviceDir); os.IsNotExist(err) {
-		return nil, fmt.Errorf("profile %s not found for service %s", profile, serviceName)
-	}
-
-	// Read Chart.yaml
-	chartPath := filepath.Join(serviceDir, "Chart.yaml")
-	chartData, err := os.ReadFile(chartPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read Chart.yaml: %w", err)
-	}
-
-	var chart map[string]interface{}
-	if err := yaml.Unmarshal(chartData, &chart); err != nil {
-		return nil, fmt.Errorf("failed to parse Chart.yaml: %w", err)
+		return "", nil, fmt.Errorf("profile %s not found for service %s", profile, serviceName)
 	}
 
 	// Read values.yaml
@@ -103,23 +92,18 @@ func (tr *TemplateRenderer) RenderService(serviceName, profile string, values ma
 	var profileValues map[string]interface{}
 	valuesData, err := os.ReadFile(valuesPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read values.yaml: %w", err)
+		return "", nil, fmt.Errorf("failed to read values.yaml: %w", err)
 	}
 	if err := yaml.Unmarshal(valuesData, &profileValues); err != nil {
-		return nil, fmt.Errorf("failed to parse values.yaml: %w", err)
+		return "", nil, fmt.Errorf("failed to parse values.yaml: %w", err)
 	}
 
 	// Merge with provided values
 	mergedValues := mergeMaps(profileValues, values)
 
-	// Render templates using Helm
-	templatesDir := filepath.Join(serviceDir, "templates")
-	manifests, err := tr.renderHelmTemplates(templatesDir, chart, mergedValues)
-	if err != nil {
-		return nil, fmt.Errorf("failed to render templates: %w", err)
-	}
-
-	return manifests, nil
+	// Return source directory path and merged values
+	// ArgoCD will deploy this as a Helm chart, NOT raw manifests
+	return serviceDir, mergedValues, nil
 }
 
 // renderHelmTemplates renders Helm templates in a directory

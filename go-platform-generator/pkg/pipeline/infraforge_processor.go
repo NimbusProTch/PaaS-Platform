@@ -488,9 +488,10 @@ func (p *InfraForgeProcessor) generateOperatorInstallation(operatorName string) 
 	return nil
 }
 
-// generatePostgreSQLInstance renders PostgreSQL Cluster CR from templates
+// generatePostgreSQLInstance creates Helm chart structure for PostgreSQL
+// ArgoCD will deploy this as a Helm release (not raw YAML)
 func (p *InfraForgeProcessor) generatePostgreSQLInstance(dir, profile string) error {
-	log.Printf("INFO: Generating PostgreSQL instance with profile: %s\n", profile)
+	log.Printf("INFO: Generating PostgreSQL Helm chart with profile: %s\n", profile)
 
 	// Default to nonprod if no profile specified
 	if profile == "" {
@@ -508,34 +509,54 @@ func (p *InfraForgeProcessor) generatePostgreSQLInstance(dir, profile string) er
 		"environment": p.request.Spec.Environment,
 	}
 
-	// Render PostgreSQL service templates
-	manifests, err := p.templateRenderer.RenderService("postgresql", profile, values)
+	// Get Helm chart source directory and merged values
+	sourceDir, mergedValues, err := p.templateRenderer.RenderService("postgresql", profile, values)
 	if err != nil {
-		return fmt.Errorf("failed to render PostgreSQL templates: %w", err)
+		return fmt.Errorf("failed to prepare PostgreSQL chart: %w", err)
 	}
 
-	// Write each manifest to a separate file
-	for i, manifest := range manifests {
-		// Extract kind from manifest to create meaningful filename
-		var doc map[string]interface{}
-		if err := yaml.Unmarshal(manifest, &doc); err != nil {
-			continue
-		}
-
-		kind, _ := doc["kind"].(string)
-		if kind == "" {
-			kind = "resource"
-		}
-
-		filename := filepath.Join(dir, fmt.Sprintf("%s-%d.yaml", strings.ToLower(kind), i))
-		if err := os.WriteFile(filename, manifest, 0644); err != nil {
-			return fmt.Errorf("failed to write manifest %s: %w", filename, err)
-		}
-
-		log.Printf("INFO: Generated %s\n", filename)
+	// Copy Helm chart structure to output directory
+	// This includes: Chart.yaml, values.yaml, templates/*.yaml
+	if err := copyHelmChart(sourceDir, dir); err != nil {
+		return fmt.Errorf("failed to copy Helm chart: %w", err)
 	}
 
+	// Write merged values.yaml
+	valuesFile := filepath.Join(dir, "values.yaml")
+	valuesData, _ := yaml.Marshal(mergedValues)
+	if err := os.WriteFile(valuesFile, valuesData, 0644); err != nil {
+		return fmt.Errorf("failed to write values.yaml: %w", err)
+	}
+
+	log.Printf("INFO: Created Helm chart structure at %s (ArgoCD will deploy as Helm release)\n", dir)
 	return nil
+}
+
+// copyHelmChart recursively copies Helm chart directory
+func copyHelmChart(src, dst string) error {
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		relPath, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+
+		targetPath := filepath.Join(dst, relPath)
+
+		if info.IsDir() {
+			return os.MkdirAll(targetPath, 0755)
+		}
+
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		return os.WriteFile(targetPath, data, 0644)
+	})
 }
 
 func (p *InfraForgeProcessor) generatePlatformServices() error {
