@@ -16,7 +16,7 @@ FULL_IMAGE := $(DOCKER_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 
 # Component versions (configurable)
 CERT_MANAGER_VERSION ?= v1.14.5
-KRATIX_VERSION ?= latest
+KRATIX_VERSION ?= v0.89.0
 ARGOCD_VERSION ?= v2.10.0
 
 # Check if local secret files exist, if not create from templates
@@ -117,8 +117,8 @@ install-base: ## Install cert-manager and Kratix for InfraForge
 	@kubectl wait --for=condition=available --timeout=$(WAIT_TIMEOUT) -n cert-manager deployment --all
 	@echo "${GREEN}✅ cert-manager installed${NC}"
 	
-	@echo "Installing Kratix..."
-	@kubectl apply -f https://github.com/syntasso/kratix/releases/$(KRATIX_VERSION)/download/kratix.yaml
+	@echo "Installing Kratix $(KRATIX_VERSION)..."
+	@kubectl apply -f https://github.com/syntasso/kratix/releases/download/$(KRATIX_VERSION)/kratix.yaml
 	@kubectl wait --for=condition=available --timeout=$(WAIT_TIMEOUT) -n $(KRATIX_NAMESPACE) deployment --all
 	@echo "${GREEN}✅ Kratix installed${NC}"
 	

@@ -166,6 +166,6 @@ spec:
             - name: KRATIX_WORKFLOW_TYPE
               value: "resource"
             - name: GIT_REPO_URL
-              value: "https://github.com/gaskin1/PaaS-Platform.git"
+              value: "https://github.com/NimbusProTch/PaaS-Platform.git"
             - name: GIT_BRANCH
               value: "main"

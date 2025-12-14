@@ -10,7 +10,7 @@ metadata:
     argocd.argoproj.io/secret-type: repository
 stringData:
   type: git
-  url: https://github.com/gaskin1/PaaS-Platform.git
+  url: https://github.com/NimbusProTch/PaaS-Platform.git
   username: ${GITHUB_USERNAME}
   password: ${GITHUB_TOKEN}
 ---
@@ -37,7 +37,7 @@ metadata:
 spec:
   description: InfraForge Development Environment
   sourceRepos:
-  - 'https://github.com/gaskin1/PaaS-Platform.git'
+  - 'https://github.com/NimbusProTch/PaaS-Platform.git'
   - 'https://charts.bitnami.com/bitnami'
   - 'https://mongodb.github.io/helm-charts'
   destinations:
@@ -67,7 +67,7 @@ metadata:
 spec:
   description: InfraForge Staging Environment
   sourceRepos:
-  - 'https://github.com/gaskin1/PaaS-Platform.git'
+  - 'https://github.com/NimbusProTch/PaaS-Platform.git'
   - 'https://charts.bitnami.com/bitnami'
   - 'https://mongodb.github.io/helm-charts'
   destinations:
@@ -91,7 +91,7 @@ metadata:
 spec:
   description: InfraForge Production Environment
   sourceRepos:
-  - 'https://github.com/gaskin1/PaaS-Platform.git'
+  - 'https://github.com/NimbusProTch/PaaS-Platform.git'
   - 'https://charts.bitnami.com/bitnami'
   - 'https://mongodb.github.io/helm-charts'
   destinations:

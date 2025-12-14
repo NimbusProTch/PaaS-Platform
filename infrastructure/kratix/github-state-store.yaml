@@ -8,4 +8,4 @@ spec:
   path: manifests
   secretRef:
     name: github-credentials
-  url: https://github.com/gaskin1/PaaS-Platform.git
+  url: https://github.com/NimbusProTch/PaaS-Platform.git

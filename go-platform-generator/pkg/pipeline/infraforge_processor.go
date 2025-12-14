@@ -46,7 +46,7 @@ func NewInfraForgeProcessor(request *InfraForgeRequest, outputDir string) *Infra
 	// Get Git configuration from environment or use defaults
 	gitRepoURL := os.Getenv("GIT_REPO_URL")
 	if gitRepoURL == "" {
-		gitRepoURL = "https://github.com/gaskin1/PaaS-Platform.git"
+		gitRepoURL = "https://github.com/NimbusProTch/PaaS-Platform.git"
 	}
 
 	gitBranch := os.Getenv("GIT_BRANCH")

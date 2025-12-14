@@ -10,7 +10,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/gaskin1/PaaS-Platform.git
+    repoURL: https://github.com/NimbusProTch/PaaS-Platform.git
     targetRevision: main
     path: manifests/appsets/dev
     directory:
