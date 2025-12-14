@@ -158,7 +158,7 @@ install-platform: check-secrets ## Install InfraForge platform components
 	@envsubst < infrastructure/argocd/argocd-setup.yaml | kubectl apply -f -
 	
 	@echo "Creating GitHub credentials..."
-	@kubectl apply -f infrastructure/kratix/github-credentials-fixed.yaml
+	@kubectl apply -f infrastructure/kratix/github-credentials.yaml
 	
 	@echo "Applying Kratix RBAC patch for InfraForge..."
 	@kubectl apply -f infrastructure/kratix/kratix-rbac-patch.yaml
@@ -170,7 +170,7 @@ install-platform: check-secrets ## Install InfraForge platform components
 	@kubectl apply -f infrastructure/kratix/destination.yaml
 	
 	@echo "Setting up InfraForge Promise..."
-	@kubectl apply -f infrastructure/kratix/infraforge-promise-new.yaml
+	@kubectl apply -f infrastructure/kratix/infraforge-promise.yaml
 	
 	@echo "Setting up NonProd Root Application..."
 	@kubectl apply -f infrastructure/argocd/nonprod-root.yaml
