@@ -1,0 +1,114 @@
+apiVersion: platform.kratix.io/v1alpha1
+kind: Promise
+metadata:
+  name: platform-stack
+  labels:
+    type: platform
+spec:
+  api:
+    apiVersion: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    metadata:
+      name: paasplatforms.platform.example.com
+    spec:
+      group: platform.example.com
+      names:
+        plural: paasplatforms
+        singular: paasplatform
+        kind: PaaSPlatform
+        shortNames:
+        - ps
+        - stack
+      scope: Namespaced
+      versions:
+      - name: v1
+        served: true
+        storage: true
+        schema:
+          openAPIV3Schema:
+            type: object
+            properties:
+              spec:
+                type: object
+                properties:
+                  tenant:
+                    type: string
+                    description: Tenant name
+                  environment:
+                    type: string
+                    description: Environment (dev, staging, prod)
+                    default: dev
+                  components:
+                    type: object
+                    description: Platform components to enable
+                    properties:
+                      redis:
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            default: false
+                          version:
+                            type: string
+                            default: "17.11.3"
+                          values:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                      nginx:
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            default: false
+                          version:
+                            type: string
+                            default: "15.1.0"
+                          values:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                      postgresql:
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            default: false
+                          version:
+                            type: string
+                            default: "15.5.10"
+                          values:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                      keycloak:
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            default: false
+                          version:
+                            type: string
+                            default: "21.4.1"
+                          values:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                required:
+                - tenant
+                - components
+  workflows:
+    resource:
+      configure:
+      - apiVersion: platform.kratix.io/v1alpha1
+        kind: Pipeline
+        metadata:
+          name: platform-configure
+        spec:
+          containers:
+          - name: generate-manifests
+            image: ghcr.io/gaskin/platform-generator:latest
+            imagePullPolicy: IfNotPresent
+            command: ["/app/generator"]
+            args:
+            - pipeline
+            - --input
+            - /kratix/input/object.yaml
+            - --output
+            - /kratix/output

@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: minio-to-git-sync
+  namespace: kratix-platform-system
+spec:
+  schedule: "*/2 * * * *"  # Her 2 dakikada bir
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: sync
+            image: alpine/git:latest
+            env:
+            - name: GIT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: git-credentials
+                  key: password
+            command:
+            - /bin/sh
+            - -c
+            - |
+              apk add --no-cache curl
+              git config --global user.email "kratix@paas-platform.com"
+              git config --global user.name "Kratix Platform"
+              
+              # Clone repo
+              git clone https://gaskin1:${GIT_TOKEN}@github.com/gaskin1/PaaS-Platform.git /tmp/repo
+              cd /tmp/repo
+              git checkout kratix-manifests || git checkout -b kratix-manifests
+              
+              # Download from MinIO
+              curl -s http://minio:9000/kratix/platform-gitstore/ | grep -o 'href="[^"]*"' | cut -d'"' -f2 | grep -v "^/$" | while read path; do
+                mkdir -p $(dirname "/tmp/repo/argocd/platform/kratix-claims/$path")
+                curl -s "http://minio:9000/kratix/platform-gitstore/$path" > "/tmp/repo/argocd/platform/kratix-claims/$path"
+              done
+              
+              # Commit and push
+              git add -A
+              if git diff --staged --quiet; then
+                echo "No changes to commit"
+              else
+                git commit -m "Auto-sync from MinIO $(date +%Y-%m-%d_%H:%M:%S)"
+                git push origin kratix-manifests
+              fi
+          restartPolicy: OnFailure

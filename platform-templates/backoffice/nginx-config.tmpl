@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .AppName }}-nginx-config
+  namespace: {{ .Namespace }}
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name _;
+        root /usr/share/nginx/html;
+        
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+        
+        location /api/health {
+            return 200 '{"status":"healthy","app":"{{ .AppName }}","tenant":"{{ .Tenant }}","environment":"{{ .Environment }}"}';
+            add_header Content-Type application/json;
+        }
+        
+        location /api/info {
+            return 200 '{"name":"InfraForge Backoffice","version":"1.0.0","profile":"{{ .Profile }}"}';
+            add_header Content-Type application/json;
+        }
+    }

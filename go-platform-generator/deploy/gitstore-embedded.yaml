@@ -1,0 +1,16 @@
+apiVersion: platform.kratix.io/v1alpha1
+kind: GitStateStore
+metadata:
+  name: platform-gitstore-token
+  namespace: kratix-platform-system
+spec:
+  authMethod: basicAuth
+  secretRef:
+    name: git-token-secret
+    namespace: kratix-platform-system
+  url: https://github.com/gaskin1/PaaS-Platform.git
+  branch: kratix-manifests
+  path: argocd/platform/kratix-claims
+  gitAuthor:
+    name: Kratix Platform
+    email: kratix@paas-platform.com

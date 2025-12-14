@@ -1,0 +1,28 @@
+apiVersion: platform.example.com/v1
+kind: PaaSPlatform
+metadata:
+  name: demo-team-dev
+  namespace: default
+spec:
+  tenant: demo-team
+  environment: dev
+  components:
+    redis:
+      enabled: true
+      version: "17.11.3"
+      values:
+        replica:
+          replicaCount: 0
+    nginx:
+      enabled: true
+      version: "15.1.0"
+      values:
+        replicaCount: 2
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+    postgresql:
+      enabled: false
+    keycloak:
+      enabled: false

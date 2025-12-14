@@ -1,0 +1,22 @@
+name: postgresql
+displayName: PostgreSQL Database
+description: Open source object-relational database
+category: platform
+type: helm
+helm:
+  repository: https://charts.bitnami.com/bitnami
+  chart: postgresql
+  version: 15.5.10
+parameters:
+  - name: storageSize
+    type: string
+    default: 10Gi
+    description: Storage size for PostgreSQL
+  - name: database
+    type: string
+    default: myapp
+    description: Default database name
+  - name: username
+    type: string
+    default: postgres
+    description: Database username

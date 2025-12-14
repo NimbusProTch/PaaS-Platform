@@ -1,0 +1,80 @@
+# CloudNativePG Production Profile
+# 5 instances, continuous backup, enhanced monitoring
+instances: 5
+postgresql:
+  parameters:
+    max_connections: "500"
+    shared_buffers: "2GB"
+    effective_cache_size: "6GB"
+    work_mem: "16MB"
+    maintenance_work_mem: "512MB"
+    checkpoint_completion_target: "0.9"
+    wal_buffers: "32MB"
+    random_page_cost: "1.1"  # SSD optimized
+    effective_io_concurrency: "200"
+    # Performance tuning
+    wal_compression: "on"
+    max_wal_size: "4GB"
+    min_wal_size: "1GB"
+    
+resources:
+  requests:
+    memory: "4Gi"
+    cpu: "2"
+  limits:
+    memory: "8Gi"
+    cpu: "4"
+
+storage:
+  size: 200Gi
+  storageClass: ultra-ssd
+
+backup:
+  enabled: true
+  retentionPolicy: "30d"
+  # Continuous WAL archiving
+  schedule: "*/15 * * * *"  # Every 15 minutes
+  volumeSnapshot:
+    enabled: false
+  s3:
+    bucketName: "cnpg-backups"
+    path: "/${TENANT}/${ENVIRONMENT}/${SERVICE_NAME}"
+    endpointURL: "http://minio.minio-system.svc.cluster.local:9000"
+    s3CredentialsSecret: "cnpg-s3-credentials"
+
+monitoring:
+  enabled: true
+  customQueriesConfigMap:
+  - name: pg-stats-queries
+    key: queries
+  - name: pg-replication-queries
+    key: replication
+
+# High Availability & Performance
+primaryUpdateStrategy: unsupervised
+nodeMaintenanceWindow:
+  inProgress: false
+  reusePVC: true
+
+# Pod Anti-Affinity for HA
+affinity:
+  enablePodAntiAffinity: true
+  topologyKey: kubernetes.io/hostname
+  podAntiAffinityType: required
+
+# Enhanced security
+enableSuperuserAccess: false
+certificates:
+  mode: verify-full
+  serverTLSSecret: "${SERVICE_NAME}-server-cert"
+  clientCASecret: "${SERVICE_NAME}-client-ca"
+  
+# Connection pooling
+pooler:
+  enabled: true
+  instances: 3
+  type: pgbouncer
+  poolMode: transaction
+  parameters:
+    max_client_conn: "1000"
+    default_pool_size: "25"

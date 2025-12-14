@@ -1,0 +1,22 @@
+name: keycloak
+displayName: Keycloak Identity Provider
+description: Open source identity and access management solution
+category: platform
+type: helm
+helm:
+  repository: https://charts.bitnami.com/bitnami
+  chart: keycloak
+  version: 21.4.1
+parameters:
+  - name: adminUser
+    type: string
+    default: admin
+    description: Keycloak admin username
+  - name: adminPassword
+    type: string
+    default: admin123
+    description: Keycloak admin password
+  - name: database
+    type: string
+    default: postgresql
+    description: Database backend (postgresql or mysql)

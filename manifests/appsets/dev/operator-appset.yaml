@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: dev-operator-appset
+  namespace: infraforge-argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/gaskin1/PaaS-Platform.git
+        revision: feature/clean-platform
+        files:
+          - path: "manifests/operators/dev/*/*.yaml"
+  template:
+    metadata:
+      name: 'dev-operator-{{path[1]}}'
+      namespace: infraforge-argocd
+    spec:
+      project: infraforge-dev
+      source:
+        repoURL: https://github.com/gaskin1/PaaS-Platform.git
+        targetRevision: feature/clean-platform
+        path: '{{path.path | dir}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'infraforge-operators'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

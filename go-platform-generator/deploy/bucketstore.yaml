@@ -1,0 +1,13 @@
+apiVersion: platform.kratix.io/v1alpha1
+kind: BucketStateStore
+metadata:
+  name: platform-bucket
+  namespace: kratix-platform-system
+spec:
+  endpoint: minio.kratix-platform-system.svc.cluster.local
+  insecure: true
+  bucketName: kratix
+  authMethod: accessKey
+  secretRef:
+    name: minio-credentials
+    namespace: kratix-platform-system

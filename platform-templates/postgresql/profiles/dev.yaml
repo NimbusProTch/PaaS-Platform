@@ -1,0 +1,29 @@
+# CloudNativePG Dev Profile
+# Single instance, no HA, minimal resources
+instances: 1
+postgresql:
+  parameters:
+    max_connections: "100"
+    shared_buffers: "128MB"
+    effective_cache_size: "512MB"
+    work_mem: "4MB"
+    
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+storage:
+  size: 10Gi
+  storageClass: standard
+
+backup:
+  enabled: false
+
+monitoring:
+  enabled: true
+  # Basic monitoring only
+  customQueriesConfigMap: []

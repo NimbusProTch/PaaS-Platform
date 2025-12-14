@@ -1,0 +1,113 @@
+# ArgoCD Setup - Repository, RBAC, Projects
+---
+# 1. Repository Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-repo
+  namespace: infraforge-argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  type: git
+  url: https://github.com/gaskin1/PaaS-Platform.git
+  username: ${GITHUB_USERNAME}
+  password: ${GITHUB_TOKEN}
+---
+# 2. ArgoCD Cluster Admin Permission
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argocd-cluster-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: argocd-application-controller
+  namespace: infraforge-argocd
+---
+# 3. InfraForge Dev Project
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: infraforge-dev
+  namespace: infraforge-argocd
+spec:
+  description: InfraForge Development Environment
+  sourceRepos:
+  - 'https://github.com/gaskin1/PaaS-Platform.git'
+  - 'https://charts.bitnami.com/bitnami'
+  - 'https://mongodb.github.io/helm-charts'
+  destinations:
+  - namespace: 'demo-*'
+    server: https://kubernetes.default.svc
+  - namespace: 'operators'
+    server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+  - group: ''
+    kind: Namespace
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  roles:
+  - name: admin
+    policies:
+    - p, proj:infraforge-dev:admin, applications, *, infraforge-dev/*, allow
+    groups:
+    - infraforge:admins
+---
+# 4. InfraForge Staging Project
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: infraforge-staging
+  namespace: infraforge-argocd
+spec:
+  description: InfraForge Staging Environment
+  sourceRepos:
+  - 'https://github.com/gaskin1/PaaS-Platform.git'
+  - 'https://charts.bitnami.com/bitnami'
+  - 'https://mongodb.github.io/helm-charts'
+  destinations:
+  - namespace: '*-staging'
+    server: https://kubernetes.default.svc
+  - namespace: 'operators'
+    server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+  - group: ''
+    kind: Namespace
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
+---
+# 5. InfraForge Production Project
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: infraforge-prod
+  namespace: infraforge-argocd
+spec:
+  description: InfraForge Production Environment
+  sourceRepos:
+  - 'https://github.com/gaskin1/PaaS-Platform.git'
+  - 'https://charts.bitnami.com/bitnami'
+  - 'https://mongodb.github.io/helm-charts'
+  destinations:
+  - namespace: '*-prod'
+    server: https://kubernetes.default.svc
+  - namespace: 'operators'
+    server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+  - group: ''
+    kind: Namespace
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  syncWindows:
+  - kind: allow
+    schedule: '0 6 * * 1-5'  # Only allow sync on weekdays 6am
+    duration: 8h
+    applications:
+    - '*'

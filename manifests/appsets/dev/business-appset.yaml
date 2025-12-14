@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: dev-business-appset
+  namespace: infraforge-argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/gaskin1/PaaS-Platform.git
+        revision: feature/clean-platform
+        files:
+          - path: "manifests/apps/dev/business-apps/*/values.yaml"
+  template:
+    metadata:
+      name: 'dev-business-{{path.basename}}'
+      namespace: infraforge-argocd
+    spec:
+      project: infraforge-dev
+      source:
+        repoURL: https://github.com/gaskin1/PaaS-Platform.git
+        targetRevision: feature/clean-platform
+        path: '{{path.path | dir}}'
+        helm:
+          valueFiles:
+            - values.yaml
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'finance-dev'  # This should be dynamic based on tenant
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

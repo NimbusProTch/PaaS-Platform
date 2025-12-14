@@ -1,0 +1,34 @@
+injector:
+  enabled: true
+  replicas: 3
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 200m
+    limits:
+      memory: 512Mi
+      cpu: 400m
+
+server:
+  ha:
+    enabled: true
+    replicas: 5
+    raft:
+      enabled: true
+  
+  standalone:
+    enabled: false
+  
+  dataStorage:
+    size: 10Gi
+  
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 500m
+    limits:
+      memory: 1Gi
+      cpu: 1000m
+  
+  ingress:
+    enabled: true

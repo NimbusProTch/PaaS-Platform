@@ -1,0 +1,11 @@
+apiVersion: platform.kratix.io/v1alpha1
+kind: GitStateStore
+metadata:
+  name: github-store
+spec:
+  authMethod: basicAuth
+  branch: main
+  path: manifests
+  secretRef:
+    name: github-credentials
+  url: https://github.com/gaskin1/PaaS-Platform.git
