@@ -10,6 +10,7 @@ spec:
           - path: manifests/platform-cluster/operators/dev/*
         repoURL: https://github.com/NimbusProTch/PaaS-Platform.git
         revision: main
+  goTemplate: true
   template:
     metadata:
       name: dev-operator-{{.path.basename}}
