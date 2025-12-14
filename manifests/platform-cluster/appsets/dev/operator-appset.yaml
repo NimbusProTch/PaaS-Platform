@@ -12,7 +12,7 @@ spec:
         revision: main
   template:
     metadata:
-      name: dev-operator-{{.path.basenameNormalized}}
+      name: dev-operator-{{.path.basename}}
       namespace: infraforge-argocd
     spec:
       destination:
