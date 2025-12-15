@@ -1,9 +1,9 @@
 apiVersion: platform.kratix.io/v1alpha1
 kind: Work
 metadata:
-  name: demo-prod
+  name: demo-dev
   namespace: kratix-platform-system
 spec:
-  environment: prod
-  generated: "2025-12-15T07:49:34Z"
+  environment: dev
+  generated: "2025-12-15T08:32:39Z"
   tenant: demo
