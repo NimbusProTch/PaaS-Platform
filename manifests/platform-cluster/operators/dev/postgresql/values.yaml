@@ -1,0 +1,26 @@
+backup:
+  enabled: false
+clusterName: demo-postgres
+environment: dev
+instances: 1
+monitoring:
+  customQueriesConfigMap: []
+  enabled: true
+namespace: demo-dev
+postgresql:
+  parameters:
+    effective_cache_size: 512MB
+    max_connections: "100"
+    shared_buffers: 128MB
+    work_mem: 4MB
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+storage:
+  size: 10Gi
+  storageClass: standard
+tenant: demo

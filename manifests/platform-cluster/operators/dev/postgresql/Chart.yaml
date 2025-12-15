@@ -1,0 +1,16 @@
+apiVersion: v2
+name: postgresql-nonprod
+description: PostgreSQL cluster for non-production environments
+version: 1.0.0
+appVersion: "16.1"
+type: application
+
+keywords:
+  - postgresql
+  - database
+  - sql
+  - cloudnativepg
+
+maintainers:
+  - name: InfraForge Platform Team
+    email: platform@infraforge.io

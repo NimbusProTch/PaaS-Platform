@@ -5,5 +5,5 @@ metadata:
   namespace: kratix-platform-system
 spec:
   environment: dev
-  generated: "2025-12-15T07:18:58Z"
+  generated: "2025-12-15T07:25:05Z"
   tenant: demo

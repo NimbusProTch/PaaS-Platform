@@ -1,0 +1,46 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Values.clusterName }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: postgresql
+    tenant: {{ .Values.tenant }}
+    environment: {{ .Values.environment }}
+    profile: nonprod
+    managed-by: infraforge
+spec:
+  instances: {{ .Values.replicas }}
+  
+  imageName: ghcr.io/cloudnative-pg/postgresql:{{ .Values.postgresVersion }}
+  
+  bootstrap:
+    initdb:
+      database: {{ .Values.bootstrap.initdb.database }}
+      owner: {{ .Values.bootstrap.initdb.owner }}
+  
+  storage:
+    size: {{ .Values.storage.size }}
+    {{- if .Values.storage.storageClass }}
+    storageClass: {{ .Values.storage.storageClass }}
+    {{- end }}
+  
+  resources:
+    requests:
+      cpu: {{ .Values.resources.requests.cpu }}
+      memory: {{ .Values.resources.requests.memory }}
+    limits:
+      cpu: {{ .Values.resources.limits.cpu }}
+      memory: {{ .Values.resources.limits.memory }}
+  
+  postgresql:
+    parameters:
+      {{- range $key, $value := .Values.postgresql.parameters }}
+      {{ $key }}: "{{ $value }}"
+      {{- end }}
+  
+  monitoring:
+    enabled: {{ .Values.monitoring.enabled }}
+  
+  superuserSecret:
+    name: {{ .Values.clusterName }}-superuser
