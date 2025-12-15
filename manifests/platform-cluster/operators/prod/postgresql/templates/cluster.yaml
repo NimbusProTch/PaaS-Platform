@@ -74,9 +74,6 @@ spec:
       - sourceLabels: [cluster]
         targetLabel: cnpg_cluster
         action: replace
-    customQueriesConfigMap:
-      - name: {{ .Values.clusterName }}-monitoring-queries
-        key: custom-queries.yaml
     {{- end }}
 
   # Backup to S3/MinIO
