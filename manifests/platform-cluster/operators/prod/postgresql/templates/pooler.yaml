@@ -1,0 +1,52 @@
+{{- if .Values.pooler.enabled }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: {{ .Values.clusterName }}-pooler
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: postgresql-pooler
+    tenant: {{ .Values.tenant }}
+    environment: {{ .Values.environment }}
+    managed-by: infraforge
+spec:
+  # Reference to PostgreSQL cluster
+  cluster:
+    name: {{ .Values.clusterName }}
+
+  # Number of pooler instances
+  instances: {{ .Values.pooler.replicas }}
+
+  # Pooler type (rw = read-write, ro = read-only)
+  type: {{ .Values.pooler.type }}
+
+  # PgBouncer configuration
+  pgbouncer:
+    poolMode: {{ .Values.pooler.pgbouncer.poolMode }}
+    parameters:
+      {{- range $key, $value := .Values.pooler.pgbouncer.parameters }}
+      {{ $key }}: "{{ $value }}"
+      {{- end }}
+
+  # Pooler deployment template
+  template:
+    metadata:
+      labels:
+        app: pgbouncer
+        cluster: {{ .Values.clusterName }}
+    spec:
+      containers:
+        - name: pgbouncer
+          resources:
+            requests:
+              cpu: {{ .Values.pooler.resources.requests.cpu }}
+              memory: {{ .Values.pooler.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.pooler.resources.limits.cpu }}
+              memory: {{ .Values.pooler.resources.limits.memory }}
+
+  # Monitoring
+  monitoring:
+    enabled: true
+    podMonitorEnabled: true
+{{- end }}

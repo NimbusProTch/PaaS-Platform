@@ -1,0 +1,140 @@
+# PostgreSQL Production Configuration
+# Production-ready settings with HA, backup, and connection pooling
+
+# Cluster naming
+clusterName: demo-postgresql
+namespace: demo-prod
+
+# PostgreSQL version
+postgresVersion: "16.1"
+
+# Tenant and environment (will be injected by generator)
+tenant: demo
+environment: prod
+
+# High Availability - 3 instances minimum
+replicas: 3
+
+# Storage configuration (production SSD)
+storage:
+  size: "100Gi"
+  storageClass: "standard"  # Will be overridden based on cloud provider
+
+# Resource limits (production - high performance)
+resources:
+  requests:
+    cpu: "2000m"
+    memory: "4Gi"
+  limits:
+    cpu: "4000m"
+    memory: "8Gi"
+
+# PostgreSQL parameters (production-tuned)
+postgresql:
+  parameters:
+    # Connection settings
+    max_connections: "500"
+
+    # Memory settings (optimized for 4Gi+ RAM)
+    shared_buffers: "2GB"
+    effective_cache_size: "6GB"
+    maintenance_work_mem: "512MB"
+    work_mem: "10MB"
+
+    # WAL settings
+    wal_buffers: "16MB"
+    min_wal_size: "2GB"
+    max_wal_size: "8GB"
+    wal_level: "replica"
+
+    # Checkpoint settings
+    checkpoint_completion_target: "0.9"
+    checkpoint_timeout: "15min"
+
+    # Query planner
+    default_statistics_target: "100"
+    random_page_cost: "1.1"  # For SSD
+    effective_io_concurrency: "200"
+
+    # Logging
+    log_min_duration_statement: "1000"  # Log slow queries > 1s
+    log_line_prefix: "%t [%p]: user=%u,db=%d,app=%a,client=%h "
+
+    # Autovacuum (aggressive for production)
+    autovacuum_max_workers: "4"
+    autovacuum_naptime: "10s"
+
+# Bootstrap configuration
+bootstrap:
+  initdb:
+    database: app
+    owner: app
+
+# High Availability configuration
+highAvailability:
+  enabled: true
+  primaryUpdateStrategy: unsupervised
+
+  # Pod anti-affinity (spread across nodes)
+  affinity:
+    topologyKey: kubernetes.io/hostname
+    podAntiAffinityType: required
+
+  # Enable synchronous replication
+  synchronousReplication:
+    enabled: true
+    number: 1  # At least 1 synchronous replica
+
+# Backup (disabled by default - requires S3/MinIO setup)
+backup:
+  enabled: false
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: "30d"
+
+  # S3-compatible storage (MinIO or AWS S3)
+  barmanObjectStore:
+    destinationPath: "s3://postgresql-backups/cluster"
+    endpointURL: ""  # MinIO endpoint (if using MinIO)
+    s3Credentials:
+      secretName: "postgresql-backup-credentials"
+      accessKeyId: "ACCESS_KEY_ID"
+      secretAccessKey: "SECRET_ACCESS_KEY"
+    wal:
+      compression: gzip
+      maxParallel: 2
+    data:
+      compression: gzip
+      jobs: 2
+
+# Connection Pooler (PgBouncer) - disabled by default
+pooler:
+  enabled: false
+  replicas: 3
+  type: rw  # read-write pooler
+
+  # PgBouncer configuration
+  pgbouncer:
+    poolMode: transaction  # or session
+    parameters:
+      max_client_conn: "1000"
+      default_pool_size: "25"
+      min_pool_size: "10"
+      reserve_pool_size: "5"
+      reserve_pool_timeout: "3"
+      max_db_connections: "100"
+      max_user_connections: "100"
+
+  # Pooler resource limits
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+
+# Monitoring (full production monitoring)
+monitoring:
+  enabled: true
+  prometheusRule:
+    enabled: false  # Requires Prometheus Operator
