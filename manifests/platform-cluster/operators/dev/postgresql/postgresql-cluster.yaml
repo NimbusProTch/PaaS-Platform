@@ -2,11 +2,11 @@ apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   labels:
-    environment: prod
+    environment: dev
     managed-by: infraforge
     tenant: demo
   name: demo-postgres
-  namespace: demo-prod
+  namespace: demo-dev
 spec:
   bootstrap:
     initdb:
