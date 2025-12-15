@@ -1,0 +1,13 @@
+apiVersion: v2
+name: redis-prod
+description: Production-grade Redis cluster with HA
+version: 1.0.0
+appVersion: "7.2"
+type: application
+keywords:
+  - redis
+  - cache
+  - database
+  - high-availability
+maintainers:
+  - name: InfraForge Platform Team

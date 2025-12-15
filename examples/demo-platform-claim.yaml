@@ -1,0 +1,24 @@
+apiVersion: platform.infraforge.io/v1
+kind: InfraForge
+metadata:
+  name: demo-platform
+  namespace: default
+spec:
+  tenant: demo
+  environment: dev
+  operators:
+    - name: postgresql
+      enabled: true
+      profile: nonprod
+    - name: rabbitmq
+      enabled: true
+      profile: nonprod
+    - name: redis
+      enabled: true
+      profile: nonprod
+    - name: minio
+      enabled: true
+      profile: nonprod
+    - name: vault
+      enabled: true
+      profile: nonprod

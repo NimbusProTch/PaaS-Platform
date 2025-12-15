@@ -1,0 +1,15 @@
+apiVersion: v2
+name: redis-nonprod
+description: Redis cluster for non-production environments
+version: 1.0.0
+appVersion: "7.2"
+type: application
+
+keywords:
+  - redis
+  - cache
+  - database
+
+maintainers:
+  - name: InfraForge Platform Team
+    email: platform@infraforge.io

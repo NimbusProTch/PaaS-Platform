@@ -1,0 +1,78 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: {{ .Values.clusterName }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: rabbitmq
+    tenant: {{ .Values.tenant }}
+    environment: {{ .Values.environment }}
+    profile: prod
+    managed-by: infraforge
+spec:
+  # High Availability - 3 replicas
+  replicas: {{ .Values.replicas }}
+
+  # RabbitMQ image
+  image: rabbitmq:{{ .Values.rabbitmqVersion }}-management
+
+  # Service configuration
+  service:
+    type: {{ .Values.service.type }}
+
+  # Persistence configuration (production SSD)
+  persistence:
+    storageClassName: {{ .Values.storage.storageClass }}
+    storage: {{ .Values.storage.size }}
+
+  # Resource limits (production-grade)
+  resources:
+    requests:
+      cpu: {{ .Values.resources.requests.cpu }}
+      memory: {{ .Values.resources.requests.memory }}
+    limits:
+      cpu: {{ .Values.resources.limits.cpu }}
+      memory: {{ .Values.resources.limits.memory }}
+
+  # RabbitMQ configuration (production-tuned)
+  rabbitmq:
+    # Additional plugins
+    additionalPlugins: {{- toYaml .Values.rabbitmq.additionalPlugins | nindent 6 }}
+
+    # Additional configuration
+    additionalConfig: |
+{{- .Values.rabbitmq.additionalConfig | nindent 6 }}
+
+  {{- if .Values.highAvailability.enabled }}
+  # Pod anti-affinity (spread across nodes for resilience)
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - {{ .Values.clusterName }}
+          topologyKey: {{ .Values.highAvailability.affinity.topologyKey }}
+  {{- end }}
+
+  # Override default container settings
+  override:
+    statefulSet:
+      spec:
+        template:
+          spec:
+            containers:
+              - name: rabbitmq
+                env:
+                  - name: RABBITMQ_DEFAULT_USER
+                    valueFrom:
+                      secretKeyRef:
+                        name: {{ .Values.clusterName }}-default-user
+                        key: username
+                  - name: RABBITMQ_DEFAULT_PASS
+                    valueFrom:
+                      secretKeyRef:
+                        name: {{ .Values.clusterName }}-default-user
+                        key: password
