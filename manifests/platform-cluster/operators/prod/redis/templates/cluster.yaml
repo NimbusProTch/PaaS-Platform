@@ -1,5 +1,5 @@
-apiVersion: redis.redis.opstreelabs.in/v1beta1
-kind: RedisCluster
+apiVersion: redis.redis.opstreelabs.in/v1beta2
+kind: Redis
 metadata:
   name: {{ .Values.clusterName }}
   namespace: {{ .Values.namespace }}
@@ -10,7 +10,6 @@ metadata:
     profile: prod
     managed-by: infraforge
 spec:
-  clusterSize: {{ .Values.replicas }}
   kubernetesConfig:
     image: redis:{{ .Values.redisVersion }}
     imagePullPolicy: IfNotPresent

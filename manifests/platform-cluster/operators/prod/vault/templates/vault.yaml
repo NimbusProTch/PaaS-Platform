@@ -7,7 +7,7 @@ data:
   vault.hcl: |
     ui = true
     listener "tcp" {
-      address = "0.0.0.0:8200"
+      address = "0.0.0.0:8400"
       tls_disable = 1
     }
     storage "raft" {
@@ -49,7 +49,7 @@ spec:
         - name: vault
           image: hashicorp/vault:1.15.0
           ports:
-            - containerPort: 8200
+            - containerPort: 8400
               name: vault
             - containerPort: 8201
               name: cluster
@@ -59,7 +59,7 @@ spec:
                 fieldRef:
                   fieldPath: status.podIP
             - name: VAULT_ADDR
-              value: "http://127.0.0.1:8200"
+              value: "http://127.0.0.1:8400"
           volumeMounts:
             - name: vault-data
               mountPath: /vault/data
@@ -89,8 +89,8 @@ spec:
   selector:
     app: vault
   ports:
-    - port: 8200
-      targetPort: 8200
+    - port: 8400
+      targetPort: 8400
       name: vault
     - port: 8201
       targetPort: 8201

@@ -30,8 +30,10 @@ spec:
     initdb:
       database: {{ .Values.bootstrap.initdb.database }}
       owner: {{ .Values.bootstrap.initdb.owner }}
-      secret:
-        name: {{ .Values.clusterName }}-app-user
+      dataChecksums: true
+      encoding: UTF8
+      localeCollate: en_US.utf8
+      localeCType: en_US.utf8
 
   # Storage configuration (production SSD)
   storage:

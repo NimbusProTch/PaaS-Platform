@@ -70,6 +70,6 @@ pooler:
 
 # Monitoring (basic)
 monitoring:
-  enabled: true
+  enabled: false
   prometheusRule:
     enabled: false
