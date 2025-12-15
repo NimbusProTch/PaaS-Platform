@@ -1,0 +1,22 @@
+# Vault Production Configuration
+clusterName: vault
+namespace: default
+tenant: demo
+environment: prod
+
+replicas: 3
+
+storage:
+  size: "10Gi"
+  storageClass: "standard"
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"
+
+ui:
+  enabled: true

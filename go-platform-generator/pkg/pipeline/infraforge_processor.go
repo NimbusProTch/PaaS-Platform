@@ -388,59 +388,73 @@ func (p *InfraForgeProcessor) buildSourceConfig(appType, env string) map[string]
 func (p *InfraForgeProcessor) generateOperators() error {
 	env := p.request.Spec.Environment
 
-	// Track which operator installations we need
-	operatorsNeeded := make(map[string]bool)
-
-	// Determine which operators are needed based on platform services
+	// Generate service instances (Helm charts for each operator)
 	for _, op := range p.request.Spec.Operators {
 		if !op.Enabled {
 			continue
 		}
 
-		// Map service names to their required operators
-		switch op.Name {
-		case "postgresql":
-			operatorsNeeded["cloudnativepg"] = true
-		case "redis":
-			operatorsNeeded["redis-operator"] = true
-		}
-	}
-
-	// Generate operator installations (Helm charts)
-	for operatorName := range operatorsNeeded {
-		if err := p.generateOperatorInstallation(operatorName); err != nil {
-			return fmt.Errorf("failed to generate operator %s: %w", operatorName, err)
-		}
-	}
-
-	// Generate service instances (CRs managed by operators)
-	for _, op := range p.request.Spec.Operators {
-		if !op.Enabled {
-			continue
-		}
+		log.Printf("INFO: Generating %s operator with profile: %s\n", op.Name, op.Profile)
 
 		operatorDir := filepath.Join(p.outputDir, "operators", env, op.Name)
 		if err := os.MkdirAll(operatorDir, 0755); err != nil {
 			return err
 		}
 
-		// Generate service instance based on type
-		switch op.Name {
-		case "postgresql":
-			if err := p.generatePostgreSQLInstance(operatorDir, op.Profile); err != nil {
-				return err
-			}
-		case "redis":
-			if err := p.generateRedisOperator(operatorDir); err != nil {
-				return err
-			}
+		// Use generic service instance generation for all operators
+		if err := p.generateServiceInstance(operatorDir, op.Name, op.Profile); err != nil {
+			return fmt.Errorf("failed to generate %s: %w", op.Name, err)
 		}
 	}
 
 	return nil
 }
 
+// generateServiceInstance creates Helm chart structure for any service
+// Generic function that works for postgresql, rabbitmq, redis, minio, vault, etc.
+func (p *InfraForgeProcessor) generateServiceInstance(dir, serviceName, profile string) error {
+	log.Printf("INFO: Generating %s Helm chart with profile: %s\n", serviceName, profile)
+
+	// Default to nonprod if no profile specified
+	if profile == "" {
+		profile = "nonprod"
+	}
+
+	// Prepare values for template rendering
+	namespace := fmt.Sprintf("%s-%s", p.request.Spec.Tenant, p.request.Spec.Environment)
+	clusterName := fmt.Sprintf("%s-%s", p.request.Spec.Tenant, serviceName)
+
+	values := map[string]interface{}{
+		"clusterName": clusterName,
+		"namespace":   namespace,
+		"tenant":      p.request.Spec.Tenant,
+		"environment": p.request.Spec.Environment,
+	}
+
+	// Get Helm chart source directory and merged values
+	sourceDir, mergedValues, err := p.templateRenderer.RenderService(serviceName, profile, values)
+	if err != nil {
+		return fmt.Errorf("failed to prepare %s chart: %w", serviceName, err)
+	}
+
+	// Copy Helm chart structure to output directory
+	if err := copyHelmChart(sourceDir, dir); err != nil {
+		return fmt.Errorf("failed to copy Helm chart: %w", err)
+	}
+
+	// Write merged values.yaml
+	valuesFile := filepath.Join(dir, "values.yaml")
+	valuesData, _ := yaml.Marshal(mergedValues)
+	if err := os.WriteFile(valuesFile, valuesData, 0644); err != nil {
+		return fmt.Errorf("failed to write values.yaml: %w", err)
+	}
+
+	log.Printf("INFO: Created %s Helm chart at %s\n", serviceName, dir)
+	return nil
+}
+
 func (p *InfraForgeProcessor) generateRedisOperator(dir string) error {
+	// DEPRECATED: Use generateServiceInstance instead
 	// Generate Redis CR for the specific tenant/environment
 	crFile := filepath.Join(dir, "redis-instance.yaml")
 	

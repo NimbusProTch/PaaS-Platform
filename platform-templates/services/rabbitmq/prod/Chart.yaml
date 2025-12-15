@@ -1,0 +1,18 @@
+apiVersion: v2
+name: rabbitmq-prod
+description: Production-grade RabbitMQ cluster with HA and monitoring
+version: 1.0.0
+appVersion: "3.12"
+type: application
+
+keywords:
+  - rabbitmq
+  - messaging
+  - queue
+  - amqp
+  - high-availability
+  - production
+
+maintainers:
+  - name: InfraForge Platform Team
+    email: platform@infraforge.io

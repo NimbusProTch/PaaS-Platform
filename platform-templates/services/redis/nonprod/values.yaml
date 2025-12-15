@@ -1,0 +1,23 @@
+# Redis Non-Production Configuration
+clusterName: redis
+namespace: default
+tenant: demo
+environment: dev
+
+redisVersion: "7.2"
+replicas: 1
+
+storage:
+  size: "5Gi"
+  storageClass: "standard"
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+monitoring:
+  enabled: true

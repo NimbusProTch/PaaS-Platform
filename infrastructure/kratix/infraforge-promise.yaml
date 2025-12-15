@@ -117,10 +117,10 @@ spec:
                           description: Operator name
                           enum:
                           - postgresql
-                          - mongodb
-                          - redis
-                          - kafka
                           - rabbitmq
+                          - redis
+                          - minio
+                          - vault
                         enabled:
                           type: boolean
                           description: Enable/disable this operator

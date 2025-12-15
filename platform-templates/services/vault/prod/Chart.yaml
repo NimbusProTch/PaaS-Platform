@@ -1,0 +1,6 @@
+apiVersion: v2
+name: vault-prod
+description: HashiCorp Vault for production with HA
+version: 1.0.0
+appVersion: "1.15.0"
+type: application
