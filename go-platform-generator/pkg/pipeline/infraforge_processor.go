@@ -346,11 +346,7 @@ func (p *InfraForgeProcessor) generateAppSet(dir, appType, env string) error {
 				},
 				"spec": map[string]interface{}{
 					"project": fmt.Sprintf("infraforge-%s", env),
-					"source": map[string]interface{}{
-						"repoURL":        p.gitRepoURL,
-						"targetRevision": p.gitBranch,
-						"path":           "{{.path.path}}",
-					},
+					"source": p.buildSourceConfig(appType, env),
 					"destination": map[string]interface{}{
 						"server":    "https://kubernetes.default.svc",
 						"namespace": namespace,
@@ -368,6 +364,25 @@ func (p *InfraForgeProcessor) generateAppSet(dir, appType, env string) error {
 	}
 	
 	return p.writeYAML(appsetFile, appset)
+}
+
+// buildSourceConfig creates source configuration with optional Helm settings
+func (p *InfraForgeProcessor) buildSourceConfig(appType, env string) map[string]interface{} {
+	source := map[string]interface{}{
+		"repoURL":        p.gitRepoURL,
+		"targetRevision": p.gitBranch,
+		"path":           "{{.path.path}}",
+	}
+
+	// For operators, add Helm release configuration for native Helm support
+	if appType == "operator" {
+		source["helm"] = map[string]interface{}{
+			"releaseName": fmt.Sprintf("%s-{{.path.basename}}", env),
+			"valueFiles":  []string{"values.yaml"},
+		}
+	}
+
+	return source
 }
 
 func (p *InfraForgeProcessor) generateOperators() error {

@@ -1,26 +1,39 @@
 # PostgreSQL Production Configuration
 # Production-ready settings with HA, backup, and connection pooling
 
-# Cluster naming
-clusterName: "{{ .ServiceName | default "postgresql" }}"
-namespace: "{{ .Tenant }}-{{ .Environment }}"
+# Cluster naming (will be overridden by generator)
+clusterName: postgresql
+namespace: default
 
 # PostgreSQL version
-postgresVersion: "{{ .PostgresVersion | default "16.1" }}"
+postgresVersion: "16.1"
+
+# Tenant and environment (will be injected by generator)
+tenant: demo
+environment: prod
 
 # High Availability - 3 instances minimum
-replicas: {{ .Replicas | default 3 }}
+replicas: 3
 
 # Storage configuration (production SSD)
 storage:
-  size: "{{ .StorageSize | default "100Gi" }}"
-  storageClass: "{{ .StorageClass | default "fast-ssd" }}"
+  size: "100Gi"
+  storageClass: "standard"  # Will be overridden based on cloud provider
+
+# Resource limits (production - high performance)
+resources:
+  requests:
+    cpu: "2000m"
+    memory: "4Gi"
+  limits:
+    cpu: "4000m"
+    memory: "8Gi"
 
 # PostgreSQL parameters (production-tuned)
 postgresql:
   parameters:
     # Connection settings
-    max_connections: "{{ .MaxConnections | default "500" }}"
+    max_connections: "500"
 
     # Memory settings (optimized for 4Gi+ RAM)
     shared_buffers: "2GB"
@@ -51,48 +64,39 @@ postgresql:
     autovacuum_max_workers: "4"
     autovacuum_naptime: "10s"
 
-# Resource limits (production)
-resources:
-  requests:
-    cpu: "{{ .Resources.Requests.CPU | default "2000m" }}"
-    memory: "{{ .Resources.Requests.Memory | default "4Gi" }}"
-  limits:
-    cpu: "{{ .Resources.Limits.CPU | default "4000m" }}"
-    memory: "{{ .Resources.Limits.Memory | default "8Gi" }}"
+# Bootstrap configuration
+bootstrap:
+  initdb:
+    database: app
+    owner: app
 
 # High Availability configuration
 highAvailability:
-  # Automatic failover
+  enabled: true
   primaryUpdateStrategy: unsupervised
 
   # Pod anti-affinity (spread across nodes)
   affinity:
-    podAntiAffinityType: required
     topologyKey: kubernetes.io/hostname
+    podAntiAffinityType: required
 
   # Enable synchronous replication
   synchronousReplication:
     enabled: true
     number: 1  # At least 1 synchronous replica
 
-# Monitoring (full production monitoring)
-monitoring:
-  enabled: {{ .Monitoring.Enabled | default true }}
-  prometheusRule:
-    enabled: true  # Enable alerting rules
-
-# Backup configuration (S3/MinIO)
+# Backup (disabled by default - requires S3/MinIO setup)
 backup:
-  enabled: {{ .BackupEnabled | default true }}
-  schedule: "{{ .BackupSchedule | default "0 2 * * *" }}"  # Daily at 2 AM
-  retention: "{{ .BackupRetention | default "30d" }}"
+  enabled: false
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: "30d"
 
   # S3-compatible storage (MinIO or AWS S3)
   barmanObjectStore:
-    destinationPath: "s3://{{ .Tenant }}-postgresql-backups/{{ .ClusterName }}"
-    endpointURL: "{{ .BackupEndpoint }}"  # MinIO endpoint
+    destinationPath: "s3://postgresql-backups/cluster"
+    endpointURL: ""  # MinIO endpoint (if using MinIO)
     s3Credentials:
-      secretName: "{{ .ClusterName }}-backup-credentials"
+      secretName: "postgresql-backup-credentials"
       accessKeyId: "ACCESS_KEY_ID"
       secretAccessKey: "SECRET_ACCESS_KEY"
     wal:
@@ -102,18 +106,18 @@ backup:
       compression: gzip
       jobs: 2
 
-# Connection Pooler (PgBouncer)
+# Connection Pooler (PgBouncer) - disabled by default
 pooler:
-  enabled: {{ .PoolerEnabled | default true }}
-  replicas: {{ .PoolerReplicas | default 3 }}
+  enabled: false
+  replicas: 3
   type: rw  # read-write pooler
 
   # PgBouncer configuration
   pgbouncer:
     poolMode: transaction  # or session
     parameters:
-      max_client_conn: "{{ .PoolerMaxConnections | default "1000" }}"
-      default_pool_size: "{{ .PoolerPoolSize | default "25" }}"
+      max_client_conn: "1000"
+      default_pool_size: "25"
       min_pool_size: "10"
       reserve_pool_size: "5"
       reserve_pool_timeout: "3"
@@ -129,9 +133,8 @@ pooler:
       cpu: "500m"
       memory: "256Mi"
 
-# Bootstrap (for initial cluster creation)
-bootstrap:
-  initdb:
-    database: "{{ .DatabaseName | default "app" }}"
-    owner: "{{ .DatabaseUser | default "app" }}"
-    # Password will be auto-generated if not provided
+# Monitoring (full production monitoring)
+monitoring:
+  enabled: true
+  prometheusRule:
+    enabled: false  # Requires Prometheus Operator
