@@ -1,18 +1,23 @@
 backup:
   enabled: false
+bootstrap:
+  initdb:
+    database: app
+    owner: app
 clusterName: demo-postgres
 environment: dev
-instances: 1
 monitoring:
   customQueriesConfigMap: []
   enabled: true
 namespace: demo-dev
+postgresVersion: "16.1"
 postgresql:
   parameters:
     effective_cache_size: 512MB
     max_connections: "100"
     shared_buffers: 128MB
     work_mem: 4MB
+replicas: 1
 resources:
   limits:
     cpu: 500m
