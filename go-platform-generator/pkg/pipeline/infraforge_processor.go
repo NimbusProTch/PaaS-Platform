@@ -54,7 +54,7 @@ func NewInfraForgeProcessor(request *InfraForgeRequest, outputDir string) *Infra
 
 	gitBranch := os.Getenv("GIT_BRANCH")
 	if gitBranch == "" {
-		gitBranch = "main"
+		gitBranch = "feature/production-ready-platform"
 	}
 
 	// Get templates root from environment or use default
