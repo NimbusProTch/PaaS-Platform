@@ -1,5 +1,5 @@
 labels:
-    environment: dev
+    environment: prod
     managed-by: infraforge
     tenant: demo
-name: demo-dev
+name: demo-prod
