@@ -1,26 +1,30 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: dev-platform-appset
+  name: prod-operator-appset
   namespace: infraforge-argocd
 spec:
   generators:
     - git:
         directories:
-          - path: manifests/platform-cluster/apps/dev/platform-apps/*
+          - path: manifests/platform-cluster/operators/prod/*
         repoURL: https://github.com/NimbusProTch/PaaS-Platform.git
         revision: main
   goTemplate: true
   template:
     metadata:
-      name: dev-platform-{{.path.basename}}
+      name: prod-operator-{{.path.basename}}
       namespace: infraforge-argocd
     spec:
       destination:
-        namespace: '{{.path.basename}}'
+        namespace: infraforge-operators
         server: https://kubernetes.default.svc
-      project: infraforge-dev
+      project: infraforge-prod
       source:
+        helm:
+          releaseName: prod-{{.path.basename}}
+          valueFiles:
+            - values.yaml
         path: '{{.path.path}}'
         repoURL: https://github.com/NimbusProTch/PaaS-Platform.git
         targetRevision: main

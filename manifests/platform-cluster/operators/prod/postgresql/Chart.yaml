@@ -1,6 +1,6 @@
 apiVersion: v2
-name: postgresql-nonprod
-description: PostgreSQL cluster for non-production environments
+name: postgresql-prod
+description: PostgreSQL cluster for production environments
 version: 1.0.0
 appVersion: "16.1"
 type: application
