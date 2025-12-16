@@ -10,11 +10,10 @@ data:
       address = "0.0.0.0:8400"
       tls_disable = 1
     }
-    storage "raft" {
+    storage "file" {
       path = "/vault/data"
     }
-    cluster_addr = "http://POD_IP:8201"
-    api_addr = "http://POD_IP:8200"
+    disable_mlock = true
 ---
 apiVersion: apps/v1
 kind: StatefulSet
