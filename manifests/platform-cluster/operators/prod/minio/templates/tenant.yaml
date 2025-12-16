@@ -10,6 +10,8 @@ metadata:
     profile: prod
     managed-by: infraforge
 spec:
+  configuration:
+    name: {{ .Values.clusterName }}-env-configuration
   pools:
     - servers: {{ .Values.replicas }}
       name: pool-0
