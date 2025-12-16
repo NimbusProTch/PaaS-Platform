@@ -1,0 +1,214 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: microservice-template
+  title: Microservice with Database
+  description: Create a new microservice with database, messaging, and caching
+  tags:
+    - recommended
+    - microservice
+    - kubernetes
+spec:
+  owner: platform-team
+  type: service
+
+  parameters:
+    - title: Service Information
+      required:
+        - name
+        - description
+      properties:
+        name:
+          title: Service Name
+          type: string
+          description: Unique name for the service
+          pattern: '^[a-z][a-z0-9-]*$'
+        description:
+          title: Description
+          type: string
+          description: What does this service do?
+        owner:
+          title: Owner
+          type: string
+          description: Team or user owning this service
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: [Group, User]
+
+    - title: Choose Environment
+      required:
+        - environment
+      properties:
+        environment:
+          title: Environment
+          type: string
+          description: Deployment environment
+          default: dev
+          enum:
+            - dev
+            - staging
+            - prod
+          enumNames:
+            - Development
+            - Staging
+            - Production
+
+    - title: Infrastructure Components
+      properties:
+        database:
+          title: Database
+          type: object
+          properties:
+            enabled:
+              title: Enable Database
+              type: boolean
+              default: true
+            type:
+              title: Database Type
+              type: string
+              enum:
+                - postgresql
+                - mysql
+                - mongodb
+              default: postgresql
+            size:
+              title: Storage Size
+              type: string
+              default: "10Gi"
+
+        cache:
+          title: Cache
+          type: object
+          properties:
+            enabled:
+              title: Enable Redis Cache
+              type: boolean
+              default: true
+            size:
+              title: Memory Size
+              type: string
+              default: "1Gi"
+
+        messaging:
+          title: Message Queue
+          type: object
+          properties:
+            enabled:
+              title: Enable RabbitMQ
+              type: boolean
+              default: false
+
+        objectStorage:
+          title: Object Storage
+          type: object
+          properties:
+            enabled:
+              title: Enable MinIO
+              type: boolean
+              default: false
+            size:
+              title: Storage Size
+              type: string
+              default: "20Gi"
+
+    - title: GitHub Repository
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Repository Location
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+
+  steps:
+    - id: fetch
+      name: Fetch Base Template
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          environment: ${{ parameters.environment }}
+          database: ${{ parameters.database }}
+          cache: ${{ parameters.cache }}
+          messaging: ${{ parameters.messaging }}
+          objectStorage: ${{ parameters.objectStorage }}
+
+    - id: create-kratix-promise
+      name: Create Kratix Promise
+      action: kratix:promise:create
+      input:
+        apiVersion: platform.infraforge.io/v1
+        kind: InfraForge
+        metadata:
+          name: ${{ parameters.name }}
+          namespace: ${{ parameters.name }}-${{ parameters.environment }}
+        spec:
+          tenant: ${{ parameters.owner }}
+          environment: ${{ parameters.environment }}
+          operators:
+            - name: postgresql
+              enabled: ${{ parameters.database.enabled }}
+              profile: ${{ parameters.environment === 'prod' ? 'prod' : 'nonprod' }}
+              config:
+                storage: ${{ parameters.database.size }}
+            - name: redis
+              enabled: ${{ parameters.cache.enabled }}
+            - name: rabbitmq
+              enabled: ${{ parameters.messaging.enabled }}
+            - name: minio
+              enabled: ${{ parameters.objectStorage.enabled }}
+              config:
+                storage: ${{ parameters.objectStorage.size }}
+
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        description: This is ${{ parameters.name }}
+        repoUrl: ${{ parameters.repoUrl }}
+        defaultBranch: main
+        gitCommitMessage: 'Initial commit for ${{ parameters.name }}'
+        gitAuthorName: Backstage
+        gitAuthorEmail: backstage@infraforge.io
+
+    - id: create-argocd-app
+      name: Create ArgoCD Application
+      action: argocd:create:application
+      input:
+        name: ${{ parameters.name }}
+        namespace: infraforge-argocd
+        project: ${{ parameters.environment }}
+        repoUrl: ${{ steps.publish.output.remoteUrl }}
+        path: manifests/
+        targetRevision: main
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: ${{ parameters.name }}-${{ parameters.environment }}
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+
+    - id: register
+      name: Register in Software Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: '/catalog-info.yaml'
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: ArgoCD Application
+        url: https://argocd.infraforge.io/applications/${{ parameters.name }}
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}
