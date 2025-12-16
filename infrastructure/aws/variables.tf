@@ -205,3 +205,38 @@ variable "backstage_github_token" {
   sensitive   = true
   default     = ""
 }
+
+# Kong API Gateway
+variable "enable_kong" {
+  description = "Enable Kong API Gateway"
+  type        = bool
+  default     = true
+}
+
+# Karpenter
+variable "enable_karpenter" {
+  description = "Enable Karpenter for node autoscaling"
+  type        = bool
+  default     = false
+}
+
+# VPA
+variable "enable_vpa" {
+  description = "Enable Vertical Pod Autoscaler"
+  type        = bool
+  default     = false
+}
+
+# Logging
+variable "enable_loki" {
+  description = "Enable Loki for log aggregation"
+  type        = bool
+  default     = false
+}
+
+# Tracing
+variable "enable_tempo" {
+  description = "Enable Tempo for distributed tracing"
+  type        = bool
+  default     = false
+}
