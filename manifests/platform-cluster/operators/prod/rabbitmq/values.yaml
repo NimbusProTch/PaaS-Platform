@@ -12,22 +12,22 @@ environment: prod
 # RabbitMQ version
 rabbitmqVersion: "3.12"
 
-# High Availability - 3 instances minimum
-replicas: 3
+# High Availability - reduced for local env
+replicas: 2
 
 # Storage configuration (production SSD)
 storage:
-  size: "20Gi"
+  size: "5Gi"
   storageClass: "standard"
 
-# Resource limits (production)
+# Resource limits (adjusted for local env)
 resources:
   requests:
-    cpu: "1000m"
-    memory: "2Gi"
+    cpu: "250m"
+    memory: "512Mi"
   limits:
-    cpu: "2000m"
-    memory: "4Gi"
+    cpu: "500m"
+    memory: "1Gi"
 
 # RabbitMQ configuration
 rabbitmq:
@@ -46,7 +46,7 @@ rabbitmq:
     cluster_formation.k8s.host = kubernetes.default
     cluster_partition_handling = pause_minority
     queue_master_locator = min-masters
-    disk_free_limit.absolute = 2GB
+    disk_free_limit.absolute = 500MB
     vm_memory_high_watermark.relative = 0.6
     collect_statistics_interval = 10000
 
@@ -76,4 +76,4 @@ memoryHighWatermark:
 diskFreeLimit:
   enabled: true
   type: absolute
-  value: "2GB"
+  value: "500MB"

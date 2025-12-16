@@ -5,19 +5,19 @@ tenant: demo
 environment: prod
 
 redisVersion: "7.2"
-replicas: 3
+replicas: 1
 
 storage:
-  size: "20Gi"
+  size: "5Gi"
   storageClass: "standard"
 
 resources:
   requests:
-    cpu: "1000m"
-    memory: "1Gi"
+    cpu: "100m"
+    memory: "256Mi"
   limits:
-    cpu: "2000m"
-    memory: "2Gi"
+    cpu: "500m"
+    memory: "512Mi"
 
 monitoring:
   enabled: true

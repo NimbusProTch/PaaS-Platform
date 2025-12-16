@@ -13,21 +13,21 @@ tenant: demo
 environment: prod
 
 # High Availability - 3 instances minimum
-replicas: 3
+replicas: 2
 
 # Storage configuration (production SSD)
 storage:
-  size: "100Gi"
+  size: "20Gi"
   storageClass: "standard"  # Will be overridden based on cloud provider
 
-# Resource limits (production - high performance)
+# Resource limits (production - adjusted for local environment)
 resources:
   requests:
-    cpu: "2000m"
-    memory: "4Gi"
+    cpu: "500m"
+    memory: "1Gi"
   limits:
-    cpu: "4000m"
-    memory: "8Gi"
+    cpu: "1000m"
+    memory: "2Gi"
 
 # PostgreSQL parameters (production-tuned)
 postgresql:
@@ -35,11 +35,11 @@ postgresql:
     # Connection settings
     max_connections: "500"
 
-    # Memory settings (optimized for 4Gi+ RAM)
-    shared_buffers: "2GB"
-    effective_cache_size: "6GB"
-    maintenance_work_mem: "512MB"
-    work_mem: "10MB"
+    # Memory settings (optimized for 1Gi RAM)
+    shared_buffers: "256MB"
+    effective_cache_size: "768MB"
+    maintenance_work_mem: "64MB"
+    work_mem: "4MB"
 
     # WAL settings
     wal_buffers: "16MB"
