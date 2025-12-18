@@ -1,6 +1,0 @@
-apiVersion: v2
-name: vault-nonprod
-description: HashiCorp Vault for non-production
-version: 1.0.0
-appVersion: "1.15.0"
-type: application

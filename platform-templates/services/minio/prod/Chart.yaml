@@ -1,6 +1,0 @@
-apiVersion: v2
-name: minio-prod
-description: Production MinIO object storage with HA
-version: 1.0.0
-appVersion: "RELEASE.2024-01-01"
-type: application

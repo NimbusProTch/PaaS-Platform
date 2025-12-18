@@ -1,0 +1,73 @@
+apiVersion: platform.infraforge.io/v1
+kind: ApplicationClaim
+metadata:
+  name: test-app-claim
+  namespace: default
+spec:
+  environment: dev
+  namespace: test-app
+  owner:
+    team: platform-team
+    email: platform@infraforge.io
+    slack: "#platform"
+
+  # Platform components
+  components:
+    - type: postgresql
+      name: postgres-main
+      version: "13"
+      size: small
+      config:
+        maxConnections: "100"
+
+    - type: redis
+      name: redis-cache
+      version: "6"
+      size: small
+
+  # Applications
+  applications:
+    - name: test-backend
+      repository: infraforge/test-app
+      version: v1.0.0
+      replicas: 2
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "128Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+      ports:
+        - name: http
+          port: 8080
+          protocol: TCP
+      healthCheck:
+        path: /health
+        port: 8080
+        initialDelaySeconds: 30
+        periodSeconds: 10
+      env:
+        - name: ENVIRONMENT
+          value: "development"
+        - name: DB_HOST
+          value: "postgres-main"
+        - name: DB_NAME
+          value: "testapp"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-main-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-main-secret
+              key: password
+        - name: REDIS_HOST
+          value: "redis-cache"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-cache-secret
+              key: password

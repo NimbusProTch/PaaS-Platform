@@ -1,0 +1,156 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: platform-operator
+  namespace: platform-system
+  labels:
+    app: platform-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: platform-operator
+  template:
+    metadata:
+      labels:
+        app: platform-operator
+    spec:
+      serviceAccountName: platform-operator
+      containers:
+      - name: manager
+        image: platform-operator:latest
+        imagePullPolicy: Never
+        args:
+        - --leader-elect
+        env:
+        - name: GITHUB_TOKEN
+          value: "dummy-token"  # Will be replaced with secret later
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        ports:
+        - containerPort: 8080
+          name: metrics
+        - containerPort: 8081
+          name: health
+        - containerPort: 9443
+          name: webhook
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: platform-operator
+  namespace: platform-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: platform-operator
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - services
+  - secrets
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - statefulsets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - platform.infraforge.io
+  resources:
+  - applicationclaims
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - platform.infraforge.io
+  resources:
+  - applicationclaims/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - platform.infraforge.io
+  resources:
+  - applicationclaims/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: platform-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: platform-operator
+subjects:
+- kind: ServiceAccount
+  name: platform-operator
+  namespace: platform-system
