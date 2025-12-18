@@ -1,0 +1,132 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kratix-platform-system
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: promises.platform.kratix.io
+spec:
+  group: platform.kratix.io
+  names:
+    kind: Promise
+    listKind: PromiseList
+    plural: promises
+    singular: promise
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              api:
+                type: object
+              destinationSelectors:
+                type: array
+                items:
+                  type: object
+              workflows:
+                type: object
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kratix-platform-controller
+  namespace: kratix-platform-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kratix-platform-controller
+  template:
+    metadata:
+      labels:
+        app: kratix-platform-controller
+    spec:
+      serviceAccountName: kratix-platform-controller
+      containers:
+      - name: manager
+        image: syntasso/kratix-platform:v0.10.0
+        ports:
+        - containerPort: 8080
+          name: metrics
+        - containerPort: 9443
+          name: webhook
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        env:
+        - name: KRATIX_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kratix-platform-controller
+  namespace: kratix-platform-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kratix-platform-controller
+rules:
+- apiGroups: [""]
+  resources: ["namespaces", "configmaps", "secrets", "services", "serviceaccounts"]
+  verbs: ["*"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
+  verbs: ["*"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["*"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+  verbs: ["*"]
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
+  verbs: ["*"]
+- apiGroups: ["platform.kratix.io"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["marketplace.kratix.io"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kratix-platform-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kratix-platform-controller
+subjects:
+- kind: ServiceAccount
+  name: kratix-platform-controller
+  namespace: kratix-platform-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kratix-platform-webhook
+  namespace: kratix-platform-system
+spec:
+  ports:
+  - name: webhook
+    port: 443
+    targetPort: 9443
+  selector:
+    app: kratix-platform-controller

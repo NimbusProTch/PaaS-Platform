@@ -40,16 +40,7 @@ provider "helm" {
   }
 }
 
-# Kubectl Provider for raw manifests
-terraform {
-  required_providers {
-    kubectl = {
-      source  = "gavinbunney/kubectl"
-      version = "~> 1.14.0"
-    }
-  }
-}
-
+# Kubectl Provider
 provider "kubectl" {
   host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)

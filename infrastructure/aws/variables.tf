@@ -53,7 +53,7 @@ variable "single_nat_gateway" {
 variable "cluster_version" {
   description = "Kubernetes version"
   type        = string
-  default     = "1.28"
+  default     = "1.30"
 }
 
 variable "node_groups" {
@@ -239,4 +239,55 @@ variable "enable_tempo" {
   description = "Enable Tempo for distributed tracing"
   type        = bool
   default     = false
+}
+
+# PaaS Platform Variables
+variable "enable_argocd" {
+  description = "Enable ArgoCD for GitOps"
+  type        = bool
+  default     = true
+}
+
+variable "enable_kratix" {
+  description = "Enable Kratix Platform"
+  type        = bool
+  default     = true
+}
+
+variable "enable_kratix_minio" {
+  description = "Enable MinIO for Kratix state store (alternative to S3)"
+  type        = bool
+  default     = true
+}
+
+variable "github_org" {
+  description = "GitHub organization name"
+  type        = string
+  default     = "infraforge"
+}
+
+variable "github_token" {
+  description = "GitHub personal access token for integrations"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "github_oauth_client_id" {
+  description = "GitHub OAuth App Client ID for Backstage"
+  type        = string
+  default     = ""
+}
+
+variable "github_oauth_client_secret" {
+  description = "GitHub OAuth App Client Secret for Backstage"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "acm_certificate_arn" {
+  description = "ACM Certificate ARN for HTTPS endpoints"
+  type        = string
+  default     = ""
 }

@@ -1,0 +1,401 @@
+# Multi-Tenancy RBAC Configuration
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant-management
+  labels:
+    platform.infraforge.io/component: multi-tenancy
+---
+# Platform Admin ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: platform-admin
+  labels:
+    platform.infraforge.io/role: admin
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+# Platform Viewer ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: platform-viewer
+  labels:
+    platform.infraforge.io/role: viewer
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "secrets", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "daemonsets", "replicasets", "statefulsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list"]
+---
+# Tenant Admin Role Template
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tenant-admin-template
+  labels:
+    platform.infraforge.io/role: tenant-admin
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "pods/exec", "pods/portforward", "services", "endpoints", "persistentvolumeclaims", "configmaps"]
+    verbs: ["*"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create", "update", "patch", "delete", "get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "daemonsets", "replicasets", "statefulsets"]
+    verbs: ["*"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["*"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["*"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["*"]
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["*"]
+---
+# Tenant Developer Role Template
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tenant-developer-template
+  labels:
+    platform.infraforge.io/role: tenant-developer
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "endpoints", "persistentvolumeclaims", "configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["pods/exec", "pods/portforward"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments/scale"]
+    verbs: ["update"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+# Tenant Viewer Role Template
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tenant-viewer-template
+  labels:
+    platform.infraforge.io/role: tenant-viewer
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "endpoints", "persistentvolumeclaims", "configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "daemonsets", "replicasets", "statefulsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch"]
+---
+# Service Account for tenant management
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tenant-manager
+  namespace: tenant-management
+---
+# ClusterRoleBinding for tenant manager
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tenant-manager-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: tenant-manager
+    namespace: tenant-management
+---
+# Tenant Operator Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tenant-operator
+  namespace: tenant-management
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tenant-operator
+  template:
+    metadata:
+      labels:
+        app: tenant-operator
+    spec:
+      serviceAccountName: tenant-manager
+      containers:
+        - name: operator
+          image: infraforge/tenant-operator:latest
+          imagePullPolicy: Always
+          env:
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: PLATFORM_DOMAIN
+              value: "infraforge.io"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+# Tenant CRD
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: tenants.platform.infraforge.io
+spec:
+  group: platform.infraforge.io
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - name
+                - owners
+              properties:
+                name:
+                  type: string
+                  description: Tenant name
+                owners:
+                  type: array
+                  description: List of tenant owners
+                  items:
+                    type: string
+                namespaces:
+                  type: array
+                  description: Namespaces for this tenant
+                  items:
+                    type: object
+                    required:
+                      - name
+                      - environment
+                    properties:
+                      name:
+                        type: string
+                      environment:
+                        type: string
+                        enum: ["development", "staging", "production"]
+                      resourceQuota:
+                        type: object
+                        properties:
+                          cpu:
+                            type: string
+                            pattern: '^[0-9]+m?$'
+                          memory:
+                            type: string
+                            pattern: '^[0-9]+[MG]i$'
+                          storage:
+                            type: string
+                            pattern: '^[0-9]+[MG]i$'
+                          persistentVolumeClaims:
+                            type: integer
+                          services:
+                            type: integer
+                      limitRange:
+                        type: object
+                        properties:
+                          defaultCpu:
+                            type: string
+                          defaultMemory:
+                            type: string
+                          maxCpu:
+                            type: string
+                          maxMemory:
+                            type: string
+                roles:
+                  type: array
+                  description: Role assignments for this tenant
+                  items:
+                    type: object
+                    required:
+                      - name
+                      - users
+                      - role
+                    properties:
+                      name:
+                        type: string
+                      users:
+                        type: array
+                        items:
+                          type: string
+                      groups:
+                        type: array
+                        items:
+                          type: string
+                      role:
+                        type: string
+                        enum: ["admin", "developer", "viewer"]
+                networking:
+                  type: object
+                  properties:
+                    enableNetworkPolicies:
+                      type: boolean
+                      default: true
+                    allowedNamespaces:
+                      type: array
+                      items:
+                        type: string
+                    externalAccess:
+                      type: boolean
+                      default: false
+                features:
+                  type: object
+                  properties:
+                    enableMonitoring:
+                      type: boolean
+                      default: true
+                    enableLogging:
+                      type: boolean
+                      default: true
+                    enableTracing:
+                      type: boolean
+                      default: true
+                    enableBackup:
+                      type: boolean
+                      default: false
+                    enableServiceMesh:
+                      type: boolean
+                      default: false
+            status:
+              type: object
+              properties:
+                phase:
+                  type: string
+                  enum: ["Pending", "Active", "Terminating", "Failed"]
+                namespaces:
+                  type: array
+                  items:
+                    type: string
+                message:
+                  type: string
+                lastUpdated:
+                  type: string
+  scope: Cluster
+  names:
+    plural: tenants
+    singular: tenant
+    kind: Tenant
+    shortNames:
+      - tnt
+---
+# Sample Tenant Configuration
+apiVersion: platform.infraforge.io/v1alpha1
+kind: Tenant
+metadata:
+  name: team-alpha
+spec:
+  name: team-alpha
+  owners:
+    - john.doe@infraforge.io
+    - jane.smith@infraforge.io
+  namespaces:
+    - name: team-alpha-dev
+      environment: development
+      resourceQuota:
+        cpu: "4000m"
+        memory: "8Gi"
+        storage: "100Gi"
+        persistentVolumeClaims: 10
+        services: 20
+      limitRange:
+        defaultCpu: "100m"
+        defaultMemory: "128Mi"
+        maxCpu: "2000m"
+        maxMemory: "4Gi"
+    - name: team-alpha-staging
+      environment: staging
+      resourceQuota:
+        cpu: "8000m"
+        memory: "16Gi"
+        storage: "200Gi"
+        persistentVolumeClaims: 20
+        services: 30
+    - name: team-alpha-prod
+      environment: production
+      resourceQuota:
+        cpu: "16000m"
+        memory: "32Gi"
+        storage: "500Gi"
+        persistentVolumeClaims: 30
+        services: 50
+  roles:
+    - name: admin-role
+      users:
+        - john.doe@infraforge.io
+      role: admin
+    - name: developer-role
+      users:
+        - jane.smith@infraforge.io
+        - bob.wilson@infraforge.io
+      groups:
+        - team-alpha-developers
+      role: developer
+    - name: viewer-role
+      groups:
+        - team-alpha-viewers
+      role: viewer
+  networking:
+    enableNetworkPolicies: true
+    allowedNamespaces:
+      - team-alpha-dev
+      - team-alpha-staging
+      - team-alpha-prod
+      - platform-services
+    externalAccess: true
+  features:
+    enableMonitoring: true
+    enableLogging: true
+    enableTracing: true
+    enableBackup: true
+    enableServiceMesh: true

@@ -1,0 +1,510 @@
+# Tekton CI/CD Pipeline Configuration
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tekton-pipelines
+  labels:
+    platform.infraforge.io/component: cicd
+---
+# Tekton Pipeline Installation
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tekton-pipelines
+  namespace: argocd
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/tektoncd/operator
+    targetRevision: v0.69.0
+    path: config/kubernetes
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tekton-pipelines
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
+# Base Pipeline Template for Microservices
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: microservice-pipeline
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: repo-url
+      type: string
+      description: The git repository URL
+    - name: repo-revision
+      type: string
+      description: The git revision
+      default: main
+    - name: image-name
+      type: string
+      description: The name of the image to build
+    - name: dockerfile-path
+      type: string
+      description: Path to the Dockerfile
+      default: ./Dockerfile
+    - name: context-path
+      type: string
+      description: Build context path
+      default: .
+    - name: environment
+      type: string
+      description: Target environment
+      default: development
+
+  workspaces:
+    - name: shared-data
+    - name: docker-credentials
+    - name: sonar-credentials
+
+  tasks:
+    # Clone repository
+    - name: clone-repo
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.repo-revision)
+      workspaces:
+        - name: output
+          workspace: shared-data
+
+    # Security scanning with Trivy
+    - name: security-scan
+      runAfter:
+        - clone-repo
+      taskRef:
+        name: trivy-scan
+      params:
+        - name: image
+          value: $(params.context-path)
+      workspaces:
+        - name: source
+          workspace: shared-data
+
+    # Unit tests
+    - name: unit-tests
+      runAfter:
+        - clone-repo
+      taskRef:
+        name: run-tests
+      params:
+        - name: context
+          value: $(params.context-path)
+      workspaces:
+        - name: source
+          workspace: shared-data
+
+    # Code quality with SonarQube
+    - name: code-quality
+      runAfter:
+        - unit-tests
+      taskRef:
+        name: sonarqube-scan
+      params:
+        - name: project-key
+          value: $(params.image-name)
+      workspaces:
+        - name: source
+          workspace: shared-data
+        - name: sonar-credentials
+          workspace: sonar-credentials
+
+    # Build and push image
+    - name: build-push
+      runAfter:
+        - security-scan
+        - code-quality
+      taskRef:
+        name: kaniko
+      params:
+        - name: IMAGE
+          value: $(params.image-name):$(tasks.clone-repo.results.commit)
+        - name: DOCKERFILE
+          value: $(params.dockerfile-path)
+        - name: CONTEXT
+          value: $(params.context-path)
+      workspaces:
+        - name: source
+          workspace: shared-data
+        - name: dockerconfig
+          workspace: docker-credentials
+
+    # Update manifest
+    - name: update-manifest
+      runAfter:
+        - build-push
+      taskRef:
+        name: update-deployment-manifest
+      params:
+        - name: deployment-name
+          value: $(params.image-name)
+        - name: image-tag
+          value: $(tasks.clone-repo.results.commit)
+        - name: environment
+          value: $(params.environment)
+      workspaces:
+        - name: source
+          workspace: shared-data
+
+    # Deploy to ArgoCD
+    - name: deploy-argocd
+      runAfter:
+        - update-manifest
+      taskRef:
+        name: argocd-sync
+      params:
+        - name: application-name
+          value: $(params.image-name)-$(params.environment)
+        - name: revision
+          value: HEAD
+        - name: flags
+          value: --prune
+
+  finally:
+    # Send notification
+    - name: notify-slack
+      taskRef:
+        name: send-slack-notification
+      params:
+        - name: message
+          value: |
+            Pipeline completed for $(params.image-name)
+            Environment: $(params.environment)
+            Commit: $(tasks.clone-repo.results.commit)
+
+---
+# Task: Run Tests
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: run-tests
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: context
+      type: string
+  workspaces:
+    - name: source
+  steps:
+    - name: detect-language
+      image: bash:5
+      script: |
+        #!/bin/bash
+        cd $(workspaces.source.path)/$(params.context)
+        if [ -f "go.mod" ]; then
+          echo "golang" > /workspace/language
+        elif [ -f "package.json" ]; then
+          echo "nodejs" > /workspace/language
+        elif [ -f "requirements.txt" ] || [ -f "pyproject.toml" ]; then
+          echo "python" > /workspace/language
+        elif [ -f "pom.xml" ]; then
+          echo "java" > /workspace/language
+        else
+          echo "unknown" > /workspace/language
+        fi
+
+    - name: run-tests
+      image: alpine:3.18
+      script: |
+        #!/bin/sh
+        LANG=$(cat /workspace/language)
+        cd $(workspaces.source.path)/$(params.context)
+
+        case $LANG in
+          golang)
+            apk add --no-cache go
+            go test -v ./... -coverprofile=coverage.out
+            go tool cover -html=coverage.out -o coverage.html
+            ;;
+          nodejs)
+            apk add --no-cache nodejs npm
+            npm install
+            npm test
+            npm run coverage || true
+            ;;
+          python)
+            apk add --no-cache python3 py3-pip
+            pip3 install -r requirements.txt || pip3 install -e .
+            pytest --cov=. --cov-report=html
+            ;;
+          java)
+            apk add --no-cache openjdk17 maven
+            mvn test
+            mvn jacoco:report
+            ;;
+          *)
+            echo "Unknown language, skipping tests"
+            ;;
+        esac
+
+---
+# Task: Trivy Security Scan
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: trivy-scan
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: image
+      type: string
+  workspaces:
+    - name: source
+  steps:
+    - name: trivy-scan
+      image: aquasec/trivy:latest
+      script: |
+        #!/bin/sh
+        trivy fs --severity HIGH,CRITICAL \
+               --exit-code 1 \
+               --no-progress \
+               --format json \
+               --output /workspace/trivy-report.json \
+               $(workspaces.source.path)/$(params.image)
+
+        # Generate HTML report
+        trivy fs --severity HIGH,CRITICAL \
+               --format template \
+               --template "@/contrib/html.tpl" \
+               --output /workspace/trivy-report.html \
+               $(workspaces.source.path)/$(params.image)
+
+---
+# Task: SonarQube Scan
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: sonarqube-scan
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: project-key
+      type: string
+  workspaces:
+    - name: source
+    - name: sonar-credentials
+  steps:
+    - name: sonar-scan
+      image: sonarsource/sonar-scanner-cli:latest
+      env:
+        - name: SONAR_HOST_URL
+          valueFrom:
+            secretKeyRef:
+              name: sonarqube-credentials
+              key: url
+        - name: SONAR_LOGIN
+          valueFrom:
+            secretKeyRef:
+              name: sonarqube-credentials
+              key: token
+      script: |
+        #!/bin/sh
+        cd $(workspaces.source.path)
+        sonar-scanner \
+          -Dsonar.projectKey=$(params.project-key) \
+          -Dsonar.sources=. \
+          -Dsonar.host.url=$SONAR_HOST_URL \
+          -Dsonar.login=$SONAR_LOGIN
+
+---
+# Task: Update Deployment Manifest
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: update-deployment-manifest
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: deployment-name
+      type: string
+    - name: image-tag
+      type: string
+    - name: environment
+      type: string
+  workspaces:
+    - name: source
+  steps:
+    - name: update-manifest
+      image: mikefarah/yq:4
+      script: |
+        #!/bin/sh
+        MANIFEST_PATH=$(workspaces.source.path)/k8s/overlays/$(params.environment)/kustomization.yaml
+
+        # Update image tag in kustomization
+        yq e '.images[0].newTag = "$(params.image-tag)"' -i $MANIFEST_PATH
+
+        # Commit changes
+        cd $(workspaces.source.path)
+        git config user.email "tekton@infraforge.io"
+        git config user.name "Tekton Pipeline"
+        git add -A
+        git commit -m "Update $(params.deployment-name) to $(params.image-tag)"
+        git push
+
+---
+# Task: ArgoCD Sync
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: argocd-sync
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: application-name
+      type: string
+    - name: revision
+      type: string
+      default: HEAD
+    - name: flags
+      type: string
+      default: ""
+  steps:
+    - name: sync
+      image: argoproj/argocd:v2.9.3
+      env:
+        - name: ARGOCD_SERVER
+          value: argocd-server.argocd.svc.cluster.local
+        - name: ARGOCD_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: argocd-credentials
+              key: token
+      script: |
+        #!/bin/sh
+        argocd app sync $(params.application-name) \
+               --revision $(params.revision) \
+               --server $ARGOCD_SERVER \
+               --auth-token $ARGOCD_TOKEN \
+               $(params.flags)
+
+        # Wait for sync to complete
+        argocd app wait $(params.application-name) \
+               --sync \
+               --health \
+               --timeout 300 \
+               --server $ARGOCD_SERVER \
+               --auth-token $ARGOCD_TOKEN
+
+---
+# Task: Send Slack Notification
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: send-slack-notification
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: message
+      type: string
+  steps:
+    - name: send-notification
+      image: curlimages/curl:latest
+      env:
+        - name: SLACK_WEBHOOK
+          valueFrom:
+            secretKeyRef:
+              name: slack-credentials
+              key: webhook-url
+      script: |
+        #!/bin/sh
+        curl -X POST -H 'Content-type: application/json' \
+             --data "{\"text\":\"$(params.message)\"}" \
+             $SLACK_WEBHOOK
+
+---
+# Pipeline Trigger Template
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: github-push-trigger-template
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: git-repo-url
+    - name: git-revision
+    - name: image-name
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: $(tt.params.image-name)-run-
+      spec:
+        pipelineRef:
+          name: microservice-pipeline
+        params:
+          - name: repo-url
+            value: $(tt.params.git-repo-url)
+          - name: repo-revision
+            value: $(tt.params.git-revision)
+          - name: image-name
+            value: $(tt.params.image-name)
+        workspaces:
+          - name: shared-data
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 1Gi
+          - name: docker-credentials
+            secret:
+              secretName: docker-credentials
+          - name: sonar-credentials
+            secret:
+              secretName: sonarqube-credentials
+
+---
+# Event Listener for GitHub Webhooks
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: github-webhook-listener
+  namespace: tekton-pipelines
+spec:
+  serviceAccountName: tekton-triggers-sa
+  triggers:
+    - name: github-push
+      interceptors:
+        - ref:
+            name: github
+          params:
+            - name: secretRef
+              value:
+                secretName: github-webhook-secret
+                secretKey: token
+            - name: eventTypes
+              value: ["push", "pull_request"]
+        - ref:
+            name: cel
+          params:
+            - name: filter
+              value: "body.ref.startsWith('refs/heads/')"
+      bindings:
+        - ref: github-push-binding
+      template:
+        ref: github-push-trigger-template
+
+---
+# Trigger Binding
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: github-push-binding
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: git-repo-url
+      value: $(body.repository.clone_url)
+    - name: git-revision
+      value: $(body.after)
+    - name: image-name
+      value: $(body.repository.name)

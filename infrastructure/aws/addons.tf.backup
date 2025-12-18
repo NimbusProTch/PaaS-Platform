@@ -3,8 +3,8 @@
 # EBS CSI Driver - Already in main EKS module
 # But we need to create storage classes
 
-# Storage Classes
-resource "kubectl_manifest" "gp3_storage_class" {
+# Storage Classes - COMMENTED FOR DESTROY
+# resource "kubectl_manifest" "gp3_storage_class" {
   yaml_body = <<YAML
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -260,12 +260,7 @@ EOF
   depends_on = [module.eks]
 }
 
-# Gateway API CRDs
-resource "kubectl_manifest" "gateway_api_crds" {
-  yaml_body = file("https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.0.0/standard-install.yaml")
-
-  depends_on = [module.eks]
-}
+# Gateway API CRDs are installed by Kong Helm chart when gatewayAPI.enabled=true
 
 # AWS Load Balancer Controller
 resource "helm_release" "aws_load_balancer_controller" {
@@ -437,13 +432,14 @@ resource "helm_release" "karpenter" {
 settings:
   aws:
     clusterName: ${module.eks.cluster_name}
-    defaultInstanceProfile: ${aws_iam_instance_profile.karpenter[0].name}
+    # defaultInstanceProfile will be configured when Karpenter IAM resources are created
     interruptionQueueName: ${module.eks.cluster_name}
     vmMemoryOverheadPercent: 0.075
 
 serviceAccount:
-  annotations:
-    eks.amazonaws.com/role-arn: ${var.enable_karpenter ? aws_iam_role.karpenter[0].arn : ""}
+  create: true
+  # annotations:
+  #   eks.amazonaws.com/role-arn: will be configured when Karpenter IAM role is created
 
 controller:
   resources:

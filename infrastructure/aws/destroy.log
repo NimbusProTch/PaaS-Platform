@@ -1,0 +1,253 @@
+[0m[1mrandom_password.backstage_db_password: Refreshing state... [id=none][0m
+[0m[1mrandom_password.argocd_admin: Refreshing state... [id=none][0m
+[0m[1mrandom_password.minio_password[0]: Refreshing state... [id=none][0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_region.current: Reading...[0m[0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_partition.current: Reading...[0m[0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_partition.current: Reading...[0m[0m
+[0m[1mmodule.vpc.data.aws_caller_identity.current[0]: Reading...[0m[0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_caller_identity.current: Reading...[0m[0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_caller_identity.current: Reading...[0m[0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_partition.current: Reading...[0m[0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_region.current: Reading...[0m[0m
+[0m[1maws_kms_key.eks: Refreshing state... [id=0918b70f-90ec-4bae-a1ad-8b2df8144049][0m
+[0m[1mmodule.vpc.aws_vpc.this[0]: Refreshing state... [id=vpc-02aecc65be4eab79c][0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_partition.current: Read complete after 0s [id=aws][0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_partition.current: Read complete after 0s [id=aws][0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_region.current: Read complete after 0s [id=eu-west-1][0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_region.current: Read complete after 0s [id=eu-west-1][0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_partition.current: Read complete after 0s [id=aws][0m
+[0m[1mdata.aws_availability_zones.available: Reading...[0m[0m
+[0m[1mdata.aws_caller_identity.current: Reading...[0m[0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_caller_identity.current: Reading...[0m[0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_region.current: Reading...[0m[0m
+[0m[1mmodule.vpc.data.aws_region.current[0]: Reading...[0m[0m
+[0m[1mmodule.vpc.data.aws_region.current[0]: Read complete after 0s [id=eu-west-1][0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_region.current: Read complete after 0s [id=eu-west-1][0m
+[0m[1mmodule.vpc.data.aws_partition.current[0]: Reading...[0m[0m
+[0m[1mmodule.vpc.data.aws_partition.current[0]: Read complete after 0s [id=aws][0m
+[0m[1mmodule.vpc.data.aws_iam_policy_document.flow_log_cloudwatch_assume_role[0]: Reading...[0m[0m
+[0m[1mmodule.vpc.data.aws_iam_policy_document.flow_log_cloudwatch_assume_role[0]: Read complete after 0s [id=1021377347][0m
+[0m[1mmodule.vpc.aws_iam_role.vpc_flow_log_cloudwatch[0]: Refreshing state... [id=vpc-flow-log-role-20251217164416803300000001][0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_iam_policy_document.load_balancer_controller[0]: Reading...[0m[0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_iam_policy_document.load_balancer_controller[0]: Read complete after 0s [id=1541424006][0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_iam_policy_document.ebs_csi[0]: Reading...[0m[0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_iam_policy_document.ebs_csi[0]: Read complete after 0s [id=4189668531][0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].aws_iam_policy.load_balancer_controller[0]: Refreshing state... [id=arn:aws:iam::715841344657:policy/AmazonEKS_AWS_Load_Balancer_Controller-20251217170752620300000004][0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_caller_identity.current: Read complete after 0s [id=715841344657][0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].aws_iam_policy.ebs_csi[0]: Refreshing state... [id=arn:aws:iam::715841344657:policy/AmazonEKS_EBS_CSI_Policy-20251217170752617800000002][0m
+[0m[1mmodule.vpc.data.aws_caller_identity.current[0]: Read complete after 0s [id=715841344657][0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_caller_identity.current: Read complete after 0s [id=715841344657][0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_caller_identity.current: Read complete after 1s [id=715841344657][0m
+[0m[1mdata.aws_caller_identity.current: Read complete after 1s [id=715841344657][0m
+[0m[1mdata.aws_availability_zones.available: Read complete after 1s [id=eu-west-1][0m
+[0m[1maws_kms_alias.eks: Refreshing state... [id=alias/infraforge-dev-eks][0m
+[0m[1mmodule.vpc.aws_default_route_table.default[0]: Refreshing state... [id=rtb-04c8a079d9f0c814e][0m
+[0m[1mmodule.vpc.aws_default_security_group.this[0]: Refreshing state... [id=sg-0a71adffcb737b7be][0m
+[0m[1maws_vpc_endpoint.s3: Refreshing state... [id=vpce-0509f466e8cd91500][0m
+[0m[1mmodule.vpc.aws_default_network_acl.this[0]: Refreshing state... [id=acl-0417b5d89acaea64b][0m
+[0m[1mmodule.vpc.aws_route_table.private[0]: Refreshing state... [id=rtb-0b6e76b6d97ba3be6][0m
+[0m[1maws_security_group.vpc_endpoints: Refreshing state... [id=sg-0ac17b07ac9ce0535][0m
+[0m[1mmodule.vpc.aws_cloudwatch_log_group.flow_log[0]: Refreshing state... [id=/aws/vpc-flow-log/vpc-02aecc65be4eab79c][0m
+[0m[1mmodule.vpc.aws_subnet.public[0]: Refreshing state... [id=subnet-085a97102a8d53877][0m
+[0m[1mmodule.vpc.aws_subnet.public[1]: Refreshing state... [id=subnet-0270e2a0b25214ee7][0m
+[0m[1mmodule.vpc.aws_subnet.public[2]: Refreshing state... [id=subnet-07335efb572ce6797][0m
+[0m[1mmodule.vpc.aws_route_table.public[0]: Refreshing state... [id=rtb-026f55e0e62d90393][0m
+[0m[1mmodule.vpc.aws_internet_gateway.this[0]: Refreshing state... [id=igw-0af875bccf123c7f4][0m
+[0m[1mmodule.vpc.aws_subnet.private[1]: Refreshing state... [id=subnet-0d2ae9b9e36b78d6a][0m
+[0m[1mmodule.vpc.aws_subnet.private[2]: Refreshing state... [id=subnet-0457fc5bd24280050][0m
+[0m[1mmodule.vpc.aws_subnet.private[0]: Refreshing state... [id=subnet-0f97716901fab29c8][0m
+[0m[1mmodule.vpc.aws_subnet.database[0]: Refreshing state... [id=subnet-07f3edf73f72d3ba6][0m
+[0m[1mmodule.vpc.aws_subnet.database[1]: Refreshing state... [id=subnet-0963fe39308643c5b][0m
+[0m[1mmodule.vpc.aws_subnet.database[2]: Refreshing state... [id=subnet-0076980beb724a33c][0m
+[0m[1mmodule.vpc.aws_eip.nat[0]: Refreshing state... [id=eipalloc-0882a1798fb2f63a5][0m
+[0m[1mmodule.vpc.aws_route.public_internet_gateway[0]: Refreshing state... [id=r-rtb-026f55e0e62d903931080289494][0m
+[0m[1mmodule.vpc.aws_route_table_association.public[1]: Refreshing state... [id=rtbassoc-09907922629a98161][0m
+[0m[1mmodule.vpc.aws_route_table_association.public[2]: Refreshing state... [id=rtbassoc-0e4c04b4e1394c367][0m
+[0m[1mmodule.vpc.aws_route_table_association.public[0]: Refreshing state... [id=rtbassoc-0e360f73a525cb9a4][0m
+[0m[1mmodule.vpc.data.aws_iam_policy_document.vpc_flow_log_cloudwatch[0]: Reading...[0m[0m
+[0m[1mmodule.vpc.aws_flow_log.this[0]: Refreshing state... [id=fl-04b613010c8866abe][0m
+[0m[1mmodule.vpc.data.aws_iam_policy_document.vpc_flow_log_cloudwatch[0]: Read complete after 0s [id=2841270105][0m
+[0m[1mmodule.vpc.aws_iam_policy.vpc_flow_log_cloudwatch[0]: Refreshing state... [id=arn:aws:iam::715841344657:policy/vpc-flow-log-to-cloudwatch-20251217164431366900000005][0m
+[0m[1mmodule.vpc.aws_route_table_association.private[1]: Refreshing state... [id=rtbassoc-00b250cc91ce00637][0m
+[0m[1mmodule.vpc.aws_route_table_association.private[2]: Refreshing state... [id=rtbassoc-0468c37be337aec93][0m
+[0m[1mmodule.vpc.aws_route_table_association.private[0]: Refreshing state... [id=rtbassoc-051e8465a059c4ad7][0m
+[0m[1maws_vpc_endpoint.ec2: Refreshing state... [id=vpce-04c405fd9a31c6570][0m
+[0m[1maws_vpc_endpoint.sts: Refreshing state... [id=vpce-0c14afe0059c559bf][0m
+[0m[1maws_vpc_endpoint.ecr_dkr: Refreshing state... [id=vpce-0cdab1ac89e064304][0m
+[0m[1maws_vpc_endpoint.ecr_api: Refreshing state... [id=vpce-0a3f86458a9c396e5][0m
+[0m[1mmodule.vpc.aws_route_table_association.database[2]: Refreshing state... [id=rtbassoc-0e52afb5c1a0790b3][0m
+[0m[1mmodule.vpc.aws_route_table_association.database[0]: Refreshing state... [id=rtbassoc-0ff62d183965c3e04][0m
+[0m[1mmodule.vpc.aws_route_table_association.database[1]: Refreshing state... [id=rtbassoc-0a1c29b9ffccd5334][0m
+[0m[1mmodule.vpc.aws_db_subnet_group.database[0]: Refreshing state... [id=infraforge-dev-vpc][0m
+[0m[1mmodule.vpc.aws_nat_gateway.this[0]: Refreshing state... [id=nat-0170a690ae1827861][0m
+[0m[1mmodule.vpc.aws_route.private_nat_gateway[0]: Refreshing state... [id=r-rtb-0b6e76b6d97ba3be61080289494][0m
+[0m[1mmodule.vpc.aws_iam_role_policy_attachment.vpc_flow_log_cloudwatch[0]: Refreshing state... [id=vpc-flow-log-role-20251217164416803300000001-20251217164432289400000006][0m
+[0m[1mmodule.eks.data.aws_caller_identity.current: Reading...[0m[0m
+[0m[1mmodule.eks.time_sleep.this[0] (deposed object fca075fe): Refreshing state... [id=2025-12-17T17:18:25Z][0m
+[0m[1mmodule.eks.data.aws_partition.current: Reading...[0m[0m
+[0m[1mmodule.eks.data.aws_partition.current: Read complete after 0s [id=aws][0m
+[0m[1mmodule.eks.module.fargate_profile["system"].data.aws_caller_identity.current: Reading...[0m[0m
+[0m[1mmodule.eks.aws_security_group.cluster[0]: Refreshing state... [id=sg-04590f98e62457e9a][0m
+[0m[1mmodule.eks.aws_cloudwatch_log_group.this[0]: Refreshing state... [id=/aws/eks/infraforge-dev/cluster][0m
+[0m[1mmodule.eks.module.kms.data.aws_caller_identity.current[0]: Reading...[0m[0m
+[0m[1mmodule.eks.data.aws_iam_policy_document.assume_role_policy[0]: Reading...[0m[0m
+[0m[1mmodule.eks.data.aws_iam_policy_document.assume_role_policy[0]: Read complete after 0s [id=2764486067][0m
+[0m[1mmodule.eks.aws_security_group.node[0]: Refreshing state... [id=sg-03b17afed4f4e12ed][0m
+[0m[1mmodule.eks.module.fargate_profile["system"].data.aws_partition.current: Reading...[0m[0m
+[0m[1mmodule.eks.module.fargate_profile["system"].data.aws_partition.current: Read complete after 0s [id=aws][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].data.aws_caller_identity.current: Reading...[0m[0m
+[0m[1mmodule.eks.module.eks_managed_node_group["general"].data.aws_partition.current: Reading...[0m[0m
+[0m[1mmodule.eks.module.kms.data.aws_partition.current[0]: Reading...[0m[0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].data.aws_partition.current: Reading...[0m[0m
+[0m[1mmodule.eks.module.eks_managed_node_group["general"].data.aws_partition.current: Read complete after 0s [id=aws][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].data.aws_partition.current: Read complete after 0s [id=aws][0m
+[0m[1mmodule.eks.module.kms.data.aws_partition.current[0]: Read complete after 0s [id=aws][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["general"].data.aws_caller_identity.current: Reading...[0m[0m
+[0m[1mmodule.eks.module.fargate_profile["system"].data.aws_iam_policy_document.assume_role_policy[0]: Reading...[0m[0m
+[0m[1mmodule.eks.module.fargate_profile["system"].data.aws_iam_policy_document.assume_role_policy[0]: Read complete after 0s [id=3016102342][0m
+[0m[1mmodule.eks.aws_iam_role.this[0]: Refreshing state... [id=infraforge-dev-cluster-20251217170752618600000003][0m
+[0m[1mmodule.eks.module.fargate_profile["system"].aws_iam_role.this[0]: Refreshing state... [id=system-20251217170752623600000006][0m
+[0m[1mmodule.eks.data.aws_caller_identity.current: Read complete after 0s [id=715841344657][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].data.aws_iam_policy_document.assume_role_policy[0]: Reading...[0m[0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].data.aws_iam_policy_document.assume_role_policy[0]: Read complete after 0s [id=2560088296][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["general"].data.aws_iam_policy_document.assume_role_policy[0]: Reading...[0m[0m
+[0m[1mmodule.eks.module.eks_managed_node_group["general"].data.aws_iam_policy_document.assume_role_policy[0]: Read complete after 0s [id=2560088296][0m
+[0m[1mmodule.eks.data.aws_iam_session_context.current: Reading...[0m[0m
+[0m[1mmodule.eks.data.aws_iam_session_context.current: Read complete after 0s [id=arn:aws:iam::715841344657:user/gokhan][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].aws_iam_role.this[0]: Refreshing state... [id=infraforge-dev-system-eks-node-group-20251217170752624100000008][0m
+[0m[1mmodule.eks.module.fargate_profile["system"].data.aws_caller_identity.current: Read complete after 0s [id=715841344657][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["general"].aws_iam_role.this[0]: Refreshing state... [id=infraforge-dev-general-eks-node-group-20251217170752624000000007][0m
+[0m[1mmodule.eks.module.kms.data.aws_caller_identity.current[0]: Read complete after 0s [id=715841344657][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["general"].module.user_data.data.cloudinit_config.linux_eks_managed_node_group[0]: Reading...[0m[0m
+[0m[1mmodule.eks.module.eks_managed_node_group["general"].module.user_data.data.cloudinit_config.linux_eks_managed_node_group[0]: Read complete after 0s [id=302967155][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["general"].data.aws_caller_identity.current: Read complete after 0s [id=715841344657][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_self_coredns_tcp"]: Refreshing state... [id=sgrule-2905028476][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_cluster_9443_webhook"]: Refreshing state... [id=sgrule-947048403][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_cluster_8443_webhook"]: Refreshing state... [id=sgrule-1557396504][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_cluster_4443_webhook"]: Refreshing state... [id=sgrule-2261624751][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_nodes_ephemeral"]: Refreshing state... [id=sgrule-1484434223][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].data.aws_caller_identity.current: Read complete after 1s [id=715841344657][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_cluster_kubelet"]: Refreshing state... [id=sgrule-1024160259][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_self_coredns_udp"]: Refreshing state... [id=sgrule-158897299][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_cluster_443"]: Refreshing state... [id=sgrule-2383273807][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["egress_all"]: Refreshing state... [id=sgrule-1296582488][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_cluster_6443_webhook"]: Refreshing state... [id=sgrule-1334820921][0m
+[0m[1mmodule.eks.aws_security_group_rule.cluster["ingress_nodes_443"]: Refreshing state... [id=sgrule-2698008309][0m
+[0m[1mmodule.eks.module.fargate_profile["system"].aws_iam_role_policy_attachment.this["arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy"]: Refreshing state... [id=system-20251217170752623600000006-2025121717075414050000000a][0m
+[0m[1mmodule.eks.module.fargate_profile["system"].aws_iam_role_policy_attachment.this["arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"]: Refreshing state... [id=system-20251217170752623600000006-20251217170754119300000009][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["general"].aws_iam_role_policy_attachment.this["arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"]: Refreshing state... [id=infraforge-dev-general-eks-node-group-20251217170752624000000007-2025121717075431440000000e][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["general"].aws_iam_role_policy_attachment.this["arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"]: Refreshing state... [id=infraforge-dev-general-eks-node-group-20251217170752624000000007-20251217170754585000000010][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].aws_iam_role_policy_attachment.this["arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"]: Refreshing state... [id=infraforge-dev-system-eks-node-group-20251217170752624100000008-2025121717075421260000000d][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["general"].aws_iam_role_policy_attachment.this["arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"]: Refreshing state... [id=infraforge-dev-general-eks-node-group-20251217170752624000000007-2025121717075432760000000f][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].aws_iam_role_policy_attachment.this["arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"]: Refreshing state... [id=infraforge-dev-system-eks-node-group-20251217170752624100000008-2025121717075417210000000c][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].aws_iam_role_policy_attachment.this["arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"]: Refreshing state... [id=infraforge-dev-system-eks-node-group-20251217170752624100000008-2025121717075416890000000b][0m
+[0m[1mmodule.eks.aws_iam_role_policy_attachment.this["AmazonEKSClusterPolicy"]: Refreshing state... [id=infraforge-dev-cluster-20251217170752618600000003-20251217170754695600000012][0m
+[0m[1mmodule.eks.aws_iam_role_policy_attachment.this["AmazonEKSVPCResourceController"]: Refreshing state... [id=infraforge-dev-cluster-20251217170752618600000003-20251217170754671500000011][0m
+[0m[1mmodule.eks.module.kms.data.aws_iam_policy_document.this[0]: Reading...[0m[0m
+[0m[1mmodule.eks.module.kms.data.aws_iam_policy_document.this[0]: Read complete after 0s [id=2339894789][0m
+[0m[1mmodule.eks.module.kms.aws_kms_key.this[0]: Refreshing state... [id=cefb2c2d-7827-48b1-9381-d6581ea7b1f2][0m
+[0m[1mmodule.eks.module.kms.aws_kms_alias.this["cluster"]: Refreshing state... [id=alias/eks/infraforge-dev][0m
+[0m[1mmodule.eks.aws_iam_policy.cluster_encryption[0]: Refreshing state... [id=arn:aws:iam::715841344657:policy/infraforge-dev-cluster-ClusterEncryption20251217170817072900000013][0m
+[0m[1mmodule.eks.aws_eks_cluster.this[0]: Refreshing state... [id=infraforge-dev][0m
+[0m[1mmodule.eks.aws_iam_role_policy_attachment.cluster_encryption[0]: Refreshing state... [id=infraforge-dev-cluster-20251217170752618600000003-20251217170817969500000014][0m
+[0m[1mmodule.eks.data.tls_certificate.this[0]: Reading...[0m[0m
+[0m[1mmodule.eks.aws_ec2_tag.cluster_primary_security_group["Environment"]: Refreshing state... [id=sg-0e62a90d72270fe34,Environment][0m
+[0m[1mmodule.eks.aws_ec2_tag.cluster_primary_security_group["Cluster"]: Refreshing state... [id=sg-0e62a90d72270fe34,Cluster][0m
+[0m[1mmodule.eks.aws_ec2_tag.cluster_primary_security_group["Tenant"]: Refreshing state... [id=sg-0e62a90d72270fe34,Tenant][0m
+[0m[1mmodule.eks.time_sleep.this[0]: Refreshing state... [id=2025-12-17T19:14:21Z][0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_iam_policy_document.cluster_autoscaler[0]: Reading...[0m[0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_iam_policy_document.cluster_autoscaler[0]: Read complete after 0s [id=3691530538][0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].aws_iam_policy.cluster_autoscaler[0]: Refreshing state... [id=arn:aws:iam::715841344657:policy/AmazonEKS_Cluster_Autoscaler_Policy-20251217171755879000000015][0m
+[0m[1mmodule.eks.module.fargate_profile["system"].aws_eks_fargate_profile.this[0]: Refreshing state... [id=infraforge-dev:system][0m
+[0m[1mkubernetes_service_account.backstage: Refreshing state... [id=backstage/backstage][0m
+[0m[1mkubernetes_cluster_role.backstage: Refreshing state... [id=backstage-reader][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].aws_launch_template.this[0]: Refreshing state... [id=lt-00d30dbbdb69d2c24][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["general"].aws_launch_template.this[0]: Refreshing state... [id=lt-0116fdd038f39ecc4][0m
+[0m[1mmodule.eks.data.tls_certificate.this[0]: Read complete after 0s [id=08332733484502a5c0ee4f44b59e6f9baaa72352][0m
+[0m[1mmodule.eks.aws_iam_openid_connect_provider.oidc_provider[0]: Refreshing state... [id=arn:aws:iam::715841344657:oidc-provider/oidc.eks.eu-west-1.amazonaws.com/id/ADDA703F782CABA7FEBFF9FC355069D1][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["general"].aws_eks_node_group.this[0]: Refreshing state... [id=infraforge-dev:infraforge-dev-general-20251217191421839500000001][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].aws_eks_node_group.this[0]: Refreshing state... [id=infraforge-dev:infraforge-dev-system-20251217191421840400000003][0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_iam_policy_document.this[0]: Reading...[0m[0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_iam_policy_document.this[0]: Reading...[0m[0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_iam_policy_document.this[0]: Reading...[0m[0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_iam_policy_document.this[0]: Read complete after 0s [id=3227648327][0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_iam_policy_document.this[0]: Read complete after 0s [id=3856997166][0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_iam_policy_document.this[0]: Read complete after 0s [id=1441892670][0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].aws_iam_role.this[0]: Refreshing state... [id=infraforge-dev-ebs-csi-driver][0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].aws_iam_role.this[0]: Refreshing state... [id=infraforge-dev-aws-load-balancer-controller][0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].aws_iam_role.this[0]: Refreshing state... [id=infraforge-dev-cluster-autoscaler][0m
+[0m[1mmodule.eks.kubernetes_config_map_v1_data.aws_auth[0]: Refreshing state... [id=kube-system/aws-auth][0m
+[0m[1mkubernetes_cluster_role_binding.backstage: Refreshing state... [id=backstage-reader][0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].aws_iam_role_policy_attachment.ebs_csi[0]: Refreshing state... [id=infraforge-dev-ebs-csi-driver-20251217171759955400000017][0m
+[0m[1mmodule.eks.data.aws_eks_addon_version.this["aws-ebs-csi-driver"]: Reading...[0m[0m
+[0m[1mmodule.eks.data.aws_eks_addon_version.this["coredns"]: Reading...[0m[0m
+[0m[1mmodule.eks.data.aws_eks_addon_version.this["kube-proxy"]: Reading...[0m[0m
+[0m[1mmodule.eks.data.aws_eks_addon_version.this["vpc-cni"]: Reading...[0m[0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].aws_iam_role_policy_attachment.load_balancer_controller[0]: Refreshing state... [id=infraforge-dev-aws-load-balancer-controller-20251217171800082300000018][0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].aws_iam_role_policy_attachment.cluster_autoscaler[0]: Refreshing state... [id=infraforge-dev-cluster-autoscaler-20251217171759942000000016][0m
+[0m[1mmodule.eks.data.aws_eks_addon_version.this["coredns"]: Read complete after 0s [id=coredns][0m
+[0m[1mmodule.eks.data.aws_eks_addon_version.this["vpc-cni"]: Read complete after 0s [id=vpc-cni][0m
+[0m[1mmodule.eks.data.aws_eks_addon_version.this["aws-ebs-csi-driver"]: Read complete after 0s [id=aws-ebs-csi-driver][0m
+[0m[1mmodule.eks.data.aws_eks_addon_version.this["kube-proxy"]: Read complete after 1s [id=kube-proxy][0m
+[0m[1mmodule.eks.aws_eks_addon.this["vpc-cni"]: Refreshing state... [id=infraforge-dev:vpc-cni][0m
+[0m[1mmodule.eks.aws_eks_addon.this["coredns"]: Refreshing state... [id=infraforge-dev:coredns][0m
+[0m[1mmodule.eks.aws_eks_addon.this["aws-ebs-csi-driver"]: Refreshing state... [id=infraforge-dev:aws-ebs-csi-driver][0m
+[0m[1mmodule.eks.aws_eks_addon.this["kube-proxy"]: Refreshing state... [id=infraforge-dev:kube-proxy][0m
+[0m[1mnull_resource.configure_ebs_csi[0]: Refreshing state... [id=5410801346884088876][0m
+[0m[1mhelm_release.argocd: Refreshing state... [id=argocd][0m
+[0m[1mkubectl_manifest.argocd_app_of_apps: Refreshing state... [id=/apis/argoproj.io/v1alpha1/namespaces/argocd/applications/app-of-apps][0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mValue for undeclared variable[0m
+[33m│[0m [0m
+[33m│[0m [0m[0mThe root module does not declare a variable named "enable_monitoring" but a
+[33m│[0m [0mvalue was found in file "terraform.tfvars". If you meant to use this value,
+[33m│[0m [0madd a "variable" block to the configuration.
+[33m│[0m [0m
+[33m│[0m [0mTo silence these warnings, use TF_VAR_... environment variables to provide
+[33m│[0m [0mcertain "global" settings to all configurations in your organization. To
+[33m│[0m [0mreduce the verbosity of these warnings, use the -compact-warnings option.
+[33m╵[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mValue for undeclared variable[0m
+[33m│[0m [0m
+[33m│[0m [0m[0mThe root module does not declare a variable named "monitoring_config" but a
+[33m│[0m [0mvalue was found in file "terraform.tfvars". If you meant to use this value,
+[33m│[0m [0madd a "variable" block to the configuration.
+[33m│[0m [0m
+[33m│[0m [0mTo silence these warnings, use TF_VAR_... environment variables to provide
+[33m│[0m [0mcertain "global" settings to all configurations in your organization. To
+[33m│[0m [0mreduce the verbosity of these warnings, use the -compact-warnings option.
+[33m╵[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mDeprecated attribute[0m
+[33m│[0m [0m
+[33m│[0m [0m[0m  on backstage.tf line 228, in data "kubernetes_secret" "backstage_sa_token":
+[33m│[0m [0m 228:     name      = kubernetes_service_account.backstage[4m.default_secret_name[0m[0m
+[33m│[0m [0m
+[33m│[0m [0mThe attribute "default_secret_name" is deprecated. Refer to the provider
+[33m│[0m [0mdocumentation for details.
+[33m│[0m [0m
+[33m│[0m [0m(and one more similar warning elsewhere)
+[33m╵[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mArgument is deprecated[0m
+[33m│[0m [0m
+[33m│[0m [0m[0m  with module.eks.aws_iam_role.this[0],
+[33m│[0m [0m  on .terraform/modules/eks/main.tf line 293, in resource "aws_iam_role" "this":
+[33m│[0m [0m 293: resource "aws_iam_role" "this" [4m{[0m[0m
+[33m│[0m [0m
+[33m│[0m [0minline_policy is deprecated. Use the aws_iam_role_policy resource instead.
+[33m│[0m [0mIf Terraform should exclusively manage all inline policy associations (the
+[33m│[0m [0mcurrent behavior of this argument), use the aws_iam_role_policies_exclusive
+[33m│[0m [0mresource as well.
+[33m│[0m [0m
+[33m│[0m [0m(and 4 more similar warnings elsewhere)
+[33m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mmetadata.0.name a lowercase RFC 1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with data.kubernetes_secret.backstage_sa_token,
+[31m│[0m [0m  on backstage.tf line 228, in data "kubernetes_secret" "backstage_sa_token":
+[31m│[0m [0m 228:     name      = [4mkubernetes_service_account.backstage.default_secret_name[0m[0m
+[31m│[0m [0m
+[31m╵[0m[0m

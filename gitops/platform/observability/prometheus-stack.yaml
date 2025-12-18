@@ -1,0 +1,307 @@
+# Prometheus Stack with Grafana
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    platform.infraforge.io/component: observability
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+spec:
+  project: platform
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    targetRevision: 55.5.0
+    chart: kube-prometheus-stack
+    helm:
+      releaseName: monitoring
+      values: |
+        # Prometheus configuration
+        prometheus:
+          prometheusSpec:
+            retention: 30d
+            retentionSize: 45GB
+            replicas: 2
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  storageClassName: gp3
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 50Gi
+            resources:
+              requests:
+                cpu: 500m
+                memory: 2Gi
+              limits:
+                cpu: 2
+                memory: 4Gi
+
+            # Service monitors for platform components
+            serviceMonitorSelectorNilUsesHelmValues: false
+            serviceMonitorSelector: {}
+            serviceMonitorNamespaceSelector: {}
+
+            # Pod monitors
+            podMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelector: {}
+            podMonitorNamespaceSelector: {}
+
+            # Rules
+            ruleSelectorNilUsesHelmValues: false
+            ruleSelector: {}
+            ruleNamespaceSelector: {}
+
+            # Additional scrape configs
+            additionalScrapeConfigs:
+              - job_name: 'kubernetes-pods'
+                kubernetes_sd_configs:
+                  - role: pod
+                relabel_configs:
+                  - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+                    action: keep
+                    regex: true
+                  - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+                    action: replace
+                    target_label: __metrics_path__
+                    regex: (.+)
+                  - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+                    action: replace
+                    regex: ([^:]+)(?::\d+)?;(\d+)
+                    replacement: $1:$2
+                    target_label: __address__
+
+          # Ingress configuration
+          ingress:
+            enabled: true
+            ingressClassName: kong
+            annotations:
+              cert-manager.io/cluster-issuer: letsencrypt-prod
+            hosts:
+              - prometheus.infraforge.io
+            tls:
+              - secretName: prometheus-tls
+                hosts:
+                  - prometheus.infraforge.io
+
+        # Grafana configuration
+        grafana:
+          enabled: true
+          replicas: 2
+
+          adminPassword: changeme # Should use external secret
+
+          persistence:
+            enabled: true
+            storageClassName: gp3
+            size: 10Gi
+
+          ingress:
+            enabled: true
+            ingressClassName: kong
+            annotations:
+              cert-manager.io/cluster-issuer: letsencrypt-prod
+            hosts:
+              - grafana.infraforge.io
+            tls:
+              - secretName: grafana-tls
+                hosts:
+                  - grafana.infraforge.io
+
+          # Grafana datasources
+          datasources:
+            datasources.yaml:
+              apiVersion: 1
+              datasources:
+                - name: Prometheus
+                  type: prometheus
+                  url: http://monitoring-kube-prometheus-prometheus:9090
+                  isDefault: true
+                - name: Loki
+                  type: loki
+                  url: http://loki:3100
+                - name: Jaeger
+                  type: jaeger
+                  url: http://jaeger-query:16686
+
+          # Dashboard providers
+          dashboardProviders:
+            dashboardproviders.yaml:
+              apiVersion: 1
+              providers:
+                - name: 'platform'
+                  orgId: 1
+                  folder: 'Platform'
+                  type: file
+                  disableDeletion: true
+                  editable: true
+                  options:
+                    path: /var/lib/grafana/dashboards/platform
+                - name: 'kubernetes'
+                  orgId: 1
+                  folder: 'Kubernetes'
+                  type: file
+                  disableDeletion: true
+                  editable: true
+                  options:
+                    path: /var/lib/grafana/dashboards/kubernetes
+
+          # Pre-installed dashboards
+          dashboards:
+            platform:
+              platform-overview:
+                gnetId: 15759
+                revision: 1
+                datasource: Prometheus
+              cluster-monitoring:
+                gnetId: 8588
+                revision: 1
+                datasource: Prometheus
+              node-exporter:
+                gnetId: 1860
+                revision: 27
+                datasource: Prometheus
+
+          # Grafana plugins
+          plugins:
+            - grafana-piechart-panel
+            - grafana-clock-panel
+            - grafana-simple-json-datasource
+            - redis-datasource
+
+          # Grafana configuration
+          grafana.ini:
+            server:
+              root_url: https://grafana.infraforge.io
+            auth.generic_oauth:
+              enabled: true
+              name: Keycloak
+              client_id: grafana
+              client_secret: ${OAUTH_CLIENT_SECRET}
+              scopes: openid profile email
+              auth_url: https://keycloak.infraforge.io/realms/platform/protocol/openid-connect/auth
+              token_url: https://keycloak.infraforge.io/realms/platform/protocol/openid-connect/token
+              api_url: https://keycloak.infraforge.io/realms/platform/protocol/openid-connect/userinfo
+              role_attribute_path: contains(groups[*], 'platform-admins') && 'Admin' || contains(groups[*], 'developers') && 'Editor' || 'Viewer'
+
+        # AlertManager configuration
+        alertmanager:
+          alertmanagerSpec:
+            replicas: 3
+            retention: 120h
+            storage:
+              volumeClaimTemplate:
+                spec:
+                  storageClassName: gp3
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 10Gi
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 256Mi
+
+          config:
+            global:
+              resolve_timeout: 5m
+              slack_api_url: '${SLACK_WEBHOOK_URL}'
+
+            route:
+              group_by: ['namespace', 'alertname', 'cluster', 'service']
+              group_wait: 10s
+              group_interval: 10s
+              repeat_interval: 12h
+              receiver: 'platform-team'
+              routes:
+                - match:
+                    severity: critical
+                  receiver: 'platform-critical'
+                  continue: true
+                - match:
+                    severity: warning
+                  receiver: 'platform-warning'
+                - match_re:
+                    namespace: ^(kube-system|monitoring|argocd)$
+                  receiver: 'platform-team'
+
+            receivers:
+              - name: 'platform-team'
+                slack_configs:
+                  - channel: '#platform-alerts'
+                    title: 'Platform Alert'
+                    text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+
+              - name: 'platform-critical'
+                slack_configs:
+                  - channel: '#platform-critical'
+                    title: 'CRITICAL Platform Alert'
+                    text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+                pagerduty_configs:
+                  - service_key: '${PAGERDUTY_SERVICE_KEY}'
+
+              - name: 'platform-warning'
+                slack_configs:
+                  - channel: '#platform-warnings'
+                    title: 'Warning'
+                    text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+
+          ingress:
+            enabled: true
+            ingressClassName: kong
+            annotations:
+              cert-manager.io/cluster-issuer: letsencrypt-prod
+            hosts:
+              - alertmanager.infraforge.io
+            tls:
+              - secretName: alertmanager-tls
+                hosts:
+                  - alertmanager.infraforge.io
+
+        # Node exporter
+        nodeExporter:
+          enabled: true
+
+        # Kube state metrics
+        kubeStateMetrics:
+          enabled: true
+
+        # Prometheus operator
+        prometheusOperator:
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          # Admission webhooks
+          admissionWebhooks:
+            enabled: true
+            patch:
+              enabled: true
+
+          # Service monitor for operator
+          serviceMonitor:
+            selfMonitor: true
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true

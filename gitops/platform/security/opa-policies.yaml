@@ -1,0 +1,454 @@
+# Open Policy Agent (OPA) Security Policies
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opa-system
+  labels:
+    platform.infraforge.io/component: security
+    openpolicyagent.org/webhook: ignore
+---
+# OPA Gatekeeper Installation
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gatekeeper
+  namespace: argocd
+spec:
+  project: platform
+  source:
+    repoURL: https://open-policy-agent.github.io/gatekeeper/charts
+    targetRevision: 3.14.0
+    chart: gatekeeper
+    helm:
+      values: |
+        replicas: 3
+        auditInterval: 60
+        constraintViolationsLimit: 100
+        auditFromCache: true
+
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+
+        nodeSelector:
+          kubernetes.io/os: linux
+
+        tolerations: []
+
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                      - key: gatekeeper.sh/operation
+                        operator: In
+                        values:
+                          - webhook
+                  topologyKey: kubernetes.io/hostname
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: opa-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
+# Constraint Template: Required Labels
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredlabels
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredLabels
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            labels:
+              type: array
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequiredlabels
+
+        violation[{"msg": msg, "details": {"missing_labels": missing}}] {
+          required := input.parameters.labels
+          provided := input.review.object.metadata.labels
+          missing := required[_]
+          not provided[missing]
+          msg := sprintf("Label '%v' is required", [missing])
+        }
+---
+# Constraint: Enforce Required Labels
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: K8sRequiredLabels
+metadata:
+  name: must-have-labels
+spec:
+  match:
+    kinds:
+    - apiGroups: ["apps"]
+      kinds: ["Deployment", "StatefulSet", "DaemonSet"]
+    - apiGroups: [""]
+      kinds: ["Service", "Pod"]
+    excludedNamespaces: ["kube-system", "kube-public", "kube-node-lease", "gatekeeper-system"]
+  parameters:
+    labels:
+      - "app"
+      - "version"
+      - "environment"
+      - "team"
+---
+# Constraint Template: Container Security Policies
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8scontainersecurity
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sContainerSecurity
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            allowPrivileged:
+              type: boolean
+              default: false
+            allowPrivilegeEscalation:
+              type: boolean
+              default: false
+            requiredDropCapabilities:
+              type: array
+              items:
+                type: string
+            requiredSecurityContext:
+              type: boolean
+              default: true
+            runAsNonRoot:
+              type: boolean
+              default: true
+            readOnlyRootFilesystem:
+              type: boolean
+              default: false
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8scontainersecurity
+
+        # Check for privileged containers
+        violation[{"msg": msg}] {
+          not input.parameters.allowPrivileged
+          container := input.review.object.spec.containers[_]
+          container.securityContext.privileged
+          msg := sprintf("Privileged container '%v' is not allowed", [container.name])
+        }
+
+        # Check for privilege escalation
+        violation[{"msg": msg}] {
+          not input.parameters.allowPrivilegeEscalation
+          container := input.review.object.spec.containers[_]
+          container.securityContext.allowPrivilegeEscalation
+          msg := sprintf("Privilege escalation for container '%v' is not allowed", [container.name])
+        }
+
+        # Check for required dropped capabilities
+        violation[{"msg": msg}] {
+          required := input.parameters.requiredDropCapabilities[_]
+          container := input.review.object.spec.containers[_]
+          not dropped_capability(container, required)
+          msg := sprintf("Container '%v' must drop capability '%v'", [container.name, required])
+        }
+
+        dropped_capability(container, cap) {
+          container.securityContext.capabilities.drop[_] == cap
+        }
+
+        # Check for runAsNonRoot
+        violation[{"msg": msg}] {
+          input.parameters.runAsNonRoot
+          container := input.review.object.spec.containers[_]
+          not container.securityContext.runAsNonRoot
+          msg := sprintf("Container '%v' must run as non-root user", [container.name])
+        }
+
+        # Check for readOnlyRootFilesystem
+        violation[{"msg": msg}] {
+          input.parameters.readOnlyRootFilesystem
+          container := input.review.object.spec.containers[_]
+          not container.securityContext.readOnlyRootFilesystem
+          msg := sprintf("Container '%v' must have read-only root filesystem", [container.name])
+        }
+---
+# Constraint: Enforce Container Security
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: K8sContainerSecurity
+metadata:
+  name: container-security-policy
+spec:
+  match:
+    kinds:
+    - apiGroups: ["apps", ""]
+      kinds: ["Deployment", "StatefulSet", "DaemonSet", "Pod"]
+    excludedNamespaces: ["kube-system", "kube-public", "gatekeeper-system"]
+  parameters:
+    allowPrivileged: false
+    allowPrivilegeEscalation: false
+    requiredDropCapabilities:
+      - "ALL"
+    runAsNonRoot: true
+    readOnlyRootFilesystem: false
+---
+# Constraint Template: Image Registry Whitelist
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8sallowedregistries
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sAllowedRegistries
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            registries:
+              type: array
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sallowedregistries
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not allowed_registry(container.image)
+          msg := sprintf("Container image '%v' is from disallowed registry", [container.image])
+        }
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.initContainers[_]
+          not allowed_registry(container.image)
+          msg := sprintf("Init container image '%v' is from disallowed registry", [container.image])
+        }
+
+        allowed_registry(image) {
+          registry := input.parameters.registries[_]
+          startswith(image, registry)
+        }
+
+        # Allow images without registry (local images)
+        allowed_registry(image) {
+          not contains(image, "/")
+        }
+---
+# Constraint: Allowed Image Registries
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: K8sAllowedRegistries
+metadata:
+  name: allowed-registries
+spec:
+  match:
+    kinds:
+    - apiGroups: ["apps", ""]
+      kinds: ["Deployment", "StatefulSet", "DaemonSet", "Pod", "Job", "CronJob"]
+    excludedNamespaces: ["kube-system", "kube-public"]
+  parameters:
+    registries:
+      - "docker.io/"
+      - "gcr.io/"
+      - "ghcr.io/"
+      - "public.ecr.aws/"
+      - "registry.infraforge.io/"
+---
+# Constraint Template: Resource Limits
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8sresourcelimits
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sResourceLimits
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            cpu:
+              type: string
+            memory:
+              type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sresourcelimits
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.resources.limits.cpu
+          msg := sprintf("Container '%v' must have CPU limits", [container.name])
+        }
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.resources.limits.memory
+          msg := sprintf("Container '%v' must have memory limits", [container.name])
+        }
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.resources.requests.cpu
+          msg := sprintf("Container '%v' must have CPU requests", [container.name])
+        }
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.resources.requests.memory
+          msg := sprintf("Container '%v' must have memory requests", [container.name])
+        }
+---
+# Constraint: Enforce Resource Limits
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: K8sResourceLimits
+metadata:
+  name: must-have-resource-limits
+spec:
+  match:
+    kinds:
+    - apiGroups: ["apps", ""]
+      kinds: ["Deployment", "StatefulSet", "DaemonSet", "Pod"]
+    excludedNamespaces: ["kube-system", "kube-public", "gatekeeper-system"]
+---
+# Constraint Template: Network Policy Required
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequirednetworkpolicy
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredNetworkPolicy
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequirednetworkpolicy
+
+        violation[{"msg": msg}] {
+          input.review.kind.kind == "Pod"
+          namespace := input.review.namespace
+          not has_network_policy(namespace)
+          msg := sprintf("Namespace '%v' must have at least one NetworkPolicy", [namespace])
+        }
+
+        has_network_policy(namespace) {
+          # Check if namespace has network policy
+          # This would need to query existing resources
+          # For now, check if namespace has specific label
+          input.review.object.metadata.labels["network-policy-enforced"] == "true"
+        }
+---
+# Constraint Template: No Latest Image Tag
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8snolatesttag
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sNoLatestTag
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8snolatesttag
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          has_latest_tag(container.image)
+          msg := sprintf("Container '%v' should not use 'latest' tag", [container.name])
+        }
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.initContainers[_]
+          has_latest_tag(container.image)
+          msg := sprintf("Init container '%v' should not use 'latest' tag", [container.name])
+        }
+
+        has_latest_tag(image) {
+          endswith(image, ":latest")
+        }
+
+        has_latest_tag(image) {
+          not contains(image, ":")
+        }
+---
+# Constraint: No Latest Tag in Production
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: K8sNoLatestTag
+metadata:
+  name: no-latest-tag-prod
+spec:
+  match:
+    kinds:
+    - apiGroups: ["apps", ""]
+      kinds: ["Deployment", "StatefulSet", "DaemonSet", "Pod"]
+    namespaceSelector:
+      matchExpressions:
+      - key: environment
+        operator: In
+        values: ["production", "prod"]
+---
+# Mutation: Add Default Security Context
+apiVersion: mutations.gatekeeper.sh/v1alpha1
+kind: Assign
+metadata:
+  name: default-security-context
+spec:
+  applyTo:
+  - groups: ["apps"]
+    kinds: ["Deployment", "StatefulSet", "DaemonSet"]
+  match:
+    scope: Namespaced
+    excludedNamespaces: ["kube-system", "kube-public"]
+  location: "spec.template.spec.securityContext"
+  parameters:
+    assign:
+      value:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+        seccompProfile:
+          type: RuntimeDefault
+---
+# Mutation: Add Default Network Policy
+apiVersion: mutations.gatekeeper.sh/v1alpha1
+kind: ModifySet
+metadata:
+  name: add-network-policy-label
+spec:
+  applyTo:
+  - groups: [""]
+    kinds: ["Namespace"]
+  match:
+    scope: Cluster
+  location: "metadata.labels.network-policy-required"
+  parameters:
+    values:
+      fromList:
+      - "true"

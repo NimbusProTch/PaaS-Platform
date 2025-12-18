@@ -87,6 +87,40 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
   )
 }
 
+# VPC Endpoint for STS (required for EBS CSI Driver IRSA)
+resource "aws_vpc_endpoint" "sts" {
+  vpc_id              = module.vpc.vpc_id
+  service_name        = "com.amazonaws.${var.aws_region}.sts"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = module.vpc.private_subnets
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${local.cluster_name}-sts-endpoint"
+    }
+  )
+}
+
+# VPC Endpoint for EC2 (required for EBS CSI Driver)
+resource "aws_vpc_endpoint" "ec2" {
+  vpc_id              = module.vpc.vpc_id
+  service_name        = "com.amazonaws.${var.aws_region}.ec2"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = module.vpc.private_subnets
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${local.cluster_name}-ec2-endpoint"
+    }
+  )
+}
+
 # Security group for VPC endpoints
 resource "aws_security_group" "vpc_endpoints" {
   name_prefix = "${local.cluster_name}-vpc-endpoints-"
