@@ -1,0 +1,17 @@
+apiVersion: v2
+name: elasticsearch
+description: Elasticsearch search and analytics engine
+type: application
+version: 1.0.0
+appVersion: "8.5"
+keywords:
+  - elasticsearch
+  - search
+  - analytics
+maintainers:
+  - name: Platform Team
+    email: platform@example.com
+dependencies:
+  - name: elasticsearch
+    version: 19.5.14
+    repository: https://charts.bitnami.com/bitnami

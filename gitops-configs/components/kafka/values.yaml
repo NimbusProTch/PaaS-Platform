@@ -1,0 +1,29 @@
+# Kafka default values
+kafka:
+  replicaCount: 3
+
+  kraft:
+    enabled: true
+    clusterId: "platform-kafka-cluster"
+
+  persistence:
+    enabled: true
+    size: 200Gi
+    storageClass: gp3
+
+  resources:
+    limits:
+      memory: 4Gi
+      cpu: 2000m
+    requests:
+      memory: 2Gi
+      cpu: 1000m
+
+  metrics:
+    kafka:
+      enabled: true
+    jmx:
+      enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s

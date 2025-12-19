@@ -1,0 +1,301 @@
+# Tam bir mikroservis platformu örneği - 20 servis + components
+apiVersion: platform.infraforge.io/v1
+kind: ApplicationClaim
+metadata:
+  name: complete-platform
+  namespace: default
+spec:
+  namespace: production
+  environment: production
+  owner:
+    team: Platform Team
+    email: platform@company.com
+
+  # Business Applications - Her biri farklı GitHub repo ve versiyonda
+  applications:
+    # Frontend Services
+    - name: web-frontend
+      repository: https://github.com/company/web-frontend
+      version: v2.3.1
+      replicas: 5
+      ports:
+        - name: http
+          port: 3000
+      env:
+        - name: API_GATEWAY_URL
+          value: http://api-gateway:8080
+
+    - name: mobile-bff
+      repository: https://github.com/company/mobile-bff
+      version: v1.8.0
+      replicas: 3
+      ports:
+        - name: http
+          port: 4000
+
+    - name: admin-panel
+      repository: https://github.com/company/admin-panel
+      version: v1.2.5
+      replicas: 2
+      ports:
+        - name: http
+          port: 3001
+
+    # API Gateway & Auth
+    - name: api-gateway
+      repository: https://github.com/company/api-gateway
+      version: v3.1.0
+      replicas: 4
+      ports:
+        - name: http
+          port: 8080
+        - name: grpc
+          port: 9090
+
+    - name: auth-service
+      repository: https://github.com/company/auth-service
+      version: v2.0.3
+      replicas: 3
+      ports:
+        - name: http
+          port: 8001
+      env:
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: auth-secrets
+              key: jwt-secret
+
+    # Core Business Services
+    - name: user-service
+      repository: https://github.com/company/user-service
+      version: v4.2.1
+      replicas: 3
+      ports:
+        - name: http
+          port: 8002
+        - name: grpc
+          port: 9002
+      env:
+        - name: DATABASE_URL
+          value: postgresql://$(POSTGRES_USER)@$(POSTGRES_HOST):5432/users_db
+
+    - name: product-service
+      repository: https://github.com/company/product-service
+      version: v3.5.0
+      replicas: 4
+      ports:
+        - name: http
+          port: 8003
+      env:
+        - name: CACHE_URL
+          value: redis://$(REDIS_HOST):6379/0
+
+    - name: order-service
+      repository: https://github.com/company/order-service
+      version: v5.1.2
+      replicas: 5
+      ports:
+        - name: http
+          port: 8004
+      env:
+        - name: RABBITMQ_URL
+          value: amqp://$(RABBITMQ_USER):$(RABBITMQ_PASS)@$(RABBITMQ_HOST):5672
+
+    - name: payment-service
+      repository: https://github.com/company/payment-service
+      version: v2.7.0
+      replicas: 3
+      ports:
+        - name: http
+          port: 8005
+      env:
+        - name: STRIPE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: payment-secrets
+              key: stripe-key
+
+    - name: inventory-service
+      repository: https://github.com/company/inventory-service
+      version: v3.0.1
+      replicas: 3
+      ports:
+        - name: http
+          port: 8006
+
+    - name: shipping-service
+      repository: https://github.com/company/shipping-service
+      version: v2.4.0
+      replicas: 2
+      ports:
+        - name: http
+          port: 8007
+
+    # Analytics & Reporting
+    - name: analytics-service
+      repository: https://github.com/company/analytics-service
+      version: v1.9.3
+      replicas: 3
+      ports:
+        - name: http
+          port: 8008
+      env:
+        - name: ELASTICSEARCH_URL
+          value: http://$(ELASTICSEARCH_HOST):9200
+
+    - name: reporting-service
+      repository: https://github.com/company/reporting-service
+      version: v1.3.0
+      replicas: 2
+      ports:
+        - name: http
+          port: 8009
+
+    # Communication Services
+    - name: notification-service
+      repository: https://github.com/company/notification-service
+      version: v2.2.1
+      replicas: 3
+      ports:
+        - name: http
+          port: 8010
+      env:
+        - name: RABBITMQ_URL
+          value: amqp://$(RABBITMQ_USER):$(RABBITMQ_PASS)@$(RABBITMQ_HOST):5672
+        - name: SMTP_HOST
+          value: smtp.gmail.com
+
+    - name: email-service
+      repository: https://github.com/company/email-service
+      version: v1.5.2
+      replicas: 2
+      ports:
+        - name: http
+          port: 8011
+
+    - name: sms-service
+      repository: https://github.com/company/sms-service
+      version: v1.1.0
+      replicas: 2
+      ports:
+        - name: http
+          port: 8012
+
+    # Background Jobs
+    - name: scheduler-service
+      repository: https://github.com/company/scheduler-service
+      version: v2.0.0
+      replicas: 1
+      ports:
+        - name: http
+          port: 8013
+
+    - name: worker-service
+      repository: https://github.com/company/worker-service
+      version: v3.1.1
+      replicas: 5
+      ports:
+        - name: metrics
+          port: 9100
+
+    # Search & Recommendation
+    - name: search-service
+      repository: https://github.com/company/search-service
+      version: v2.8.0
+      replicas: 3
+      ports:
+        - name: http
+          port: 8014
+      env:
+        - name: ELASTICSEARCH_URL
+          value: http://$(ELASTICSEARCH_HOST):9200
+
+    - name: recommendation-service
+      repository: https://github.com/company/recommendation-service
+      version: v1.4.0
+      replicas: 2
+      ports:
+        - name: http
+          port: 8015
+      env:
+        - name: ML_MODEL_PATH
+          value: s3://models/recommendation/latest
+
+  # Infrastructure Components
+  components:
+    # Databases
+    - type: postgresql
+      name: main-db
+      version: "14"
+      config:
+        size: 100Gi
+        replicas: 3
+        backup:
+          enabled: true
+          schedule: "0 2 * * *"
+
+    - type: postgresql
+      name: analytics-db
+      version: "14"
+      config:
+        size: 200Gi
+        replicas: 2
+
+    # Caching
+    - type: redis
+      name: cache
+      version: "7.0"
+      config:
+        mode: cluster
+        replicas: 6
+        persistence:
+          enabled: true
+          size: 10Gi
+
+    - type: redis
+      name: session-store
+      version: "7.0"
+      config:
+        mode: standalone
+        persistence:
+          enabled: false
+
+    # Message Queue
+    - type: rabbitmq
+      name: message-queue
+      version: "3.11"
+      config:
+        replicas: 3
+        persistence:
+          size: 50Gi
+        plugins:
+          - rabbitmq_management
+          - rabbitmq_prometheus
+
+    # Search
+    - type: elasticsearch
+      name: search-cluster
+      version: "8.5"
+      config:
+        replicas: 3
+        storage: 500Gi
+        heap: 4Gi
+
+    # NoSQL
+    - type: mongodb
+      name: document-store
+      version: "6.0"
+      config:
+        replicas: 3
+        storage: 100Gi
+
+    # Kafka for Event Streaming
+    - type: kafka
+      name: event-stream
+      version: "3.3"
+      config:
+        brokers: 3
+        zookeeper:
+          replicas: 3
+        storage: 200Gi

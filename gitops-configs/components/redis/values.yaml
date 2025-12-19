@@ -1,0 +1,47 @@
+# Redis default values
+redis:
+  architecture: replication
+
+  auth:
+    enabled: true
+    password: "redis123"
+
+  master:
+    count: 1
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: gp3
+
+    resources:
+      limits:
+        memory: 1Gi
+        cpu: 1000m
+      requests:
+        memory: 256Mi
+        cpu: 100m
+
+  replica:
+    replicaCount: 2
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: gp3
+
+    resources:
+      limits:
+        memory: 1Gi
+        cpu: 1000m
+      requests:
+        memory: 256Mi
+        cpu: 100m
+
+  sentinel:
+    enabled: true
+    quorum: 2
+
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s

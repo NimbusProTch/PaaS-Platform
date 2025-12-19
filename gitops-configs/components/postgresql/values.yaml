@@ -1,0 +1,72 @@
+# PostgreSQL default values
+postgresql:
+  auth:
+    postgresPassword: "postgres123"
+    database: "platform"
+
+  primary:
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClass: gp3
+
+    resources:
+      limits:
+        memory: 2Gi
+        cpu: 2000m
+      requests:
+        memory: 1Gi
+        cpu: 500m
+
+    initdb:
+      scripts:
+        init.sql: |
+          -- Create databases for each microservice
+          CREATE DATABASE IF NOT EXISTS users_db;
+          CREATE DATABASE IF NOT EXISTS products_db;
+          CREATE DATABASE IF NOT EXISTS orders_db;
+          CREATE DATABASE IF NOT EXISTS payments_db;
+          CREATE DATABASE IF NOT EXISTS inventory_db;
+          CREATE DATABASE IF NOT EXISTS shipping_db;
+          CREATE DATABASE IF NOT EXISTS analytics_db;
+          CREATE DATABASE IF NOT EXISTS notifications_db;
+
+          -- Create users for each service
+          CREATE USER IF NOT EXISTS user_service WITH PASSWORD 'user123';
+          CREATE USER IF NOT EXISTS product_service WITH PASSWORD 'product123';
+          CREATE USER IF NOT EXISTS order_service WITH PASSWORD 'order123';
+          CREATE USER IF NOT EXISTS payment_service WITH PASSWORD 'payment123';
+          CREATE USER IF NOT EXISTS inventory_service WITH PASSWORD 'inventory123';
+          CREATE USER IF NOT EXISTS shipping_service WITH PASSWORD 'shipping123';
+          CREATE USER IF NOT EXISTS analytics_service WITH PASSWORD 'analytics123';
+          CREATE USER IF NOT EXISTS notification_service WITH PASSWORD 'notification123';
+
+          -- Grant privileges
+          GRANT ALL PRIVILEGES ON DATABASE users_db TO user_service;
+          GRANT ALL PRIVILEGES ON DATABASE products_db TO product_service;
+          GRANT ALL PRIVILEGES ON DATABASE orders_db TO order_service;
+          GRANT ALL PRIVILEGES ON DATABASE payments_db TO payment_service;
+          GRANT ALL PRIVILEGES ON DATABASE inventory_db TO inventory_service;
+          GRANT ALL PRIVILEGES ON DATABASE shipping_db TO shipping_service;
+          GRANT ALL PRIVILEGES ON DATABASE analytics_db TO analytics_service;
+          GRANT ALL PRIVILEGES ON DATABASE notifications_db TO notification_service;
+
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+
+  replication:
+    enabled: true
+    readReplicas: 2
+    synchronousCommit: "on"
+    numSynchronousReplicas: 1
+    applicationName: platform
+
+  backup:
+    enabled: true
+    cronjob:
+      schedule: "@daily"
+      storage:
+        size: 50Gi

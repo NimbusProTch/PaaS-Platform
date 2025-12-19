@@ -1,0 +1,46 @@
+# RabbitMQ default values
+rabbitmq:
+  auth:
+    username: admin
+    password: rabbitmq123
+    erlangCookie: secret-cookie-value
+
+  clustering:
+    enabled: true
+    rebalance: true
+
+  replicaCount: 3
+
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: gp3
+
+  resources:
+    limits:
+      memory: 2Gi
+      cpu: 1000m
+    requests:
+      memory: 1Gi
+      cpu: 500m
+
+  plugins: "rabbitmq_management rabbitmq_prometheus rabbitmq_shovel rabbitmq_federation"
+
+  extraConfiguration: |-
+    default_vhost = platform
+    default_permissions.configure = .*
+    default_permissions.read = .*
+    default_permissions.write = .*
+
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+
+  service:
+    type: ClusterIP
+    ports:
+      amqp: 5672
+      management: 15672
+      metrics: 9419
