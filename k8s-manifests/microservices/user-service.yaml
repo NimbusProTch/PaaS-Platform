@@ -8,7 +8,7 @@ metadata:
     app: user-service
     version: v1
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: user-service
@@ -24,8 +24,8 @@ spec:
     spec:
       containers:
       - name: user-service
-        image: user-service:latest
-        imagePullPolicy: IfNotPresent
+        image: microservices-user-service:latest
+        imagePullPolicy: Never
         ports:
         - containerPort: 8081
           name: http
@@ -47,6 +47,10 @@ spec:
           value: "redis.infrastructure"
         - name: REDIS_PORT
           value: "6379"
+        - name: REDIS_PASSWORD
+          value: "redis123"
+        - name: RABBITMQ_URL
+          value: "amqp://rabbitmq:rabbitmq@rabbitmq.infrastructure:5672/"
         - name: JAEGER_ENDPOINT
           value: "http://jaeger-collector.infrastructure:14268/api/traces"
         resources:

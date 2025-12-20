@@ -51,6 +51,5 @@ enable_grafana = false
 # Backup disabled in dev
 enable_velero = false
 
-# Backstage
-enable_backstage = true
-backstage_github_org = "NimbusProTch"
+# Platform Operator
+enable_argocd = true

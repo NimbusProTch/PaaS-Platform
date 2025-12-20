@@ -40,6 +40,31 @@ export default function Home() {
     }
   }
 
+  const handleDemoLogin = async () => {
+    setError('')
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'demo@test.com',
+          password: 'demo123'
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Demo giriş başarısız')
+        return
+      }
+
+      router.push('/dashboard')
+    } catch (err) {
+      setError('Bağlantı hatası')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
@@ -109,6 +134,17 @@ export default function Home() {
               {isLogin ? 'Giriş Yap' : 'Kayıt Ol'}
             </button>
           </form>
+
+          {isLogin && (
+            <div className="mt-4">
+              <button
+                onClick={handleDemoLogin}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200"
+              >
+                Demo Kullanıcı ile Giriş Yap
+              </button>
+            </div>
+          )}
 
           <div className="mt-6 text-center">
             <button

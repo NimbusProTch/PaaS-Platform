@@ -1,0 +1,2363 @@
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_region.current: Reading...[0m[0m
+[0m[1mmodule.vpc.data.aws_partition.current[0]: Reading...[0m[0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_region.current: Reading...[0m[0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_caller_identity.current: Reading...[0m[0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_partition.current: Reading...[0m[0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_partition.current: Reading...[0m[0m
+[0m[1mmodule.vpc.data.aws_caller_identity.current[0]: Reading...[0m[0m
+[0m[1mmodule.vpc.data.aws_iam_policy_document.flow_log_cloudwatch_assume_role[0]: Reading...[0m[0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_partition.current: Read complete after 0s [id=aws][0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_partition.current: Reading...[0m[0m
+[0m[1mmodule.vpc.data.aws_partition.current[0]: Read complete after 0s [id=aws][0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_caller_identity.current: Reading...[0m[0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_region.current: Read complete after 0s [id=eu-west-1][0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_region.current: Read complete after 0s [id=eu-west-1][0m
+[0m[1mmodule.vpc.aws_vpc.this[0]: Refreshing state... [id=vpc-000a0bc71bfc8a387][0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_partition.current: Read complete after 0s [id=aws][0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_partition.current: Read complete after 0s [id=aws][0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_caller_identity.current: Reading...[0m[0m
+[0m[1mmodule.vpc.data.aws_iam_policy_document.flow_log_cloudwatch_assume_role[0]: Read complete after 0s [id=1021377347][0m
+[0m[1mmodule.vpc.data.aws_region.current[0]: Reading...[0m[0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_region.current: Reading...[0m[0m
+[0m[1mdata.aws_caller_identity.current: Reading...[0m[0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_region.current: Read complete after 0s [id=eu-west-1][0m
+[0m[1mmodule.vpc.data.aws_region.current[0]: Read complete after 0s [id=eu-west-1][0m
+[0m[1mdata.aws_availability_zones.available: Reading...[0m[0m
+[0m[1maws_kms_key.eks: Refreshing state... [id=321868cc-6877-42fb-ba76-e00f676cfc5a][0m
+[0m[1mmodule.vpc.aws_iam_role.vpc_flow_log_cloudwatch[0]: Refreshing state... [id=vpc-flow-log-role-20251220103415316500000001][0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_iam_policy_document.load_balancer_controller[0]: Reading...[0m[0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_iam_policy_document.load_balancer_controller[0]: Read complete after 0s [id=1541424006][0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_iam_policy_document.ebs_csi[0]: Reading...[0m[0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_iam_policy_document.ebs_csi[0]: Read complete after 0s [id=4189668531][0m
+[0m[1mmodule.ebs_csi_driver_irsa[0].data.aws_caller_identity.current: Read complete after 0s [id=715841344657][0m
+[0m[1mmodule.vpc.data.aws_caller_identity.current[0]: Read complete after 0s [id=715841344657][0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_caller_identity.current: Read complete after 0s [id=715841344657][0m
+[0m[1mdata.aws_caller_identity.current: Read complete after 0s [id=715841344657][0m
+[0m[1mmodule.aws_load_balancer_controller_irsa[0].data.aws_caller_identity.current: Read complete after 0s [id=715841344657][0m
+[0m[1mdata.aws_availability_zones.available: Read complete after 0s [id=eu-west-1][0m
+[0m[1maws_kms_alias.eks: Refreshing state... [id=alias/infraforge-dev-eks][0m
+[0m[1mmodule.vpc.aws_default_route_table.default[0]: Refreshing state... [id=rtb-06c5557624a4cac63][0m
+[0m[1mmodule.vpc.aws_route_table.public[0]: Refreshing state... [id=rtb-0ac0ecd3d45fb6da5][0m
+[0m[1mmodule.vpc.aws_subnet.public[1]: Refreshing state... [id=subnet-0628ffb902e52bf9f][0m
+[0m[1mmodule.vpc.aws_default_network_acl.this[0]: Refreshing state... [id=acl-0960ca9849f341fba][0m
+[0m[1mmodule.vpc.aws_subnet.public[2]: Refreshing state... [id=subnet-06c57e0e36d6ef506][0m
+[0m[1mmodule.vpc.aws_default_security_group.this[0]: Refreshing state... [id=sg-0977015cd2ad78d32][0m
+[0m[1mmodule.vpc.aws_subnet.public[0]: Refreshing state... [id=subnet-089884572cac79d55][0m
+[0m[1mmodule.vpc.aws_internet_gateway.this[0]: Refreshing state... [id=igw-03aa1fb4451f12017][0m
+[0m[1mmodule.vpc.aws_route_table.private[0]: Refreshing state... [id=rtb-09df1eb5886be76a5][0m
+[0m[1mmodule.vpc.aws_subnet.private[0]: Refreshing state... [id=subnet-05ca8068a70d84652][0m
+[0m[1mmodule.vpc.aws_subnet.private[1]: Refreshing state... [id=subnet-0393bdbb3484ae441][0m
+[0m[1mmodule.vpc.aws_subnet.private[2]: Refreshing state... [id=subnet-0336cce74954ce09e][0m
+[0m[1mmodule.vpc.aws_subnet.database[1]: Refreshing state... [id=subnet-059137a2c04a017a4][0m
+[0m[1mmodule.vpc.aws_subnet.database[2]: Refreshing state... [id=subnet-0acdbebbcec0ad2ef][0m
+[0m[1mmodule.vpc.aws_subnet.database[0]: Refreshing state... [id=subnet-02b5516b90ce2e29e][0m
+[0m[1mmodule.vpc.aws_cloudwatch_log_group.flow_log[0]: Refreshing state... [id=/aws/vpc-flow-log/vpc-000a0bc71bfc8a387][0m
+[0m[1mmodule.vpc.aws_route.public_internet_gateway[0]: Refreshing state... [id=r-rtb-0ac0ecd3d45fb6da51080289494][0m
+[0m[1mmodule.vpc.aws_eip.nat[0]: Refreshing state... [id=eipalloc-036d6fdccf45e5988][0m
+[0m[1mmodule.vpc.aws_route_table_association.private[2]: Refreshing state... [id=rtbassoc-00524bd1b02eded36][0m
+[0m[1mmodule.vpc.aws_route_table_association.private[1]: Refreshing state... [id=rtbassoc-05385d87365945333][0m
+[0m[1mmodule.vpc.aws_route_table_association.private[0]: Refreshing state... [id=rtbassoc-06520978208506386][0m
+[0m[1mmodule.vpc.aws_route_table_association.public[2]: Refreshing state... [id=rtbassoc-088dc850bb491b2c2][0m
+[0m[1mmodule.vpc.aws_route_table_association.public[1]: Refreshing state... [id=rtbassoc-074a62c5ebfcaf00e][0m
+[0m[1mmodule.vpc.aws_route_table_association.public[0]: Refreshing state... [id=rtbassoc-0fe9bc4d41a695078][0m
+[0m[1mmodule.vpc.aws_db_subnet_group.database[0]: Refreshing state... [id=infraforge-dev-vpc][0m
+[0m[1mmodule.vpc.aws_route_table_association.database[0]: Refreshing state... [id=rtbassoc-0ad680e695e179a13][0m
+[0m[1mmodule.vpc.aws_route_table_association.database[2]: Refreshing state... [id=rtbassoc-032c4495512321fcb][0m
+[0m[1mmodule.vpc.aws_route_table_association.database[1]: Refreshing state... [id=rtbassoc-0741f36a614c53c98][0m
+[0m[1mmodule.vpc.aws_nat_gateway.this[0]: Refreshing state... [id=nat-0532a51bd3d963254][0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_iam_policy_document.cluster_autoscaler[0]: Reading...[0m[0m
+[0m[1mmodule.cluster_autoscaler_irsa[0].data.aws_iam_policy_document.cluster_autoscaler[0]: Read complete after 0s [id=3691530538][0m
+[0m[1mmodule.vpc.aws_route.private_nat_gateway[0]: Refreshing state... [id=r-rtb-09df1eb5886be76a51080289494][0m
+[0m[1mmodule.vpc.data.aws_iam_policy_document.vpc_flow_log_cloudwatch[0]: Reading...[0m[0m
+[0m[1mmodule.vpc.aws_flow_log.this[0]: Refreshing state... [id=fl-089075a6a2cbdc607][0m
+[0m[1mmodule.vpc.data.aws_iam_policy_document.vpc_flow_log_cloudwatch[0]: Read complete after 0s [id=1289061590][0m
+[0m[1mmodule.vpc.aws_iam_policy.vpc_flow_log_cloudwatch[0]: Refreshing state... [id=arn:aws:iam::715841344657:policy/vpc-flow-log-to-cloudwatch-20251220103430047200000006][0m
+[0m[1mmodule.vpc.aws_iam_role_policy_attachment.vpc_flow_log_cloudwatch[0]: Refreshing state... [id=vpc-flow-log-role-20251220103415316500000001-20251220103430915800000007][0m
+
+OpenTofu used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  [32m+[0m create[0m
+ [36m<=[0m read (data resources)[0m
+
+OpenTofu planned the following actions, but then encountered a problem:
+
+[1m  # data.kubernetes_secret.backstage_sa_token[0m will be read during apply
+  # (config refers to values not yet known)
+[0m [36m<=[0m[0m data "kubernetes_secret" "backstage_sa_token" {
+      [32m+[0m[0m data      = (sensitive value)
+      [32m+[0m[0m id        = (known after apply)
+      [32m+[0m[0m immutable = (known after apply)
+      [32m+[0m[0m type      = (known after apply)
+
+      [32m+[0m[0m metadata {
+          [32m+[0m[0m generation       = (known after apply)
+          [32m+[0m[0m name             = (known after apply)
+          [32m+[0m[0m namespace        = "backstage"
+          [32m+[0m[0m resource_version = (known after apply)
+          [32m+[0m[0m uid              = (known after apply)
+        }
+    }
+
+[1m  # aws_security_group.vpc_endpoints[0m will be created
+[0m  [32m+[0m[0m resource "aws_security_group" "vpc_endpoints" {
+      [32m+[0m[0m arn                    = (known after apply)
+      [32m+[0m[0m description            = "Managed by Terraform"
+      [32m+[0m[0m egress                 = [
+          [32m+[0m[0m {
+              [32m+[0m[0m cidr_blocks      = [
+                  [32m+[0m[0m "0.0.0.0/0",
+                ]
+              [32m+[0m[0m description      = ""
+              [32m+[0m[0m from_port        = 0
+              [32m+[0m[0m ipv6_cidr_blocks = []
+              [32m+[0m[0m prefix_list_ids  = []
+              [32m+[0m[0m protocol         = "-1"
+              [32m+[0m[0m security_groups  = []
+              [32m+[0m[0m self             = false
+              [32m+[0m[0m to_port          = 0
+            },
+        ]
+      [32m+[0m[0m id                     = (known after apply)
+      [32m+[0m[0m ingress                = [
+          [32m+[0m[0m {
+              [32m+[0m[0m cidr_blocks      = [
+                  [32m+[0m[0m "10.0.0.0/16",
+                ]
+              [32m+[0m[0m description      = ""
+              [32m+[0m[0m from_port        = 443
+              [32m+[0m[0m ipv6_cidr_blocks = []
+              [32m+[0m[0m prefix_list_ids  = []
+              [32m+[0m[0m protocol         = "tcp"
+              [32m+[0m[0m security_groups  = []
+              [32m+[0m[0m self             = false
+              [32m+[0m[0m to_port          = 443
+            },
+        ]
+      [32m+[0m[0m name                   = (known after apply)
+      [32m+[0m[0m name_prefix            = "infraforge-dev-vpc-endpoints-"
+      [32m+[0m[0m owner_id               = (known after apply)
+      [32m+[0m[0m revoke_rules_on_delete = false
+      [32m+[0m[0m tags                   = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Name"        = "infraforge-dev-vpc-endpoints-sg"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all               = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Name"        = "infraforge-dev-vpc-endpoints-sg"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m vpc_id                 = "vpc-000a0bc71bfc8a387"
+    }
+
+[1m  # aws_vpc_endpoint.ec2[0m will be created
+[0m  [32m+[0m[0m resource "aws_vpc_endpoint" "ec2" {
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m cidr_blocks           = (known after apply)
+      [32m+[0m[0m dns_entry             = (known after apply)
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m ip_address_type       = (known after apply)
+      [32m+[0m[0m network_interface_ids = (known after apply)
+      [32m+[0m[0m owner_id              = (known after apply)
+      [32m+[0m[0m policy                = (known after apply)
+      [32m+[0m[0m prefix_list_id        = (known after apply)
+      [32m+[0m[0m private_dns_enabled   = true
+      [32m+[0m[0m requester_managed     = (known after apply)
+      [32m+[0m[0m route_table_ids       = (known after apply)
+      [32m+[0m[0m security_group_ids    = (known after apply)
+      [32m+[0m[0m service_name          = "com.amazonaws.eu-west-1.ec2"
+      [32m+[0m[0m service_region        = (known after apply)
+      [32m+[0m[0m state                 = (known after apply)
+      [32m+[0m[0m subnet_ids            = [
+          [32m+[0m[0m "subnet-0336cce74954ce09e",
+          [32m+[0m[0m "subnet-0393bdbb3484ae441",
+          [32m+[0m[0m "subnet-05ca8068a70d84652",
+        ]
+      [32m+[0m[0m tags                  = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Name"        = "infraforge-dev-ec2-endpoint"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all              = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Name"        = "infraforge-dev-ec2-endpoint"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m vpc_endpoint_type     = "Interface"
+      [32m+[0m[0m vpc_id                = "vpc-000a0bc71bfc8a387"
+
+      [32m+[0m[0m dns_options (known after apply)
+
+      [32m+[0m[0m subnet_configuration (known after apply)
+    }
+
+[1m  # aws_vpc_endpoint.ecr_api[0m will be created
+[0m  [32m+[0m[0m resource "aws_vpc_endpoint" "ecr_api" {
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m cidr_blocks           = (known after apply)
+      [32m+[0m[0m dns_entry             = (known after apply)
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m ip_address_type       = (known after apply)
+      [32m+[0m[0m network_interface_ids = (known after apply)
+      [32m+[0m[0m owner_id              = (known after apply)
+      [32m+[0m[0m policy                = (known after apply)
+      [32m+[0m[0m prefix_list_id        = (known after apply)
+      [32m+[0m[0m private_dns_enabled   = true
+      [32m+[0m[0m requester_managed     = (known after apply)
+      [32m+[0m[0m route_table_ids       = (known after apply)
+      [32m+[0m[0m security_group_ids    = (known after apply)
+      [32m+[0m[0m service_name          = "com.amazonaws.eu-west-1.ecr.api"
+      [32m+[0m[0m service_region        = (known after apply)
+      [32m+[0m[0m state                 = (known after apply)
+      [32m+[0m[0m subnet_ids            = [
+          [32m+[0m[0m "subnet-0336cce74954ce09e",
+          [32m+[0m[0m "subnet-0393bdbb3484ae441",
+          [32m+[0m[0m "subnet-05ca8068a70d84652",
+        ]
+      [32m+[0m[0m tags                  = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Name"        = "infraforge-dev-ecr-api-endpoint"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all              = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Name"        = "infraforge-dev-ecr-api-endpoint"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m vpc_endpoint_type     = "Interface"
+      [32m+[0m[0m vpc_id                = "vpc-000a0bc71bfc8a387"
+
+      [32m+[0m[0m dns_options (known after apply)
+
+      [32m+[0m[0m subnet_configuration (known after apply)
+    }
+
+[1m  # aws_vpc_endpoint.ecr_dkr[0m will be created
+[0m  [32m+[0m[0m resource "aws_vpc_endpoint" "ecr_dkr" {
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m cidr_blocks           = (known after apply)
+      [32m+[0m[0m dns_entry             = (known after apply)
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m ip_address_type       = (known after apply)
+      [32m+[0m[0m network_interface_ids = (known after apply)
+      [32m+[0m[0m owner_id              = (known after apply)
+      [32m+[0m[0m policy                = (known after apply)
+      [32m+[0m[0m prefix_list_id        = (known after apply)
+      [32m+[0m[0m private_dns_enabled   = true
+      [32m+[0m[0m requester_managed     = (known after apply)
+      [32m+[0m[0m route_table_ids       = (known after apply)
+      [32m+[0m[0m security_group_ids    = (known after apply)
+      [32m+[0m[0m service_name          = "com.amazonaws.eu-west-1.ecr.dkr"
+      [32m+[0m[0m service_region        = (known after apply)
+      [32m+[0m[0m state                 = (known after apply)
+      [32m+[0m[0m subnet_ids            = [
+          [32m+[0m[0m "subnet-0336cce74954ce09e",
+          [32m+[0m[0m "subnet-0393bdbb3484ae441",
+          [32m+[0m[0m "subnet-05ca8068a70d84652",
+        ]
+      [32m+[0m[0m tags                  = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Name"        = "infraforge-dev-ecr-dkr-endpoint"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all              = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Name"        = "infraforge-dev-ecr-dkr-endpoint"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m vpc_endpoint_type     = "Interface"
+      [32m+[0m[0m vpc_id                = "vpc-000a0bc71bfc8a387"
+
+      [32m+[0m[0m dns_options (known after apply)
+
+      [32m+[0m[0m subnet_configuration (known after apply)
+    }
+
+[1m  # aws_vpc_endpoint.s3[0m will be created
+[0m  [32m+[0m[0m resource "aws_vpc_endpoint" "s3" {
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m cidr_blocks           = (known after apply)
+      [32m+[0m[0m dns_entry             = (known after apply)
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m ip_address_type       = (known after apply)
+      [32m+[0m[0m network_interface_ids = (known after apply)
+      [32m+[0m[0m owner_id              = (known after apply)
+      [32m+[0m[0m policy                = (known after apply)
+      [32m+[0m[0m prefix_list_id        = (known after apply)
+      [32m+[0m[0m private_dns_enabled   = (known after apply)
+      [32m+[0m[0m requester_managed     = (known after apply)
+      [32m+[0m[0m route_table_ids       = (known after apply)
+      [32m+[0m[0m security_group_ids    = (known after apply)
+      [32m+[0m[0m service_name          = "com.amazonaws.eu-west-1.s3"
+      [32m+[0m[0m service_region        = (known after apply)
+      [32m+[0m[0m state                 = (known after apply)
+      [32m+[0m[0m subnet_ids            = (known after apply)
+      [32m+[0m[0m tags                  = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Name"        = "infraforge-dev-s3-endpoint"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all              = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Name"        = "infraforge-dev-s3-endpoint"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m vpc_endpoint_type     = "Gateway"
+      [32m+[0m[0m vpc_id                = "vpc-000a0bc71bfc8a387"
+
+      [32m+[0m[0m dns_options (known after apply)
+
+      [32m+[0m[0m subnet_configuration (known after apply)
+    }
+
+[1m  # aws_vpc_endpoint.sts[0m will be created
+[0m  [32m+[0m[0m resource "aws_vpc_endpoint" "sts" {
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m cidr_blocks           = (known after apply)
+      [32m+[0m[0m dns_entry             = (known after apply)
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m ip_address_type       = (known after apply)
+      [32m+[0m[0m network_interface_ids = (known after apply)
+      [32m+[0m[0m owner_id              = (known after apply)
+      [32m+[0m[0m policy                = (known after apply)
+      [32m+[0m[0m prefix_list_id        = (known after apply)
+      [32m+[0m[0m private_dns_enabled   = true
+      [32m+[0m[0m requester_managed     = (known after apply)
+      [32m+[0m[0m route_table_ids       = (known after apply)
+      [32m+[0m[0m security_group_ids    = (known after apply)
+      [32m+[0m[0m service_name          = "com.amazonaws.eu-west-1.sts"
+      [32m+[0m[0m service_region        = (known after apply)
+      [32m+[0m[0m state                 = (known after apply)
+      [32m+[0m[0m subnet_ids            = [
+          [32m+[0m[0m "subnet-0336cce74954ce09e",
+          [32m+[0m[0m "subnet-0393bdbb3484ae441",
+          [32m+[0m[0m "subnet-05ca8068a70d84652",
+        ]
+      [32m+[0m[0m tags                  = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Name"        = "infraforge-dev-sts-endpoint"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all              = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Name"        = "infraforge-dev-sts-endpoint"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m vpc_endpoint_type     = "Interface"
+      [32m+[0m[0m vpc_id                = "vpc-000a0bc71bfc8a387"
+
+      [32m+[0m[0m dns_options (known after apply)
+
+      [32m+[0m[0m subnet_configuration (known after apply)
+    }
+
+[1m  # kubernetes_cluster_role.backstage[0m will be created
+[0m  [32m+[0m[0m resource "kubernetes_cluster_role" "backstage" {
+      [32m+[0m[0m id = (known after apply)
+
+      [32m+[0m[0m metadata {
+          [32m+[0m[0m generation       = (known after apply)
+          [32m+[0m[0m name             = "backstage-reader"
+          [32m+[0m[0m resource_version = (known after apply)
+          [32m+[0m[0m uid              = (known after apply)
+        }
+
+      [32m+[0m[0m rule {
+          [32m+[0m[0m api_groups = [
+              [32m+[0m[0m "",
+              [32m+[0m[0m "apps",
+              [32m+[0m[0m "batch",
+              [32m+[0m[0m "networking.k8s.io",
+            ]
+          [32m+[0m[0m resources  = [
+              [32m+[0m[0m "pods",
+              [32m+[0m[0m "services",
+              [32m+[0m[0m "deployments",
+              [32m+[0m[0m "replicasets",
+              [32m+[0m[0m "ingresses",
+              [32m+[0m[0m "jobs",
+              [32m+[0m[0m "cronjobs",
+            ]
+          [32m+[0m[0m verbs      = [
+              [32m+[0m[0m "get",
+              [32m+[0m[0m "list",
+              [32m+[0m[0m "watch",
+            ]
+        }
+      [32m+[0m[0m rule {
+          [32m+[0m[0m api_groups = [
+              [32m+[0m[0m "platform.kratix.io",
+              [32m+[0m[0m "marketplace.kratix.io",
+            ]
+          [32m+[0m[0m resources  = [
+              [32m+[0m[0m "*",
+            ]
+          [32m+[0m[0m verbs      = [
+              [32m+[0m[0m "get",
+              [32m+[0m[0m "list",
+              [32m+[0m[0m "watch",
+              [32m+[0m[0m "create",
+              [32m+[0m[0m "update",
+              [32m+[0m[0m "patch",
+            ]
+        }
+    }
+
+[1m  # kubernetes_cluster_role_binding.backstage[0m will be created
+[0m  [32m+[0m[0m resource "kubernetes_cluster_role_binding" "backstage" {
+      [32m+[0m[0m id = (known after apply)
+
+      [32m+[0m[0m metadata {
+          [32m+[0m[0m generation       = (known after apply)
+          [32m+[0m[0m name             = "backstage-reader"
+          [32m+[0m[0m resource_version = (known after apply)
+          [32m+[0m[0m uid              = (known after apply)
+        }
+
+      [32m+[0m[0m role_ref {
+          [32m+[0m[0m api_group = "rbac.authorization.k8s.io"
+          [32m+[0m[0m kind      = "ClusterRole"
+          [32m+[0m[0m name      = "backstage-reader"
+        }
+
+      [32m+[0m[0m subject {
+          [32m+[0m[0m api_group = (known after apply)
+          [32m+[0m[0m kind      = "ServiceAccount"
+          [32m+[0m[0m name      = "backstage"
+          [32m+[0m[0m namespace = "backstage"
+        }
+    }
+
+[1m  # kubernetes_service_account.backstage[0m will be created
+[0m  [32m+[0m[0m resource "kubernetes_service_account" "backstage" {
+      [32m+[0m[0m automount_service_account_token = true
+      [32m+[0m[0m default_secret_name             = (known after apply)
+      [32m+[0m[0m id                              = (known after apply)
+
+      [32m+[0m[0m metadata {
+          [32m+[0m[0m generation       = (known after apply)
+          [32m+[0m[0m name             = "backstage"
+          [32m+[0m[0m namespace        = "backstage"
+          [32m+[0m[0m resource_version = (known after apply)
+          [32m+[0m[0m uid              = (known after apply)
+        }
+    }
+
+[1m  # random_password.argocd_admin[0m will be created
+[0m  [32m+[0m[0m resource "random_password" "argocd_admin" {
+      [32m+[0m[0m bcrypt_hash = (sensitive value)
+      [32m+[0m[0m id          = (known after apply)
+      [32m+[0m[0m length      = 16
+      [32m+[0m[0m lower       = true
+      [32m+[0m[0m min_lower   = 0
+      [32m+[0m[0m min_numeric = 0
+      [32m+[0m[0m min_special = 0
+      [32m+[0m[0m min_upper   = 0
+      [32m+[0m[0m number      = true
+      [32m+[0m[0m numeric     = true
+      [32m+[0m[0m result      = (sensitive value)
+      [32m+[0m[0m special     = true
+      [32m+[0m[0m upper       = true
+    }
+
+[1m  # random_password.backstage_db_password[0m will be created
+[0m  [32m+[0m[0m resource "random_password" "backstage_db_password" {
+      [32m+[0m[0m bcrypt_hash = (sensitive value)
+      [32m+[0m[0m id          = (known after apply)
+      [32m+[0m[0m length      = 16
+      [32m+[0m[0m lower       = true
+      [32m+[0m[0m min_lower   = 0
+      [32m+[0m[0m min_numeric = 0
+      [32m+[0m[0m min_special = 0
+      [32m+[0m[0m min_upper   = 0
+      [32m+[0m[0m number      = true
+      [32m+[0m[0m numeric     = true
+      [32m+[0m[0m result      = (sensitive value)
+      [32m+[0m[0m special     = false
+      [32m+[0m[0m upper       = true
+    }
+
+[1m  # module.aws_load_balancer_controller_irsa[0].data.aws_iam_policy_document.this[0][0m will be read during apply
+  # (config refers to values not yet known)
+[0m [36m<=[0m[0m data "aws_iam_policy_document" "this" {
+      [32m+[0m[0m id            = (known after apply)
+      [32m+[0m[0m json          = (known after apply)
+      [32m+[0m[0m minified_json = (known after apply)
+
+      [32m+[0m[0m statement {
+          [32m+[0m[0m actions = [
+              [32m+[0m[0m "sts:AssumeRoleWithWebIdentity",
+            ]
+          [32m+[0m[0m effect  = "Allow"
+
+          [32m+[0m[0m condition {
+              [32m+[0m[0m test     = "StringEquals"
+              [32m+[0m[0m values   = [
+                  [32m+[0m[0m "sts.amazonaws.com",
+                ]
+              [32m+[0m[0m variable = (known after apply)
+            }
+          [32m+[0m[0m condition {
+              [32m+[0m[0m test     = "StringEquals"
+              [32m+[0m[0m values   = [
+                  [32m+[0m[0m "system:serviceaccount:kube-system:aws-load-balancer-controller",
+                ]
+              [32m+[0m[0m variable = (known after apply)
+            }
+
+          [32m+[0m[0m principals {
+              [32m+[0m[0m identifiers = [
+                  [32m+[0m[0m (known after apply),
+                ]
+              [32m+[0m[0m type        = "Federated"
+            }
+        }
+    }
+
+[1m  # module.aws_load_balancer_controller_irsa[0].aws_iam_policy.load_balancer_controller[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_policy" "load_balancer_controller" {
+      [32m+[0m[0m arn              = (known after apply)
+      [32m+[0m[0m attachment_count = (known after apply)
+      [32m+[0m[0m description      = "Provides permissions for AWS Load Balancer Controller addon"
+      [32m+[0m[0m id               = (known after apply)
+      [32m+[0m[0m name             = (known after apply)
+      [32m+[0m[0m name_prefix      = "AmazonEKS_AWS_Load_Balancer_Controller-"
+      [32m+[0m[0m path             = "/"
+      [32m+[0m[0m policy           = jsonencode(
+            {
+              [32m+[0m[0m Statement = [
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "iam:CreateServiceLinkedRole"
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m StringEquals = {
+                              [32m+[0m[0m "iam:AWSServiceName" = "elasticloadbalancing.amazonaws.com"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = "*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = [
+                          [32m+[0m[0m "elasticloadbalancing:DescribeTrustStores",
+                          [32m+[0m[0m "elasticloadbalancing:DescribeTargetHealth",
+                          [32m+[0m[0m "elasticloadbalancing:DescribeTargetGroups",
+                          [32m+[0m[0m "elasticloadbalancing:DescribeTargetGroupAttributes",
+                          [32m+[0m[0m "elasticloadbalancing:DescribeTags",
+                          [32m+[0m[0m "elasticloadbalancing:DescribeSSLPolicies",
+                          [32m+[0m[0m "elasticloadbalancing:DescribeRules",
+                          [32m+[0m[0m "elasticloadbalancing:DescribeLoadBalancers",
+                          [32m+[0m[0m "elasticloadbalancing:DescribeLoadBalancerAttributes",
+                          [32m+[0m[0m "elasticloadbalancing:DescribeListeners",
+                          [32m+[0m[0m "elasticloadbalancing:DescribeListenerCertificates",
+                          [32m+[0m[0m "elasticloadbalancing:DescribeListenerAttributes",
+                          [32m+[0m[0m "elasticloadbalancing:DescribeCapacityReservation",
+                          [32m+[0m[0m "ec2:GetSecurityGroupsForVpc",
+                          [32m+[0m[0m "ec2:GetCoipPoolUsage",
+                          [32m+[0m[0m "ec2:DescribeVpcs",
+                          [32m+[0m[0m "ec2:DescribeVpcPeeringConnections",
+                          [32m+[0m[0m "ec2:DescribeTags",
+                          [32m+[0m[0m "ec2:DescribeSubnets",
+                          [32m+[0m[0m "ec2:DescribeSecurityGroups",
+                          [32m+[0m[0m "ec2:DescribeRouteTables",
+                          [32m+[0m[0m "ec2:DescribeNetworkInterfaces",
+                          [32m+[0m[0m "ec2:DescribeIpamPools",
+                          [32m+[0m[0m "ec2:DescribeInternetGateways",
+                          [32m+[0m[0m "ec2:DescribeInstances",
+                          [32m+[0m[0m "ec2:DescribeCoipPools",
+                          [32m+[0m[0m "ec2:DescribeAvailabilityZones",
+                          [32m+[0m[0m "ec2:DescribeAddresses",
+                          [32m+[0m[0m "ec2:DescribeAccountAttributes",
+                        ]
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = "*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = [
+                          [32m+[0m[0m "wafv2:GetWebACLForResource",
+                          [32m+[0m[0m "wafv2:GetWebACL",
+                          [32m+[0m[0m "wafv2:DisassociateWebACL",
+                          [32m+[0m[0m "wafv2:AssociateWebACL",
+                          [32m+[0m[0m "waf-regional:GetWebACLForResource",
+                          [32m+[0m[0m "waf-regional:GetWebACL",
+                          [32m+[0m[0m "waf-regional:DisassociateWebACL",
+                          [32m+[0m[0m "waf-regional:AssociateWebACL",
+                          [32m+[0m[0m "shield:GetSubscriptionState",
+                          [32m+[0m[0m "shield:DescribeProtection",
+                          [32m+[0m[0m "shield:DeleteProtection",
+                          [32m+[0m[0m "shield:CreateProtection",
+                          [32m+[0m[0m "iam:ListServerCertificates",
+                          [32m+[0m[0m "iam:GetServerCertificate",
+                          [32m+[0m[0m "cognito-idp:DescribeUserPoolClient",
+                          [32m+[0m[0m "acm:ListCertificates",
+                          [32m+[0m[0m "acm:DescribeCertificate",
+                        ]
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = "*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = [
+                          [32m+[0m[0m "ec2:RevokeSecurityGroupIngress",
+                          [32m+[0m[0m "ec2:AuthorizeSecurityGroupIngress",
+                        ]
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = "*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = "ec2:CreateSecurityGroup"
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = "*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "ec2:CreateTags"
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m Null         = {
+                              [32m+[0m[0m "aws:RequestTag/elbv2.k8s.aws/cluster" = "false"
+                            }
+                          [32m+[0m[0m StringEquals = {
+                              [32m+[0m[0m "ec2:CreateAction" = "CreateSecurityGroup"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = "arn:aws:ec2:*:*:security-group/*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = [
+                          [32m+[0m[0m "ec2:DeleteTags",
+                          [32m+[0m[0m "ec2:CreateTags",
+                        ]
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m Null = {
+                              [32m+[0m[0m "aws:RequestTag/elbv2.k8s.aws/cluster"  = "true"
+                              [32m+[0m[0m "aws:ResourceTag/elbv2.k8s.aws/cluster" = "false"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = "arn:aws:ec2:*:*:security-group/*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = [
+                          [32m+[0m[0m "ec2:RevokeSecurityGroupIngress",
+                          [32m+[0m[0m "ec2:DeleteSecurityGroup",
+                          [32m+[0m[0m "ec2:AuthorizeSecurityGroupIngress",
+                        ]
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m Null = {
+                              [32m+[0m[0m "aws:ResourceTag/elbv2.k8s.aws/cluster" = "false"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = "*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = [
+                          [32m+[0m[0m "elasticloadbalancing:CreateTargetGroup",
+                          [32m+[0m[0m "elasticloadbalancing:CreateLoadBalancer",
+                        ]
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m Null = {
+                              [32m+[0m[0m "aws:RequestTag/elbv2.k8s.aws/cluster" = "false"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = "*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = [
+                          [32m+[0m[0m "elasticloadbalancing:DeleteRule",
+                          [32m+[0m[0m "elasticloadbalancing:DeleteListener",
+                          [32m+[0m[0m "elasticloadbalancing:CreateRule",
+                          [32m+[0m[0m "elasticloadbalancing:CreateListener",
+                        ]
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = "*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = [
+                          [32m+[0m[0m "elasticloadbalancing:RemoveTags",
+                          [32m+[0m[0m "elasticloadbalancing:AddTags",
+                        ]
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m Null = {
+                              [32m+[0m[0m "aws:RequestTag/elbv2.k8s.aws/cluster"  = "true"
+                              [32m+[0m[0m "aws:ResourceTag/elbv2.k8s.aws/cluster" = "false"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = [
+                          [32m+[0m[0m "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
+                          [32m+[0m[0m "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
+                          [32m+[0m[0m "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*",
+                        ]
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = [
+                          [32m+[0m[0m "elasticloadbalancing:RemoveTags",
+                          [32m+[0m[0m "elasticloadbalancing:AddTags",
+                        ]
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = [
+                          [32m+[0m[0m "arn:aws:elasticloadbalancing:*:*:listener/net/*/*/*",
+                          [32m+[0m[0m "arn:aws:elasticloadbalancing:*:*:listener/app/*/*/*",
+                          [32m+[0m[0m "arn:aws:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
+                          [32m+[0m[0m "arn:aws:elasticloadbalancing:*:*:listener-rule/app/*/*/*",
+                        ]
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = [
+                          [32m+[0m[0m "elasticloadbalancing:SetSubnets",
+                          [32m+[0m[0m "elasticloadbalancing:SetSecurityGroups",
+                          [32m+[0m[0m "elasticloadbalancing:SetIpAddressType",
+                          [32m+[0m[0m "elasticloadbalancing:ModifyTargetGroupAttributes",
+                          [32m+[0m[0m "elasticloadbalancing:ModifyTargetGroup",
+                          [32m+[0m[0m "elasticloadbalancing:ModifyLoadBalancerAttributes",
+                          [32m+[0m[0m "elasticloadbalancing:ModifyListenerAttributes",
+                          [32m+[0m[0m "elasticloadbalancing:ModifyIpPools",
+                          [32m+[0m[0m "elasticloadbalancing:ModifyCapacityReservation",
+                          [32m+[0m[0m "elasticloadbalancing:DeleteTargetGroup",
+                          [32m+[0m[0m "elasticloadbalancing:DeleteLoadBalancer",
+                        ]
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m Null = {
+                              [32m+[0m[0m "aws:ResourceTag/elbv2.k8s.aws/cluster" = "false"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = "*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "elasticloadbalancing:AddTags"
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m Null         = {
+                              [32m+[0m[0m "aws:RequestTag/elbv2.k8s.aws/cluster" = "false"
+                            }
+                          [32m+[0m[0m StringEquals = {
+                              [32m+[0m[0m "elasticloadbalancing:CreateAction" = [
+                                  [32m+[0m[0m "CreateTargetGroup",
+                                  [32m+[0m[0m "CreateLoadBalancer",
+                                ]
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = [
+                          [32m+[0m[0m "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
+                          [32m+[0m[0m "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
+                          [32m+[0m[0m "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*",
+                        ]
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = [
+                          [32m+[0m[0m "elasticloadbalancing:RegisterTargets",
+                          [32m+[0m[0m "elasticloadbalancing:DeregisterTargets",
+                        ]
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = [
+                          [32m+[0m[0m "elasticloadbalancing:SetWebAcl",
+                          [32m+[0m[0m "elasticloadbalancing:SetRulePriorities",
+                          [32m+[0m[0m "elasticloadbalancing:RemoveListenerCertificates",
+                          [32m+[0m[0m "elasticloadbalancing:ModifyRule",
+                          [32m+[0m[0m "elasticloadbalancing:ModifyListener",
+                          [32m+[0m[0m "elasticloadbalancing:AddListenerCertificates",
+                        ]
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = "*"
+                    },
+                ]
+              [32m+[0m[0m Version   = "2012-10-17"
+            }
+        )
+      [32m+[0m[0m policy_id        = (known after apply)
+      [32m+[0m[0m tags             = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all         = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+    }
+
+[1m  # module.aws_load_balancer_controller_irsa[0].aws_iam_role.this[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role" "this" {
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m assume_role_policy    = (known after apply)
+      [32m+[0m[0m create_date           = (known after apply)
+      [32m+[0m[0m force_detach_policies = true
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m managed_policy_arns   = (known after apply)
+      [32m+[0m[0m max_session_duration  = 3600
+      [32m+[0m[0m name                  = "infraforge-dev-aws-load-balancer-controller"
+      [32m+[0m[0m name_prefix           = (known after apply)
+      [32m+[0m[0m path                  = "/"
+      [32m+[0m[0m tags                  = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all              = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m unique_id             = (known after apply)
+
+      [32m+[0m[0m inline_policy (known after apply)
+    }
+
+[1m  # module.aws_load_balancer_controller_irsa[0].aws_iam_role_policy_attachment.load_balancer_controller[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role_policy_attachment" "load_balancer_controller" {
+      [32m+[0m[0m id         = (known after apply)
+      [32m+[0m[0m policy_arn = (known after apply)
+      [32m+[0m[0m role       = "infraforge-dev-aws-load-balancer-controller"
+    }
+
+[1m  # module.cluster_autoscaler_irsa[0].data.aws_iam_policy_document.this[0][0m will be read during apply
+  # (config refers to values not yet known)
+[0m [36m<=[0m[0m data "aws_iam_policy_document" "this" {
+      [32m+[0m[0m id            = (known after apply)
+      [32m+[0m[0m json          = (known after apply)
+      [32m+[0m[0m minified_json = (known after apply)
+
+      [32m+[0m[0m statement {
+          [32m+[0m[0m actions = [
+              [32m+[0m[0m "sts:AssumeRoleWithWebIdentity",
+            ]
+          [32m+[0m[0m effect  = "Allow"
+
+          [32m+[0m[0m condition {
+              [32m+[0m[0m test     = "StringEquals"
+              [32m+[0m[0m values   = [
+                  [32m+[0m[0m "sts.amazonaws.com",
+                ]
+              [32m+[0m[0m variable = (known after apply)
+            }
+          [32m+[0m[0m condition {
+              [32m+[0m[0m test     = "StringEquals"
+              [32m+[0m[0m values   = [
+                  [32m+[0m[0m "system:serviceaccount:kube-system:cluster-autoscaler",
+                ]
+              [32m+[0m[0m variable = (known after apply)
+            }
+
+          [32m+[0m[0m principals {
+              [32m+[0m[0m identifiers = [
+                  [32m+[0m[0m (known after apply),
+                ]
+              [32m+[0m[0m type        = "Federated"
+            }
+        }
+    }
+
+[1m  # module.cluster_autoscaler_irsa[0].aws_iam_policy.cluster_autoscaler[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_policy" "cluster_autoscaler" {
+      [32m+[0m[0m arn              = (known after apply)
+      [32m+[0m[0m attachment_count = (known after apply)
+      [32m+[0m[0m description      = "Cluster autoscaler policy to allow examination and modification of EC2 Auto Scaling Groups"
+      [32m+[0m[0m id               = (known after apply)
+      [32m+[0m[0m name             = (known after apply)
+      [32m+[0m[0m name_prefix      = "AmazonEKS_Cluster_Autoscaler_Policy-"
+      [32m+[0m[0m path             = "/"
+      [32m+[0m[0m policy           = jsonencode(
+            {
+              [32m+[0m[0m Statement = [
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = [
+                          [32m+[0m[0m "eks:DescribeNodegroup",
+                          [32m+[0m[0m "ec2:GetInstanceTypesFromInstanceRequirements",
+                          [32m+[0m[0m "ec2:DescribeLaunchTemplateVersions",
+                          [32m+[0m[0m "ec2:DescribeInstanceTypes",
+                          [32m+[0m[0m "ec2:DescribeImages",
+                          [32m+[0m[0m "autoscaling:DescribeTags",
+                          [32m+[0m[0m "autoscaling:DescribeScalingActivities",
+                          [32m+[0m[0m "autoscaling:DescribeLaunchConfigurations",
+                          [32m+[0m[0m "autoscaling:DescribeAutoScalingInstances",
+                          [32m+[0m[0m "autoscaling:DescribeAutoScalingGroups",
+                        ]
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = "*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = [
+                          [32m+[0m[0m "autoscaling:TerminateInstanceInAutoScalingGroup",
+                          [32m+[0m[0m "autoscaling:SetDesiredCapacity",
+                        ]
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m StringEquals = {
+                              [32m+[0m[0m "autoscaling:ResourceTag/kubernetes.io/cluster/infraforge-dev" = "owned"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = "*"
+                    },
+                ]
+              [32m+[0m[0m Version   = "2012-10-17"
+            }
+        )
+      [32m+[0m[0m policy_id        = (known after apply)
+      [32m+[0m[0m tags             = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all         = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+    }
+
+[1m  # module.cluster_autoscaler_irsa[0].aws_iam_role.this[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role" "this" {
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m assume_role_policy    = (known after apply)
+      [32m+[0m[0m create_date           = (known after apply)
+      [32m+[0m[0m force_detach_policies = true
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m managed_policy_arns   = (known after apply)
+      [32m+[0m[0m max_session_duration  = 3600
+      [32m+[0m[0m name                  = "infraforge-dev-cluster-autoscaler"
+      [32m+[0m[0m name_prefix           = (known after apply)
+      [32m+[0m[0m path                  = "/"
+      [32m+[0m[0m tags                  = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all              = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m unique_id             = (known after apply)
+
+      [32m+[0m[0m inline_policy (known after apply)
+    }
+
+[1m  # module.cluster_autoscaler_irsa[0].aws_iam_role_policy_attachment.cluster_autoscaler[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role_policy_attachment" "cluster_autoscaler" {
+      [32m+[0m[0m id         = (known after apply)
+      [32m+[0m[0m policy_arn = (known after apply)
+      [32m+[0m[0m role       = "infraforge-dev-cluster-autoscaler"
+    }
+
+[1m  # module.ebs_csi_driver_irsa[0].data.aws_iam_policy_document.this[0][0m will be read during apply
+  # (config refers to values not yet known)
+[0m [36m<=[0m[0m data "aws_iam_policy_document" "this" {
+      [32m+[0m[0m id            = (known after apply)
+      [32m+[0m[0m json          = (known after apply)
+      [32m+[0m[0m minified_json = (known after apply)
+
+      [32m+[0m[0m statement {
+          [32m+[0m[0m actions = [
+              [32m+[0m[0m "sts:AssumeRoleWithWebIdentity",
+            ]
+          [32m+[0m[0m effect  = "Allow"
+
+          [32m+[0m[0m condition {
+              [32m+[0m[0m test     = "StringEquals"
+              [32m+[0m[0m values   = [
+                  [32m+[0m[0m "sts.amazonaws.com",
+                ]
+              [32m+[0m[0m variable = (known after apply)
+            }
+          [32m+[0m[0m condition {
+              [32m+[0m[0m test     = "StringEquals"
+              [32m+[0m[0m values   = [
+                  [32m+[0m[0m "system:serviceaccount:kube-system:ebs-csi-controller-sa",
+                ]
+              [32m+[0m[0m variable = (known after apply)
+            }
+
+          [32m+[0m[0m principals {
+              [32m+[0m[0m identifiers = [
+                  [32m+[0m[0m (known after apply),
+                ]
+              [32m+[0m[0m type        = "Federated"
+            }
+        }
+    }
+
+[1m  # module.ebs_csi_driver_irsa[0].aws_iam_policy.ebs_csi[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_policy" "ebs_csi" {
+      [32m+[0m[0m arn              = (known after apply)
+      [32m+[0m[0m attachment_count = (known after apply)
+      [32m+[0m[0m description      = "Provides permissions to manage EBS volumes via the container storage interface driver"
+      [32m+[0m[0m id               = (known after apply)
+      [32m+[0m[0m name             = (known after apply)
+      [32m+[0m[0m name_prefix      = "AmazonEKS_EBS_CSI_Policy-"
+      [32m+[0m[0m path             = "/"
+      [32m+[0m[0m policy           = jsonencode(
+            {
+              [32m+[0m[0m Statement = [
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = [
+                          [32m+[0m[0m "ec2:DescribeVolumesModifications",
+                          [32m+[0m[0m "ec2:DescribeVolumes",
+                          [32m+[0m[0m "ec2:DescribeTags",
+                          [32m+[0m[0m "ec2:DescribeSnapshots",
+                          [32m+[0m[0m "ec2:DescribeInstances",
+                          [32m+[0m[0m "ec2:DescribeAvailabilityZones",
+                        ]
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = "*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = [
+                          [32m+[0m[0m "ec2:ModifyVolume",
+                          [32m+[0m[0m "ec2:CreateSnapshot",
+                        ]
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = "arn:aws:ec2:*:*:volume/*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = [
+                          [32m+[0m[0m "ec2:DetachVolume",
+                          [32m+[0m[0m "ec2:AttachVolume",
+                        ]
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = [
+                          [32m+[0m[0m "arn:aws:ec2:*:*:volume/*",
+                          [32m+[0m[0m "arn:aws:ec2:*:*:instance/*",
+                        ]
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = [
+                          [32m+[0m[0m "ec2:EnableFastSnapshotRestores",
+                          [32m+[0m[0m "ec2:CreateVolume",
+                        ]
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = "arn:aws:ec2:*:*:snapshot/*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "ec2:CreateTags"
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m StringEquals = {
+                              [32m+[0m[0m "ec2:CreateAction" = [
+                                  [32m+[0m[0m "CreateVolume",
+                                  [32m+[0m[0m "CreateSnapshot",
+                                ]
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = [
+                          [32m+[0m[0m "arn:aws:ec2:*:*:volume/*",
+                          [32m+[0m[0m "arn:aws:ec2:*:*:snapshot/*",
+                        ]
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = "ec2:DeleteTags"
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = [
+                          [32m+[0m[0m "arn:aws:ec2:*:*:volume/*",
+                          [32m+[0m[0m "arn:aws:ec2:*:*:snapshot/*",
+                        ]
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "ec2:CreateVolume"
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m StringLike = {
+                              [32m+[0m[0m "aws:RequestTag/ebs.csi.aws.com/cluster" = "true"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = "arn:aws:ec2:*:*:volume/*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "ec2:CreateVolume"
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m StringLike = {
+                              [32m+[0m[0m "aws:RequestTag/CSIVolumeName" = "*"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = "arn:aws:ec2:*:*:volume/*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "ec2:DeleteVolume"
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m StringLike = {
+                              [32m+[0m[0m "aws:ResourceTag/ebs.csi.aws.com/cluster" = "true"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = "arn:aws:ec2:*:*:volume/*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "ec2:DeleteVolume"
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m StringLike = {
+                              [32m+[0m[0m "aws:ResourceTag/CSIVolumeName" = "*"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = "arn:aws:ec2:*:*:volume/*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "ec2:DeleteVolume"
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m StringLike = {
+                              [32m+[0m[0m "ec2:ResourceTag/kubernetes.io/created-for/pvc/name" = "*"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = "arn:aws:ec2:*:*:volume/*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "ec2:CreateSnapshot"
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m StringLike = {
+                              [32m+[0m[0m "aws:RequestTag/CSIVolumeSnapshotName" = "*"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = "arn:aws:ec2:*:*:snapshot/*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "ec2:CreateSnapshot"
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m StringLike = {
+                              [32m+[0m[0m "aws:RequestTag/ebs.csi.aws.com/cluster" = "true"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = "arn:aws:ec2:*:*:snapshot/*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "ec2:DeleteSnapshot"
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m StringLike = {
+                              [32m+[0m[0m "aws:ResourceTag/CSIVolumeSnapshotName" = "*"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = "arn:aws:ec2:*:*:snapshot/*"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "ec2:DeleteSnapshot"
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m StringLike = {
+                              [32m+[0m[0m "aws:ResourceTag/ebs.csi.aws.com/cluster" = "true"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Resource  = "arn:aws:ec2:*:*:snapshot/*"
+                    },
+                ]
+              [32m+[0m[0m Version   = "2012-10-17"
+            }
+        )
+      [32m+[0m[0m policy_id        = (known after apply)
+      [32m+[0m[0m tags             = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all         = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+    }
+
+[1m  # module.ebs_csi_driver_irsa[0].aws_iam_role.this[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role" "this" {
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m assume_role_policy    = (known after apply)
+      [32m+[0m[0m create_date           = (known after apply)
+      [32m+[0m[0m force_detach_policies = true
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m managed_policy_arns   = (known after apply)
+      [32m+[0m[0m max_session_duration  = 3600
+      [32m+[0m[0m name                  = "infraforge-dev-ebs-csi-driver"
+      [32m+[0m[0m name_prefix           = (known after apply)
+      [32m+[0m[0m path                  = "/"
+      [32m+[0m[0m tags                  = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all              = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m unique_id             = (known after apply)
+
+      [32m+[0m[0m inline_policy (known after apply)
+    }
+
+[1m  # module.ebs_csi_driver_irsa[0].aws_iam_role_policy_attachment.ebs_csi[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role_policy_attachment" "ebs_csi" {
+      [32m+[0m[0m id         = (known after apply)
+      [32m+[0m[0m policy_arn = (known after apply)
+      [32m+[0m[0m role       = "infraforge-dev-ebs-csi-driver"
+    }
+
+[1m  # module.eks.data.aws_caller_identity.current[0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_caller_identity" "current" {
+      [32m+[0m[0m account_id = (known after apply)
+      [32m+[0m[0m arn        = (known after apply)
+      [32m+[0m[0m id         = (known after apply)
+      [32m+[0m[0m user_id    = (known after apply)
+    }
+
+[1m  # module.eks.data.aws_eks_addon_version.this["aws-ebs-csi-driver"][0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_eks_addon_version" "this" {
+      [32m+[0m[0m addon_name         = "aws-ebs-csi-driver"
+      [32m+[0m[0m id                 = (known after apply)
+      [32m+[0m[0m kubernetes_version = "1.29"
+      [32m+[0m[0m most_recent        = true
+      [32m+[0m[0m version            = (known after apply)
+    }
+
+[1m  # module.eks.data.aws_eks_addon_version.this["coredns"][0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_eks_addon_version" "this" {
+      [32m+[0m[0m addon_name         = "coredns"
+      [32m+[0m[0m id                 = (known after apply)
+      [32m+[0m[0m kubernetes_version = "1.29"
+      [32m+[0m[0m most_recent        = true
+      [32m+[0m[0m version            = (known after apply)
+    }
+
+[1m  # module.eks.data.aws_eks_addon_version.this["kube-proxy"][0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_eks_addon_version" "this" {
+      [32m+[0m[0m addon_name         = "kube-proxy"
+      [32m+[0m[0m id                 = (known after apply)
+      [32m+[0m[0m kubernetes_version = "1.29"
+      [32m+[0m[0m most_recent        = true
+      [32m+[0m[0m version            = (known after apply)
+    }
+
+[1m  # module.eks.data.aws_eks_addon_version.this["vpc-cni"][0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_eks_addon_version" "this" {
+      [32m+[0m[0m addon_name         = "vpc-cni"
+      [32m+[0m[0m id                 = (known after apply)
+      [32m+[0m[0m kubernetes_version = "1.29"
+      [32m+[0m[0m most_recent        = true
+      [32m+[0m[0m version            = (known after apply)
+    }
+
+[1m  # module.eks.data.aws_iam_policy_document.assume_role_policy[0][0m will be read during apply
+  # (config refers to values not yet known)
+[0m [36m<=[0m[0m data "aws_iam_policy_document" "assume_role_policy" {
+      [32m+[0m[0m id            = (known after apply)
+      [32m+[0m[0m json          = (known after apply)
+      [32m+[0m[0m minified_json = (known after apply)
+
+      [32m+[0m[0m statement {
+          [32m+[0m[0m actions = [
+              [32m+[0m[0m "sts:AssumeRole",
+            ]
+          [32m+[0m[0m sid     = "EKSClusterAssumeRole"
+
+          [32m+[0m[0m principals {
+              [32m+[0m[0m identifiers = [
+                  [32m+[0m[0m (known after apply),
+                ]
+              [32m+[0m[0m type        = "Service"
+            }
+        }
+    }
+
+[1m  # module.eks.data.aws_iam_session_context.current[0m will be read during apply
+  # (config refers to values not yet known)
+[0m [36m<=[0m[0m data "aws_iam_session_context" "current" {
+      [32m+[0m[0m arn          = (known after apply)
+      [32m+[0m[0m id           = (known after apply)
+      [32m+[0m[0m issuer_arn   = (known after apply)
+      [32m+[0m[0m issuer_id    = (known after apply)
+      [32m+[0m[0m issuer_name  = (known after apply)
+      [32m+[0m[0m session_name = (known after apply)
+    }
+
+[1m  # module.eks.data.aws_partition.current[0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_partition" "current" {
+      [32m+[0m[0m dns_suffix         = (known after apply)
+      [32m+[0m[0m id                 = (known after apply)
+      [32m+[0m[0m partition          = (known after apply)
+      [32m+[0m[0m reverse_dns_prefix = (known after apply)
+    }
+
+[1m  # module.eks.data.tls_certificate.this[0][0m will be read during apply
+  # (config refers to values not yet known)
+[0m [36m<=[0m[0m data "tls_certificate" "this" {
+      [32m+[0m[0m certificates = (known after apply)
+      [32m+[0m[0m id           = (known after apply)
+      [32m+[0m[0m url          = (known after apply)
+    }
+
+[1m  # module.eks.aws_cloudwatch_log_group.this[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_cloudwatch_log_group" "this" {
+      [32m+[0m[0m arn               = (known after apply)
+      [32m+[0m[0m id                = (known after apply)
+      [32m+[0m[0m log_group_class   = (known after apply)
+      [32m+[0m[0m name              = "/aws/eks/infraforge-dev/cluster"
+      [32m+[0m[0m name_prefix       = (known after apply)
+      [32m+[0m[0m retention_in_days = 90
+      [32m+[0m[0m skip_destroy      = false
+      [32m+[0m[0m tags              = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Name"        = "/aws/eks/infraforge-dev/cluster"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all          = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Name"        = "/aws/eks/infraforge-dev/cluster"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+    }
+
+[1m  # module.eks.aws_ec2_tag.cluster_primary_security_group["Cluster"][0m will be created
+[0m  [32m+[0m[0m resource "aws_ec2_tag" "cluster_primary_security_group" {
+      [32m+[0m[0m id          = (known after apply)
+      [32m+[0m[0m key         = "Cluster"
+      [32m+[0m[0m resource_id = (known after apply)
+      [32m+[0m[0m value       = "infraforge-dev"
+    }
+
+[1m  # module.eks.aws_ec2_tag.cluster_primary_security_group["Environment"][0m will be created
+[0m  [32m+[0m[0m resource "aws_ec2_tag" "cluster_primary_security_group" {
+      [32m+[0m[0m id          = (known after apply)
+      [32m+[0m[0m key         = "Environment"
+      [32m+[0m[0m resource_id = (known after apply)
+      [32m+[0m[0m value       = "dev"
+    }
+
+[1m  # module.eks.aws_ec2_tag.cluster_primary_security_group["Tenant"][0m will be created
+[0m  [32m+[0m[0m resource "aws_ec2_tag" "cluster_primary_security_group" {
+      [32m+[0m[0m id          = (known after apply)
+      [32m+[0m[0m key         = "Tenant"
+      [32m+[0m[0m resource_id = (known after apply)
+      [32m+[0m[0m value       = "platform"
+    }
+
+[1m  # module.eks.aws_eks_cluster.this[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_eks_cluster" "this" {
+      [32m+[0m[0m arn                           = (known after apply)
+      [32m+[0m[0m bootstrap_self_managed_addons = true
+      [32m+[0m[0m certificate_authority         = (known after apply)
+      [32m+[0m[0m cluster_id                    = (known after apply)
+      [32m+[0m[0m created_at                    = (known after apply)
+      [32m+[0m[0m enabled_cluster_log_types     = [
+          [32m+[0m[0m "api",
+          [32m+[0m[0m "audit",
+          [32m+[0m[0m "authenticator",
+        ]
+      [32m+[0m[0m endpoint                      = (known after apply)
+      [32m+[0m[0m id                            = (known after apply)
+      [32m+[0m[0m identity                      = (known after apply)
+      [32m+[0m[0m name                          = "infraforge-dev"
+      [32m+[0m[0m platform_version              = (known after apply)
+      [32m+[0m[0m role_arn                      = (known after apply)
+      [32m+[0m[0m status                        = (known after apply)
+      [32m+[0m[0m tags                          = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all                      = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m version                       = "1.29"
+
+      [32m+[0m[0m access_config (known after apply)
+
+      [32m+[0m[0m encryption_config {
+          [32m+[0m[0m resources = [
+              [32m+[0m[0m "secrets",
+            ]
+
+          [32m+[0m[0m provider {
+              [32m+[0m[0m key_arn = (known after apply)
+            }
+        }
+
+      [32m+[0m[0m kubernetes_network_config {
+          [32m+[0m[0m ip_family         = (known after apply)
+          [32m+[0m[0m service_ipv4_cidr = (known after apply)
+          [32m+[0m[0m service_ipv6_cidr = (known after apply)
+
+          [32m+[0m[0m elastic_load_balancing (known after apply)
+        }
+
+      [32m+[0m[0m timeouts {}
+
+      [32m+[0m[0m upgrade_policy (known after apply)
+
+      [32m+[0m[0m vpc_config {
+          [32m+[0m[0m cluster_security_group_id = (known after apply)
+          [32m+[0m[0m endpoint_private_access   = true
+          [32m+[0m[0m endpoint_public_access    = true
+          [32m+[0m[0m public_access_cidrs       = [
+              [32m+[0m[0m "0.0.0.0/0",
+            ]
+          [32m+[0m[0m security_group_ids        = (known after apply)
+          [32m+[0m[0m subnet_ids                = [
+              [32m+[0m[0m "subnet-0336cce74954ce09e",
+              [32m+[0m[0m "subnet-0393bdbb3484ae441",
+              [32m+[0m[0m "subnet-05ca8068a70d84652",
+            ]
+          [32m+[0m[0m vpc_id                    = (known after apply)
+        }
+    }
+
+[1m  # module.eks.aws_iam_openid_connect_provider.oidc_provider[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_openid_connect_provider" "oidc_provider" {
+      [32m+[0m[0m arn             = (known after apply)
+      [32m+[0m[0m client_id_list  = (known after apply)
+      [32m+[0m[0m id              = (known after apply)
+      [32m+[0m[0m tags            = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Name"        = "infraforge-dev-eks-irsa"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all        = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Name"        = "infraforge-dev-eks-irsa"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m thumbprint_list = (known after apply)
+      [32m+[0m[0m url             = (known after apply)
+    }
+
+[1m  # module.eks.aws_iam_policy.cluster_encryption[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_policy" "cluster_encryption" {
+      [32m+[0m[0m arn              = (known after apply)
+      [32m+[0m[0m attachment_count = (known after apply)
+      [32m+[0m[0m description      = "Cluster encryption policy to allow cluster role to utilize CMK provided"
+      [32m+[0m[0m id               = (known after apply)
+      [32m+[0m[0m name             = (known after apply)
+      [32m+[0m[0m name_prefix      = "infraforge-dev-cluster-ClusterEncryption"
+      [32m+[0m[0m path             = "/"
+      [32m+[0m[0m policy           = (known after apply)
+      [32m+[0m[0m policy_id        = (known after apply)
+      [32m+[0m[0m tags             = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all         = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+    }
+
+[1m  # module.eks.aws_iam_role.this[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role" "this" {
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m assume_role_policy    = (known after apply)
+      [32m+[0m[0m create_date           = (known after apply)
+      [32m+[0m[0m force_detach_policies = true
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m managed_policy_arns   = (known after apply)
+      [32m+[0m[0m max_session_duration  = 3600
+      [32m+[0m[0m name                  = (known after apply)
+      [32m+[0m[0m name_prefix           = "infraforge-dev-cluster-"
+      [32m+[0m[0m path                  = "/"
+      [32m+[0m[0m tags                  = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all              = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m unique_id             = (known after apply)
+
+      [32m+[0m[0m inline_policy {
+          [32m+[0m[0m name   = "infraforge-dev-cluster"
+          [32m+[0m[0m policy = jsonencode(
+                {
+                  [32m+[0m[0m Statement = [
+                      [32m+[0m[0m {
+                          [32m+[0m[0m Action   = [
+                              [32m+[0m[0m "logs:CreateLogGroup",
+                            ]
+                          [32m+[0m[0m Effect   = "Deny"
+                          [32m+[0m[0m Resource = "*"
+                        },
+                    ]
+                  [32m+[0m[0m Version   = "2012-10-17"
+                }
+            )
+        }
+    }
+
+[1m  # module.eks.aws_iam_role_policy_attachment.cluster_encryption[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role_policy_attachment" "cluster_encryption" {
+      [32m+[0m[0m id         = (known after apply)
+      [32m+[0m[0m policy_arn = (known after apply)
+      [32m+[0m[0m role       = (known after apply)
+    }
+
+[1m  # module.eks.aws_iam_role_policy_attachment.this["AmazonEKSClusterPolicy"][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role_policy_attachment" "this" {
+      [32m+[0m[0m id         = (known after apply)
+      [32m+[0m[0m policy_arn = (known after apply)
+      [32m+[0m[0m role       = (known after apply)
+    }
+
+[1m  # module.eks.aws_iam_role_policy_attachment.this["AmazonEKSVPCResourceController"][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role_policy_attachment" "this" {
+      [32m+[0m[0m id         = (known after apply)
+      [32m+[0m[0m policy_arn = (known after apply)
+      [32m+[0m[0m role       = (known after apply)
+    }
+
+[1m  # module.eks.aws_security_group.cluster[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_security_group" "cluster" {
+      [32m+[0m[0m arn                    = (known after apply)
+      [32m+[0m[0m description            = "EKS cluster security group"
+      [32m+[0m[0m egress                 = (known after apply)
+      [32m+[0m[0m id                     = (known after apply)
+      [32m+[0m[0m ingress                = (known after apply)
+      [32m+[0m[0m name                   = (known after apply)
+      [32m+[0m[0m name_prefix            = "infraforge-dev-cluster-"
+      [32m+[0m[0m owner_id               = (known after apply)
+      [32m+[0m[0m revoke_rules_on_delete = false
+      [32m+[0m[0m tags                   = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Name"        = "infraforge-dev-cluster"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all               = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Name"        = "infraforge-dev-cluster"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m vpc_id                 = "vpc-000a0bc71bfc8a387"
+    }
+
+[1m  # module.eks.aws_security_group.node[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_security_group" "node" {
+      [32m+[0m[0m arn                    = (known after apply)
+      [32m+[0m[0m description            = "EKS node shared security group"
+      [32m+[0m[0m egress                 = (known after apply)
+      [32m+[0m[0m id                     = (known after apply)
+      [32m+[0m[0m ingress                = (known after apply)
+      [32m+[0m[0m name                   = (known after apply)
+      [32m+[0m[0m name_prefix            = "infraforge-dev-node-"
+      [32m+[0m[0m owner_id               = (known after apply)
+      [32m+[0m[0m revoke_rules_on_delete = false
+      [32m+[0m[0m tags                   = {
+          [32m+[0m[0m "Cluster"                              = "infraforge-dev"
+          [32m+[0m[0m "Environment"                          = "dev"
+          [32m+[0m[0m "Name"                                 = "infraforge-dev-node"
+          [32m+[0m[0m "Tenant"                               = "platform"
+          [32m+[0m[0m "kubernetes.io/cluster/infraforge-dev" = "owned"
+        }
+      [32m+[0m[0m tags_all               = {
+          [32m+[0m[0m "Cluster"                              = "infraforge-dev"
+          [32m+[0m[0m "Environment"                          = "dev"
+          [32m+[0m[0m "ManagedBy"                            = "OpenTofu"
+          [32m+[0m[0m "Name"                                 = "infraforge-dev-node"
+          [32m+[0m[0m "Owner"                                = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"                             = "InfraForge"
+          [32m+[0m[0m "Tenant"                               = "platform"
+          [32m+[0m[0m "kubernetes.io/cluster/infraforge-dev" = "owned"
+        }
+      [32m+[0m[0m vpc_id                 = "vpc-000a0bc71bfc8a387"
+    }
+
+[1m  # module.eks.aws_security_group_rule.cluster["ingress_nodes_443"][0m will be created
+[0m  [32m+[0m[0m resource "aws_security_group_rule" "cluster" {
+      [32m+[0m[0m description              = "Node groups to cluster API"
+      [32m+[0m[0m from_port                = 443
+      [32m+[0m[0m id                       = (known after apply)
+      [32m+[0m[0m protocol                 = "tcp"
+      [32m+[0m[0m security_group_id        = (known after apply)
+      [32m+[0m[0m security_group_rule_id   = (known after apply)
+      [32m+[0m[0m self                     = false
+      [32m+[0m[0m source_security_group_id = (known after apply)
+      [32m+[0m[0m to_port                  = 443
+      [32m+[0m[0m type                     = "ingress"
+    }
+
+[1m  # module.eks.aws_security_group_rule.node["egress_all"][0m will be created
+[0m  [32m+[0m[0m resource "aws_security_group_rule" "node" {
+      [32m+[0m[0m cidr_blocks              = [
+          [32m+[0m[0m "0.0.0.0/0",
+        ]
+      [32m+[0m[0m description              = "Allow all egress"
+      [32m+[0m[0m from_port                = 0
+      [32m+[0m[0m id                       = (known after apply)
+      [32m+[0m[0m prefix_list_ids          = []
+      [32m+[0m[0m protocol                 = "-1"
+      [32m+[0m[0m security_group_id        = (known after apply)
+      [32m+[0m[0m security_group_rule_id   = (known after apply)
+      [32m+[0m[0m self                     = false
+      [32m+[0m[0m source_security_group_id = (known after apply)
+      [32m+[0m[0m to_port                  = 0
+      [32m+[0m[0m type                     = "egress"
+    }
+
+[1m  # module.eks.aws_security_group_rule.node["ingress_cluster_443"][0m will be created
+[0m  [32m+[0m[0m resource "aws_security_group_rule" "node" {
+      [32m+[0m[0m description              = "Cluster API to node groups"
+      [32m+[0m[0m from_port                = 443
+      [32m+[0m[0m id                       = (known after apply)
+      [32m+[0m[0m prefix_list_ids          = []
+      [32m+[0m[0m protocol                 = "tcp"
+      [32m+[0m[0m security_group_id        = (known after apply)
+      [32m+[0m[0m security_group_rule_id   = (known after apply)
+      [32m+[0m[0m self                     = false
+      [32m+[0m[0m source_security_group_id = (known after apply)
+      [32m+[0m[0m to_port                  = 443
+      [32m+[0m[0m type                     = "ingress"
+    }
+
+[1m  # module.eks.aws_security_group_rule.node["ingress_cluster_4443_webhook"][0m will be created
+[0m  [32m+[0m[0m resource "aws_security_group_rule" "node" {
+      [32m+[0m[0m description              = "Cluster API to node 4443/tcp webhook"
+      [32m+[0m[0m from_port                = 4443
+      [32m+[0m[0m id                       = (known after apply)
+      [32m+[0m[0m prefix_list_ids          = []
+      [32m+[0m[0m protocol                 = "tcp"
+      [32m+[0m[0m security_group_id        = (known after apply)
+      [32m+[0m[0m security_group_rule_id   = (known after apply)
+      [32m+[0m[0m self                     = false
+      [32m+[0m[0m source_security_group_id = (known after apply)
+      [32m+[0m[0m to_port                  = 4443
+      [32m+[0m[0m type                     = "ingress"
+    }
+
+[1m  # module.eks.aws_security_group_rule.node["ingress_cluster_6443_webhook"][0m will be created
+[0m  [32m+[0m[0m resource "aws_security_group_rule" "node" {
+      [32m+[0m[0m description              = "Cluster API to node 6443/tcp webhook"
+      [32m+[0m[0m from_port                = 6443
+      [32m+[0m[0m id                       = (known after apply)
+      [32m+[0m[0m prefix_list_ids          = []
+      [32m+[0m[0m protocol                 = "tcp"
+      [32m+[0m[0m security_group_id        = (known after apply)
+      [32m+[0m[0m security_group_rule_id   = (known after apply)
+      [32m+[0m[0m self                     = false
+      [32m+[0m[0m source_security_group_id = (known after apply)
+      [32m+[0m[0m to_port                  = 6443
+      [32m+[0m[0m type                     = "ingress"
+    }
+
+[1m  # module.eks.aws_security_group_rule.node["ingress_cluster_8443_webhook"][0m will be created
+[0m  [32m+[0m[0m resource "aws_security_group_rule" "node" {
+      [32m+[0m[0m description              = "Cluster API to node 8443/tcp webhook"
+      [32m+[0m[0m from_port                = 8443
+      [32m+[0m[0m id                       = (known after apply)
+      [32m+[0m[0m prefix_list_ids          = []
+      [32m+[0m[0m protocol                 = "tcp"
+      [32m+[0m[0m security_group_id        = (known after apply)
+      [32m+[0m[0m security_group_rule_id   = (known after apply)
+      [32m+[0m[0m self                     = false
+      [32m+[0m[0m source_security_group_id = (known after apply)
+      [32m+[0m[0m to_port                  = 8443
+      [32m+[0m[0m type                     = "ingress"
+    }
+
+[1m  # module.eks.aws_security_group_rule.node["ingress_cluster_9443_webhook"][0m will be created
+[0m  [32m+[0m[0m resource "aws_security_group_rule" "node" {
+      [32m+[0m[0m description              = "Cluster API to node 9443/tcp webhook"
+      [32m+[0m[0m from_port                = 9443
+      [32m+[0m[0m id                       = (known after apply)
+      [32m+[0m[0m prefix_list_ids          = []
+      [32m+[0m[0m protocol                 = "tcp"
+      [32m+[0m[0m security_group_id        = (known after apply)
+      [32m+[0m[0m security_group_rule_id   = (known after apply)
+      [32m+[0m[0m self                     = false
+      [32m+[0m[0m source_security_group_id = (known after apply)
+      [32m+[0m[0m to_port                  = 9443
+      [32m+[0m[0m type                     = "ingress"
+    }
+
+[1m  # module.eks.aws_security_group_rule.node["ingress_cluster_kubelet"][0m will be created
+[0m  [32m+[0m[0m resource "aws_security_group_rule" "node" {
+      [32m+[0m[0m description              = "Cluster API to node kubelets"
+      [32m+[0m[0m from_port                = 10250
+      [32m+[0m[0m id                       = (known after apply)
+      [32m+[0m[0m prefix_list_ids          = []
+      [32m+[0m[0m protocol                 = "tcp"
+      [32m+[0m[0m security_group_id        = (known after apply)
+      [32m+[0m[0m security_group_rule_id   = (known after apply)
+      [32m+[0m[0m self                     = false
+      [32m+[0m[0m source_security_group_id = (known after apply)
+      [32m+[0m[0m to_port                  = 10250
+      [32m+[0m[0m type                     = "ingress"
+    }
+
+[1m  # module.eks.aws_security_group_rule.node["ingress_nodes_ephemeral"][0m will be created
+[0m  [32m+[0m[0m resource "aws_security_group_rule" "node" {
+      [32m+[0m[0m description              = "Node to node ingress on ephemeral ports"
+      [32m+[0m[0m from_port                = 1025
+      [32m+[0m[0m id                       = (known after apply)
+      [32m+[0m[0m prefix_list_ids          = []
+      [32m+[0m[0m protocol                 = "tcp"
+      [32m+[0m[0m security_group_id        = (known after apply)
+      [32m+[0m[0m security_group_rule_id   = (known after apply)
+      [32m+[0m[0m self                     = true
+      [32m+[0m[0m source_security_group_id = (known after apply)
+      [32m+[0m[0m to_port                  = 65535
+      [32m+[0m[0m type                     = "ingress"
+    }
+
+[1m  # module.eks.aws_security_group_rule.node["ingress_self_coredns_tcp"][0m will be created
+[0m  [32m+[0m[0m resource "aws_security_group_rule" "node" {
+      [32m+[0m[0m description              = "Node to node CoreDNS"
+      [32m+[0m[0m from_port                = 53
+      [32m+[0m[0m id                       = (known after apply)
+      [32m+[0m[0m prefix_list_ids          = []
+      [32m+[0m[0m protocol                 = "tcp"
+      [32m+[0m[0m security_group_id        = (known after apply)
+      [32m+[0m[0m security_group_rule_id   = (known after apply)
+      [32m+[0m[0m self                     = true
+      [32m+[0m[0m source_security_group_id = (known after apply)
+      [32m+[0m[0m to_port                  = 53
+      [32m+[0m[0m type                     = "ingress"
+    }
+
+[1m  # module.eks.aws_security_group_rule.node["ingress_self_coredns_udp"][0m will be created
+[0m  [32m+[0m[0m resource "aws_security_group_rule" "node" {
+      [32m+[0m[0m description              = "Node to node CoreDNS UDP"
+      [32m+[0m[0m from_port                = 53
+      [32m+[0m[0m id                       = (known after apply)
+      [32m+[0m[0m prefix_list_ids          = []
+      [32m+[0m[0m protocol                 = "udp"
+      [32m+[0m[0m security_group_id        = (known after apply)
+      [32m+[0m[0m security_group_rule_id   = (known after apply)
+      [32m+[0m[0m self                     = true
+      [32m+[0m[0m source_security_group_id = (known after apply)
+      [32m+[0m[0m to_port                  = 53
+      [32m+[0m[0m type                     = "ingress"
+    }
+
+[1m  # module.eks.time_sleep.this[0][0m will be created
+[0m  [32m+[0m[0m resource "time_sleep" "this" {
+      [32m+[0m[0m create_duration = "30s"
+      [32m+[0m[0m id              = (known after apply)
+      [32m+[0m[0m triggers        = {
+          [32m+[0m[0m "cluster_certificate_authority_data" = (known after apply)
+          [32m+[0m[0m "cluster_endpoint"                   = (known after apply)
+          [32m+[0m[0m "cluster_name"                       = "infraforge-dev"
+          [32m+[0m[0m "cluster_version"                    = "1.29"
+        }
+    }
+
+[1m  # module.eks.module.eks_managed_node_group["general"].data.aws_caller_identity.current[0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_caller_identity" "current" {
+      [32m+[0m[0m account_id = (known after apply)
+      [32m+[0m[0m arn        = (known after apply)
+      [32m+[0m[0m id         = (known after apply)
+      [32m+[0m[0m user_id    = (known after apply)
+    }
+
+[1m  # module.eks.module.eks_managed_node_group["general"].data.aws_iam_policy_document.assume_role_policy[0][0m will be read during apply
+  # (config refers to values not yet known)
+[0m [36m<=[0m[0m data "aws_iam_policy_document" "assume_role_policy" {
+      [32m+[0m[0m id            = (known after apply)
+      [32m+[0m[0m json          = (known after apply)
+      [32m+[0m[0m minified_json = (known after apply)
+
+      [32m+[0m[0m statement {
+          [32m+[0m[0m actions = [
+              [32m+[0m[0m "sts:AssumeRole",
+            ]
+          [32m+[0m[0m sid     = "EKSNodeAssumeRole"
+
+          [32m+[0m[0m principals {
+              [32m+[0m[0m identifiers = [
+                  [32m+[0m[0m (known after apply),
+                ]
+              [32m+[0m[0m type        = "Service"
+            }
+        }
+    }
+
+[1m  # module.eks.module.eks_managed_node_group["general"].data.aws_partition.current[0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_partition" "current" {
+      [32m+[0m[0m dns_suffix         = (known after apply)
+      [32m+[0m[0m id                 = (known after apply)
+      [32m+[0m[0m partition          = (known after apply)
+      [32m+[0m[0m reverse_dns_prefix = (known after apply)
+    }
+
+[1m  # module.eks.module.eks_managed_node_group["general"].aws_iam_role.this[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role" "this" {
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m assume_role_policy    = (known after apply)
+      [32m+[0m[0m create_date           = (known after apply)
+      [32m+[0m[0m description           = "EKS managed node group IAM role"
+      [32m+[0m[0m force_detach_policies = true
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m managed_policy_arns   = (known after apply)
+      [32m+[0m[0m max_session_duration  = 3600
+      [32m+[0m[0m name                  = (known after apply)
+      [32m+[0m[0m name_prefix           = "infraforge-dev-general-eks-node-group-"
+      [32m+[0m[0m path                  = "/"
+      [32m+[0m[0m tags                  = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all              = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m unique_id             = (known after apply)
+
+      [32m+[0m[0m inline_policy (known after apply)
+    }
+
+[1m  # module.eks.module.eks_managed_node_group["system"].data.aws_caller_identity.current[0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_caller_identity" "current" {
+      [32m+[0m[0m account_id = (known after apply)
+      [32m+[0m[0m arn        = (known after apply)
+      [32m+[0m[0m id         = (known after apply)
+      [32m+[0m[0m user_id    = (known after apply)
+    }
+
+[1m  # module.eks.module.eks_managed_node_group["system"].data.aws_iam_policy_document.assume_role_policy[0][0m will be read during apply
+  # (config refers to values not yet known)
+[0m [36m<=[0m[0m data "aws_iam_policy_document" "assume_role_policy" {
+      [32m+[0m[0m id            = (known after apply)
+      [32m+[0m[0m json          = (known after apply)
+      [32m+[0m[0m minified_json = (known after apply)
+
+      [32m+[0m[0m statement {
+          [32m+[0m[0m actions = [
+              [32m+[0m[0m "sts:AssumeRole",
+            ]
+          [32m+[0m[0m sid     = "EKSNodeAssumeRole"
+
+          [32m+[0m[0m principals {
+              [32m+[0m[0m identifiers = [
+                  [32m+[0m[0m (known after apply),
+                ]
+              [32m+[0m[0m type        = "Service"
+            }
+        }
+    }
+
+[1m  # module.eks.module.eks_managed_node_group["system"].data.aws_partition.current[0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_partition" "current" {
+      [32m+[0m[0m dns_suffix         = (known after apply)
+      [32m+[0m[0m id                 = (known after apply)
+      [32m+[0m[0m partition          = (known after apply)
+      [32m+[0m[0m reverse_dns_prefix = (known after apply)
+    }
+
+[1m  # module.eks.module.eks_managed_node_group["system"].aws_iam_role.this[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role" "this" {
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m assume_role_policy    = (known after apply)
+      [32m+[0m[0m create_date           = (known after apply)
+      [32m+[0m[0m description           = "EKS managed node group IAM role"
+      [32m+[0m[0m force_detach_policies = true
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m managed_policy_arns   = (known after apply)
+      [32m+[0m[0m max_session_duration  = 3600
+      [32m+[0m[0m name                  = (known after apply)
+      [32m+[0m[0m name_prefix           = "infraforge-dev-system-eks-node-group-"
+      [32m+[0m[0m path                  = "/"
+      [32m+[0m[0m tags                  = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all              = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m unique_id             = (known after apply)
+
+      [32m+[0m[0m inline_policy (known after apply)
+    }
+
+[1m  # module.eks.module.fargate_profile["system"].data.aws_caller_identity.current[0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_caller_identity" "current" {
+      [32m+[0m[0m account_id = (known after apply)
+      [32m+[0m[0m arn        = (known after apply)
+      [32m+[0m[0m id         = (known after apply)
+      [32m+[0m[0m user_id    = (known after apply)
+    }
+
+[1m  # module.eks.module.fargate_profile["system"].data.aws_iam_policy_document.assume_role_policy[0][0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_iam_policy_document" "assume_role_policy" {
+      [32m+[0m[0m id            = (known after apply)
+      [32m+[0m[0m json          = (known after apply)
+      [32m+[0m[0m minified_json = (known after apply)
+
+      [32m+[0m[0m statement {
+          [32m+[0m[0m actions = [
+              [32m+[0m[0m "sts:AssumeRole",
+            ]
+          [32m+[0m[0m effect  = "Allow"
+
+          [32m+[0m[0m principals {
+              [32m+[0m[0m identifiers = [
+                  [32m+[0m[0m "eks-fargate-pods.amazonaws.com",
+                ]
+              [32m+[0m[0m type        = "Service"
+            }
+        }
+    }
+
+[1m  # module.eks.module.fargate_profile["system"].data.aws_partition.current[0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_partition" "current" {
+      [32m+[0m[0m dns_suffix         = (known after apply)
+      [32m+[0m[0m id                 = (known after apply)
+      [32m+[0m[0m partition          = (known after apply)
+      [32m+[0m[0m reverse_dns_prefix = (known after apply)
+    }
+
+[1m  # module.eks.module.fargate_profile["system"].aws_eks_fargate_profile.this[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_eks_fargate_profile" "this" {
+      [32m+[0m[0m arn                    = (known after apply)
+      [32m+[0m[0m cluster_name           = "infraforge-dev"
+      [32m+[0m[0m fargate_profile_name   = "system"
+      [32m+[0m[0m id                     = (known after apply)
+      [32m+[0m[0m pod_execution_role_arn = (known after apply)
+      [32m+[0m[0m status                 = (known after apply)
+      [32m+[0m[0m subnet_ids             = [
+          [32m+[0m[0m "subnet-0336cce74954ce09e",
+          [32m+[0m[0m "subnet-0393bdbb3484ae441",
+          [32m+[0m[0m "subnet-05ca8068a70d84652",
+        ]
+      [32m+[0m[0m tags                   = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all               = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+
+      [32m+[0m[0m selector {
+          [32m+[0m[0m namespace = "cert-manager"
+        }
+      [32m+[0m[0m selector {
+          [32m+[0m[0m namespace = "external-dns"
+        }
+      [32m+[0m[0m selector {
+          [32m+[0m[0m namespace = "velero"
+        }
+
+      [32m+[0m[0m timeouts {}
+    }
+
+[1m  # module.eks.module.fargate_profile["system"].aws_iam_role.this[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role" "this" {
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m assume_role_policy    = (known after apply)
+      [32m+[0m[0m create_date           = (known after apply)
+      [32m+[0m[0m description           = "Fargate profile IAM role"
+      [32m+[0m[0m force_detach_policies = true
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m managed_policy_arns   = (known after apply)
+      [32m+[0m[0m max_session_duration  = 3600
+      [32m+[0m[0m name                  = (known after apply)
+      [32m+[0m[0m name_prefix           = "system-"
+      [32m+[0m[0m path                  = "/"
+      [32m+[0m[0m tags                  = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all              = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m unique_id             = (known after apply)
+
+      [32m+[0m[0m inline_policy (known after apply)
+    }
+
+[1m  # module.eks.module.kms.data.aws_caller_identity.current[0][0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_caller_identity" "current" {
+      [32m+[0m[0m account_id = (known after apply)
+      [32m+[0m[0m arn        = (known after apply)
+      [32m+[0m[0m id         = (known after apply)
+      [32m+[0m[0m user_id    = (known after apply)
+    }
+
+[1m  # module.eks.module.kms.data.aws_iam_policy_document.this[0][0m will be read during apply
+  # (config refers to values not yet known)
+[0m [36m<=[0m[0m data "aws_iam_policy_document" "this" {
+      [32m+[0m[0m id                        = (known after apply)
+      [32m+[0m[0m json                      = (known after apply)
+      [32m+[0m[0m minified_json             = (known after apply)
+      [32m+[0m[0m override_policy_documents = []
+      [32m+[0m[0m source_policy_documents   = []
+
+      [32m+[0m[0m statement {
+          [32m+[0m[0m actions   = [
+              [32m+[0m[0m "kms:CancelKeyDeletion",
+              [32m+[0m[0m "kms:Create*",
+              [32m+[0m[0m "kms:Delete*",
+              [32m+[0m[0m "kms:Describe*",
+              [32m+[0m[0m "kms:Disable*",
+              [32m+[0m[0m "kms:Enable*",
+              [32m+[0m[0m "kms:Get*",
+              [32m+[0m[0m "kms:ImportKeyMaterial",
+              [32m+[0m[0m "kms:List*",
+              [32m+[0m[0m "kms:Put*",
+              [32m+[0m[0m "kms:ReplicateKey",
+              [32m+[0m[0m "kms:Revoke*",
+              [32m+[0m[0m "kms:ScheduleKeyDeletion",
+              [32m+[0m[0m "kms:TagResource",
+              [32m+[0m[0m "kms:UntagResource",
+              [32m+[0m[0m "kms:Update*",
+            ]
+          [32m+[0m[0m resources = [
+              [32m+[0m[0m "*",
+            ]
+          [32m+[0m[0m sid       = "KeyAdministration"
+
+          [32m+[0m[0m principals {
+              [32m+[0m[0m identifiers = [
+                  [32m+[0m[0m (known after apply),
+                ]
+              [32m+[0m[0m type        = "AWS"
+            }
+        }
+      [32m+[0m[0m statement {
+          [32m+[0m[0m actions   = [
+              [32m+[0m[0m "kms:Decrypt",
+              [32m+[0m[0m "kms:DescribeKey",
+              [32m+[0m[0m "kms:Encrypt",
+              [32m+[0m[0m "kms:GenerateDataKey*",
+              [32m+[0m[0m "kms:ReEncrypt*",
+            ]
+          [32m+[0m[0m resources = [
+              [32m+[0m[0m "*",
+            ]
+          [32m+[0m[0m sid       = "KeyUsage"
+
+          [32m+[0m[0m principals {
+              [32m+[0m[0m identifiers = [
+                  [32m+[0m[0m (known after apply),
+                ]
+              [32m+[0m[0m type        = "AWS"
+            }
+        }
+    }
+
+[1m  # module.eks.module.kms.data.aws_partition.current[0][0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "aws_partition" "current" {
+      [32m+[0m[0m dns_suffix         = (known after apply)
+      [32m+[0m[0m id                 = (known after apply)
+      [32m+[0m[0m partition          = (known after apply)
+      [32m+[0m[0m reverse_dns_prefix = (known after apply)
+    }
+
+[1m  # module.eks.module.kms.aws_kms_alias.this["cluster"][0m will be created
+[0m  [32m+[0m[0m resource "aws_kms_alias" "this" {
+      [32m+[0m[0m arn            = (known after apply)
+      [32m+[0m[0m id             = (known after apply)
+      [32m+[0m[0m name           = "alias/eks/infraforge-dev"
+      [32m+[0m[0m name_prefix    = (known after apply)
+      [32m+[0m[0m target_key_arn = (known after apply)
+      [32m+[0m[0m target_key_id  = (known after apply)
+    }
+
+[1m  # module.eks.module.kms.aws_kms_key.this[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_kms_key" "this" {
+      [32m+[0m[0m arn                                = (known after apply)
+      [32m+[0m[0m bypass_policy_lockout_safety_check = false
+      [32m+[0m[0m customer_master_key_spec           = "SYMMETRIC_DEFAULT"
+      [32m+[0m[0m description                        = "infraforge-dev cluster encryption key"
+      [32m+[0m[0m enable_key_rotation                = true
+      [32m+[0m[0m id                                 = (known after apply)
+      [32m+[0m[0m is_enabled                         = true
+      [32m+[0m[0m key_id                             = (known after apply)
+      [32m+[0m[0m key_usage                          = "ENCRYPT_DECRYPT"
+      [32m+[0m[0m multi_region                       = false
+      [32m+[0m[0m policy                             = (known after apply)
+      [32m+[0m[0m rotation_period_in_days            = (known after apply)
+      [32m+[0m[0m tags                               = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+      [32m+[0m[0m tags_all                           = {
+          [32m+[0m[0m "Cluster"     = "infraforge-dev"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "ManagedBy"   = "OpenTofu"
+          [32m+[0m[0m "Owner"       = "gokhan@infraforge.io"
+          [32m+[0m[0m "Platform"    = "InfraForge"
+          [32m+[0m[0m "Tenant"      = "platform"
+        }
+    }
+
+[1m  # module.eks.module.eks_managed_node_group["general"].module.user_data.data.cloudinit_config.linux_eks_managed_node_group[0][0m will be read during apply
+  # (depends on a resource or a module with changes pending)
+[0m [36m<=[0m[0m data "cloudinit_config" "linux_eks_managed_node_group" {
+      [32m+[0m[0m base64_encode = true
+      [32m+[0m[0m boundary      = "//"
+      [32m+[0m[0m gzip          = false
+      [32m+[0m[0m id            = (known after apply)
+      [32m+[0m[0m rendered      = (known after apply)
+
+      [32m+[0m[0m part {
+          [32m+[0m[0m content      = <<-EOT
+                #!/bin/bash
+                # Optimize EBS performance
+                echo "vm.dirty_ratio = 5" >> /etc/sysctl.conf
+                echo "vm.dirty_background_ratio = 1" >> /etc/sysctl.conf
+                sysctl -p
+            EOT
+          [32m+[0m[0m content_type = "text/x-shellscript"
+        }
+    }
+
+[1mPlan:[0m 51 to add, 0 to change, 0 to destroy.
+[0m
+Changes to Outputs:
+  [32m+[0m[0m argocd_admin_password                 = (sensitive value)
+  [32m+[0m[0m argocd_url                            = "https://argocd.infraforge.io"
+  [32m+[0m[0m aws_load_balancer_controller_role_arn = (known after apply)
+  [32m+[0m[0m backstage_db_password                 = (sensitive value)
+  [32m+[0m[0m backstage_url                         = "https://backstage.infraforge.io"
+  [32m+[0m[0m cluster_autoscaler_role_arn           = (known after apply)
+  [32m+[0m[0m cluster_endpoint                      = (known after apply)
+  [32m+[0m[0m cluster_name                          = "infraforge-dev"
+  [32m+[0m[0m cluster_security_group_id             = (known after apply)
+  [32m+[0m[0m external_dns_role_arn                 = ""
+  [32m+[0m[0m region                                = "eu-west-1"
+  [32m+[0m[0m update_kubeconfig_command             = "aws eks update-kubeconfig --name infraforge-dev --region eu-west-1"
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mValue for undeclared variable[0m
+[33m│[0m [0m
+[33m│[0m [0m[0mThe root module does not declare a variable named "monitoring_config" but a
+[33m│[0m [0mvalue was found in file "terraform.tfvars". If you meant to use this value,
+[33m│[0m [0madd a "variable" block to the configuration.
+[33m│[0m [0m
+[33m│[0m [0mTo silence these warnings, use TF_VAR_... environment variables to provide
+[33m│[0m [0mcertain "global" settings to all configurations in your organization. To
+[33m│[0m [0mreduce the verbosity of these warnings, use the -compact-warnings option.
+[33m╵[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mValue for undeclared variable[0m
+[33m│[0m [0m
+[33m│[0m [0m[0mThe root module does not declare a variable named "enable_monitoring" but a
+[33m│[0m [0mvalue was found in file "terraform.tfvars". If you meant to use this value,
+[33m│[0m [0madd a "variable" block to the configuration.
+[33m│[0m [0m
+[33m│[0m [0mTo silence these warnings, use TF_VAR_... environment variables to provide
+[33m│[0m [0mcertain "global" settings to all configurations in your organization. To
+[33m│[0m [0mreduce the verbosity of these warnings, use the -compact-warnings option.
+[33m╵[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mDeprecated attribute[0m
+[33m│[0m [0m
+[33m│[0m [0m[0m  on backstage.tf line 227, in data "kubernetes_secret" "backstage_sa_token":
+[33m│[0m [0m 227:     name      = kubernetes_service_account.backstage[4m.default_secret_name[0m[0m
+[33m│[0m [0m
+[33m│[0m [0mThe attribute "default_secret_name" is deprecated. Refer to the provider
+[33m│[0m [0mdocumentation for details.
+[33m│[0m [0m
+[33m│[0m [0m(and one more similar warning elsewhere)
+[33m╵[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mArgument is deprecated[0m
+[33m│[0m [0m
+[33m│[0m [0m[0m  with module.eks.aws_iam_role.this[0],
+[33m│[0m [0m  on .terraform/modules/eks/main.tf line 293, in resource "aws_iam_role" "this":
+[33m│[0m [0m 293: resource "aws_iam_role" "this" [4m{[0m[0m
+[33m│[0m [0m
+[33m│[0m [0minline_policy is deprecated. Use the aws_iam_role_policy resource instead.
+[33m│[0m [0mIf Terraform should exclusively manage all inline policy associations (the
+[33m│[0m [0mcurrent behavior of this argument), use the aws_iam_role_policies_exclusive
+[33m│[0m [0mresource as well.
+[33m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid for_each argument[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on .terraform/modules/eks/modules/eks-managed-node-group/main.tf line 434, in resource "aws_iam_role_policy_attachment" "this":
+[31m│[0m [0m 434:   for_each = [4m{ for k, v in toset(compact([
+[31m│[0m [0m 435:     "${local.iam_role_policy_prefix}/AmazonEKSWorkerNodePolicy",
+[31m│[0m [0m 436:     "${local.iam_role_policy_prefix}/AmazonEC2ContainerRegistryReadOnly",
+[31m│[0m [0m 437:     var.iam_role_attach_cni_policy ? local.cni_policy : "",
+[31m│[0m [0m 438:   ])) : k => v if var.create && var.create_iam_role }[0m[0m
+[31m│[0m [0m    [90m├────────────────[0m
+[31m│[0m [0m[0m    [90m│[0m [1mlocal.cni_policy[0m is a string, known only after apply
+[31m│[0m [0m[0m    [90m│[0m [1mlocal.iam_role_policy_prefix[0m is a string, known only after apply
+[31m│[0m [0m[0m    [90m│[0m [1mvar.create[0m is true
+[31m│[0m [0m[0m    [90m│[0m [1mvar.create_iam_role[0m is true
+[31m│[0m [0m[0m    [90m│[0m [1mvar.iam_role_attach_cni_policy[0m is true
+[31m│[0m [0m[0m
+[31m│[0m [0mThe "for_each" map includes keys derived from resource attributes that
+[31m│[0m [0mcannot be determined until apply, and so OpenTofu cannot determine the full
+[31m│[0m [0mset of keys that will identify the instances of this resource.
+[31m│[0m [0m
+[31m│[0m [0mWhen working with unknown values in for_each, it's better to define the map
+[31m│[0m [0mkeys statically in your configuration and place apply-time results only in
+[31m│[0m [0mthe map values.
+[31m│[0m [0m
+[31m│[0m [0mAlternatively, you could use the -target planning option to first apply
+[31m│[0m [0monly the resources that the for_each value depends on, and then apply a
+[31m│[0m [0msecond time to fully converge.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid for_each argument[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on .terraform/modules/eks/modules/eks-managed-node-group/main.tf line 434, in resource "aws_iam_role_policy_attachment" "this":
+[31m│[0m [0m 434:   for_each = [4m{ for k, v in toset(compact([
+[31m│[0m [0m 435:     "${local.iam_role_policy_prefix}/AmazonEKSWorkerNodePolicy",
+[31m│[0m [0m 436:     "${local.iam_role_policy_prefix}/AmazonEC2ContainerRegistryReadOnly",
+[31m│[0m [0m 437:     var.iam_role_attach_cni_policy ? local.cni_policy : "",
+[31m│[0m [0m 438:   ])) : k => v if var.create && var.create_iam_role }[0m[0m
+[31m│[0m [0m    [90m├────────────────[0m
+[31m│[0m [0m[0m    [90m│[0m [1mlocal.cni_policy[0m is a string, known only after apply
+[31m│[0m [0m[0m    [90m│[0m [1mlocal.iam_role_policy_prefix[0m is a string, known only after apply
+[31m│[0m [0m[0m    [90m│[0m [1mvar.create[0m is true
+[31m│[0m [0m[0m    [90m│[0m [1mvar.create_iam_role[0m is true
+[31m│[0m [0m[0m    [90m│[0m [1mvar.iam_role_attach_cni_policy[0m is true
+[31m│[0m [0m[0m
+[31m│[0m [0mThe "for_each" map includes keys derived from resource attributes that
+[31m│[0m [0mcannot be determined until apply, and so OpenTofu cannot determine the full
+[31m│[0m [0mset of keys that will identify the instances of this resource.
+[31m│[0m [0m
+[31m│[0m [0mWhen working with unknown values in for_each, it's better to define the map
+[31m│[0m [0mkeys statically in your configuration and place apply-time results only in
+[31m│[0m [0mthe map values.
+[31m│[0m [0m
+[31m│[0m [0mAlternatively, you could use the -target planning option to first apply
+[31m│[0m [0monly the resources that the for_each value depends on, and then apply a
+[31m│[0m [0msecond time to fully converge.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid for_each argument[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on .terraform/modules/eks/modules/fargate-profile/main.tf line 44, in resource "aws_iam_role_policy_attachment" "this":
+[31m│[0m [0m  44:   for_each = [4m{ for k, v in toset(compact([
+[31m│[0m [0m  45:     "${local.iam_role_policy_prefix}/AmazonEKSFargatePodExecutionRolePolicy",
+[31m│[0m [0m  46:     var.iam_role_attach_cni_policy ? local.cni_policy : "",
+[31m│[0m [0m  47:   ])) : k => v if var.create && var.create_iam_role }[0m[0m
+[31m│[0m [0m    [90m├────────────────[0m
+[31m│[0m [0m[0m    [90m│[0m [1mlocal.cni_policy[0m is a string, known only after apply
+[31m│[0m [0m[0m    [90m│[0m [1mlocal.iam_role_policy_prefix[0m is a string, known only after apply
+[31m│[0m [0m[0m    [90m│[0m [1mvar.create[0m is true
+[31m│[0m [0m[0m    [90m│[0m [1mvar.create_iam_role[0m is true
+[31m│[0m [0m[0m    [90m│[0m [1mvar.iam_role_attach_cni_policy[0m is true
+[31m│[0m [0m[0m
+[31m│[0m [0mThe "for_each" map includes keys derived from resource attributes that
+[31m│[0m [0mcannot be determined until apply, and so OpenTofu cannot determine the full
+[31m│[0m [0mset of keys that will identify the instances of this resource.
+[31m│[0m [0m
+[31m│[0m [0mWhen working with unknown values in for_each, it's better to define the map
+[31m│[0m [0mkeys statically in your configuration and place apply-time results only in
+[31m│[0m [0mthe map values.
+[31m│[0m [0m
+[31m│[0m [0mAlternatively, you could use the -target planning option to first apply
+[31m│[0m [0monly the resources that the for_each value depends on, and then apply a
+[31m│[0m [0msecond time to fully converge.
+[31m╵[0m[0m

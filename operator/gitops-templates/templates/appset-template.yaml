@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: {{ .Environment }}-apps
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: {{ .GitopsRepoURL }}
+        revision: {{ .GitopsRepoBranch }}
+        directories:
+          - path: environments/{{ .Environment }}/*
+  template:
+    metadata:
+      name: '{{path.basename}}-{{ .Environment }}'
+      namespace: argocd
+      labels:
+        environment: {{ .Environment }}
+        managed-by: operator
+    spec:
+      project: {{ .Project }}
+      source:
+        repoURL: {{ .GitopsRepoURL }}
+        targetRevision: {{ .GitopsRepoBranch }}
+        path: '{{path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: {{ .Environment }}
+      syncPolicy:
+        automated:
+          prune: {{ .AutoSync }}
+          selfHeal: {{ .AutoSync }}
+          allowEmpty: false
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m

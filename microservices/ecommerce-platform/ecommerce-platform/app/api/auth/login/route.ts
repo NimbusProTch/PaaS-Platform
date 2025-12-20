@@ -1,31 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { verifyPassword, getSession } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json()
+    const { email, password, username } = await req.json()
 
-    // Basit mock authentication - gerçek veritabanı bağlantısı olmadan
-    if (email === 'test@test.com' && password === '123456') {
-      // Mock user data
+    // Try user-service first
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_USER_SERVICE_URL || 'http://user-service.microservices:8081'}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username || email,
+          password: password
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        const res = NextResponse.json({
+          success: true,
+          user: data.user
+        })
+
+        if (data.token) {
+          res.cookies.set('auth-token', data.token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7
+          })
+        }
+
+        return res
+      }
+    } catch (serviceError) {
+      console.log('User service not available, using mock login')
+    }
+
+    // Fallback mock authentication for demo
+    if ((email === 'demo@test.com' || username === 'demo') && password === 'demo123') {
       const user = {
         id: '1',
-        email: 'test@test.com',
-        username: 'testuser',
-        firstName: 'Test',
+        email: 'demo@test.com',
+        username: 'demo',
+        firstName: 'Demo',
         lastName: 'User',
         role: 'USER'
       }
-
-      // Session oluştur
-      const session = await getSession()
-      session.userId = user.id
-      session.email = user.email
-      session.username = user.username
-      session.role = user.role
-      session.isLoggedIn = true
-      await session.save()
 
       return NextResponse.json({
         success: true,
@@ -34,7 +58,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'E-posta veya şifre hatalı' },
+      { error: 'Kullanıcı adı veya şifre hatalı' },
       { status: 401 }
     )
   } catch (error) {

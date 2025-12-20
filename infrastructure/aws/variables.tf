@@ -186,25 +186,7 @@ variable "create_route53_zone" {
   default     = false
 }
 
-# Backstage
-variable "enable_backstage" {
-  description = "Enable Backstage developer portal"
-  type        = bool
-  default     = true
-}
-
-variable "backstage_github_org" {
-  description = "GitHub organization for Backstage"
-  type        = string
-  default     = ""
-}
-
-variable "backstage_github_token" {
-  description = "GitHub token for Backstage (stored in AWS Secrets Manager)"
-  type        = string
-  sensitive   = true
-  default     = ""
-}
+# Platform Operator Configuration
 
 # Kong API Gateway
 variable "enable_kong" {
@@ -248,17 +230,7 @@ variable "enable_argocd" {
   default     = true
 }
 
-variable "enable_kratix" {
-  description = "Enable Kratix Platform"
-  type        = bool
-  default     = true
-}
-
-variable "enable_kratix_minio" {
-  description = "Enable MinIO for Kratix state store (alternative to S3)"
-  type        = bool
-  default     = true
-}
+# GitOps and Operator Configuration
 
 variable "github_org" {
   description = "GitHub organization name"
@@ -273,21 +245,63 @@ variable "github_token" {
   sensitive   = true
 }
 
-variable "github_oauth_client_id" {
-  description = "GitHub OAuth App Client ID for Backstage"
-  type        = string
-  default     = ""
-}
-
-variable "github_oauth_client_secret" {
-  description = "GitHub OAuth App Client Secret for Backstage"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
+# SSL/TLS Configuration
 
 variable "acm_certificate_arn" {
   description = "ACM Certificate ARN for HTTPS endpoints"
+  type        = string
+  default     = ""
+}
+
+# Cluster Configuration
+variable "cluster_name" {
+  description = "Name of the EKS cluster"
+  type        = string
+  default     = ""
+}
+
+# GitOps Configuration
+variable "gitops_repo_url" {
+  description = "Git repository URL for GitOps"
+  type        = string
+  default     = "https://github.com/infraforge/gitops-repo"
+}
+
+variable "gitops_repo_branch" {
+  description = "Git repository branch for GitOps"
+  type        = string
+  default     = "main"
+}
+
+# Karpenter Configuration
+variable "karpenter_instance_profile_name" {
+  description = "Instance profile name for Karpenter nodes"
+  type        = string
+  default     = ""
+}
+
+variable "karpenter_irsa_role_arn" {
+  description = "IAM role ARN for Karpenter IRSA"
+  type        = string
+  default     = ""
+}
+
+# External DNS Configuration
+variable "external_dns_irsa_role_arn" {
+  description = "IAM role ARN for External DNS IRSA"
+  type        = string
+  default     = ""
+}
+
+# ECR Configuration
+variable "enable_ecr_pull_through_cache" {
+  description = "Enable ECR pull through cache for Docker Hub"
+  type        = bool
+  default     = false
+}
+
+variable "dockerhub_credentials_arn" {
+  description = "ARN of AWS Secrets Manager secret containing Docker Hub credentials"
   type        = string
   default     = ""
 }

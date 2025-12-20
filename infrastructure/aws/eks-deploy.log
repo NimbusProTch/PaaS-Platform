@@ -1,0 +1,40 @@
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mValue for undeclared variable[0m
+[33m│[0m [0m
+[33m│[0m [0m[0mThe root module does not declare a variable named "monitoring_config" but a
+[33m│[0m [0mvalue was found in file "terraform.tfvars". If you meant to use this value,
+[33m│[0m [0madd a "variable" block to the configuration.
+[33m│[0m [0m
+[33m│[0m [0mTo silence these warnings, use TF_VAR_... environment variables to provide
+[33m│[0m [0mcertain "global" settings to all configurations in your organization. To
+[33m│[0m [0mreduce the verbosity of these warnings, use the -compact-warnings option.
+[33m╵[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mValue for undeclared variable[0m
+[33m│[0m [0m
+[33m│[0m [0m[0mThe root module does not declare a variable named "enable_monitoring" but a
+[33m│[0m [0mvalue was found in file "terraform.tfvars". If you meant to use this value,
+[33m│[0m [0madd a "variable" block to the configuration.
+[33m│[0m [0m
+[33m│[0m [0mTo silence these warnings, use TF_VAR_... environment variables to provide
+[33m│[0m [0mcertain "global" settings to all configurations in your organization. To
+[33m│[0m [0mreduce the verbosity of these warnings, use the -compact-warnings option.
+[33m╵[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mDeprecated attribute[0m
+[33m│[0m [0m
+[33m│[0m [0m[0m  on backstage.tf line 228, in data "kubernetes_secret" "backstage_sa_token":
+[33m│[0m [0m 228:     name      = kubernetes_service_account.backstage[4m.default_secret_name[0m[0m
+[33m│[0m [0m
+[33m│[0m [0mThe attribute "default_secret_name" is deprecated. Refer to the provider
+[33m│[0m [0mdocumentation for details.
+[33m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mReference to undeclared resource[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on backstage.tf line 177, in resource "helm_release" "backstage":
+[31m│[0m [0m 177:     [4mkubectl_manifest.kratix_platform[0m[0m
+[31m│[0m [0m
+[31m│[0m [0mA managed resource "kubectl_manifest" "kratix_platform" has not been
+[31m│[0m [0mdeclared in the root module.
+[31m╵[0m[0m

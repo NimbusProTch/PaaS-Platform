@@ -56,6 +56,5 @@ backup_bucket_name = "infraforge-prod-backups"
 domain_name = "infraforge.io"
 create_route53_zone = true
 
-# Backstage
-enable_backstage = true
-backstage_github_org = "NimbusProTch"
+# Platform Operator
+enable_argocd = true

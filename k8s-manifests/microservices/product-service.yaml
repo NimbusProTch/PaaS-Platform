@@ -8,7 +8,7 @@ metadata:
     app: product-service
     version: v1
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: product-service
@@ -24,20 +24,37 @@ spec:
     spec:
       containers:
       - name: product-service
-        image: product-service:latest
-        imagePullPolicy: IfNotPresent
+        image: microservices-product-service:latest
+        imagePullPolicy: Never
         ports:
         - containerPort: 8080
           name: http
         env:
+        - name: DB_HOST
+          value: "postgresql.infrastructure"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
+          value: "postgres"
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: password
+        - name: DB_NAME
+          value: "products"
+        - name: RABBITMQ_URL
+          value: "amqp://rabbitmq:rabbitmq@rabbitmq.infrastructure:5672/"
         - name: ELASTICSEARCH_URL
           value: "http://elasticsearch.infrastructure:9200"
         - name: REDIS_HOST
           value: "redis.infrastructure"
         - name: REDIS_PORT
           value: "6379"
+        - name: REDIS_PASSWORD
+          value: "redis123"
         - name: JAEGER_ENDPOINT
-          value: "http://jaeger-collector.infrastructure:14268"
+          value: "http://jaeger-collector.infrastructure:14268/api/traces"
         resources:
           requests:
             memory: "128Mi"
