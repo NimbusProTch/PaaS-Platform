@@ -8,15 +8,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	platformv1 "platform.infraforge.io/platform-operator/api/v1"
+	platformv1 "github.com/infraforge/platform-operator/api/v1"
 )
 
 var (
@@ -43,26 +40,42 @@ func (r *ApplicationClaimReconciler) reconcileWithArgoCD(ctx context.Context, cl
 		return fmt.Errorf("failed to create ArgoCD project: %w", err)
 	}
 
-	// 3. Create ArgoCD Applications for each application
+	// 3. Generate and store Helm values for each application
 	for _, app := range claim.Spec.Applications {
-		if err := r.createArgoCDApplication(ctx, claim, app); err != nil {
-			logger.Error(err, "Failed to create ArgoCD application", "app", app.Name)
-			return err
+		valuesYAML, err := r.generateValuesForApp(claim, app)
+		if err != nil {
+			logger.Error(err, "Failed to generate values for app", "app", app.Name)
+			return fmt.Errorf("failed to generate values for app %s: %w", app.Name, err)
 		}
+
+		if err := r.storeValuesInConfigMap(ctx, claim, app.Name, valuesYAML); err != nil {
+			logger.Error(err, "Failed to store values for app", "app", app.Name)
+			return fmt.Errorf("failed to store values for app %s: %w", app.Name, err)
+		}
+		logger.Info("Generated and stored values for app", "app", app.Name)
 	}
 
-	// 4. Create ArgoCD Applications for components (PostgreSQL, Redis, etc.)
+	// 4. Generate and store Helm values for each component
 	for _, component := range claim.Spec.Components {
-		if err := r.createArgoCDComponentApplication(ctx, claim, component); err != nil {
-			logger.Error(err, "Failed to create ArgoCD component application", "component", component.Name)
-			return err
+		valuesYAML, err := r.generateValuesForComponent(claim, component)
+		if err != nil {
+			logger.Error(err, "Failed to generate values for component", "component", component.Name)
+			return fmt.Errorf("failed to generate values for component %s: %w", component.Name, err)
 		}
+
+		if err := r.storeValuesInConfigMap(ctx, claim, component.Name, valuesYAML); err != nil {
+			logger.Error(err, "Failed to store values for component", "component", component.Name)
+			return fmt.Errorf("failed to store values for component %s: %w", component.Name, err)
+		}
+		logger.Info("Generated and stored values for component", "component", component.Name)
 	}
 
-	// 5. Create ArgoCD App-of-Apps pattern for managing everything
-	if err := r.createAppOfApps(ctx, claim); err != nil {
-		return fmt.Errorf("failed to create app-of-apps: %w", err)
+	// 5. Create ApplicationSet for this claim (one per environment/claim)
+	if err := r.createApplicationSet(ctx, claim); err != nil {
+		logger.Error(err, "Failed to create ApplicationSet")
+		return fmt.Errorf("failed to create ApplicationSet: %w", err)
 	}
+	logger.Info("Created ArgoCD ApplicationSet", "claim", claim.Name, "environment", claim.Spec.Environment)
 
 	return nil
 }
@@ -71,16 +84,22 @@ func (r *ApplicationClaimReconciler) reconcileWithArgoCD(ctx context.Context, cl
 func (r *ApplicationClaimReconciler) createArgoCDProject(ctx context.Context, claim *platformv1.ApplicationClaim) error {
 	logger := log.FromContext(ctx)
 
+	// Normalize team name for K8s naming (lowercase, no spaces)
+	teamName := normalizeK8sName(claim.Spec.Owner.Team)
+	projectName := fmt.Sprintf("%s-%s", teamName, claim.Spec.Environment)
+
+	logger.Info("Creating ArgoCD project", "name", projectName)
+
 	project := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "argoproj.io/v1alpha1",
 			"kind":       "AppProject",
 			"metadata": map[string]interface{}{
-				"name":      fmt.Sprintf("%s-%s", claim.Spec.Owner.Team, claim.Spec.Environment),
+				"name":      projectName,
 				"namespace": "argocd",
 				"labels": map[string]interface{}{
 					"platform.infraforge.io/managed": "true",
-					"platform.infraforge.io/team":    claim.Spec.Owner.Team,
+					"platform.infraforge.io/team":    teamName,
 					"platform.infraforge.io/env":     claim.Spec.Environment,
 				},
 			},
@@ -210,8 +229,8 @@ func (r *ApplicationClaimReconciler) createArgoCDApplication(ctx context.Context
 				},
 				"syncPolicy": map[string]interface{}{
 					"automated": map[string]interface{}{
-						"prune":    true,
-						"selfHeal": true,
+						"prune":      true,
+						"selfHeal":   true,
 						"allowEmpty": false,
 					},
 					"syncOptions": []string{
@@ -388,10 +407,10 @@ func (r *ApplicationClaimReconciler) createAppOfApps(ctx context.Context, claim 
 				"name":      appName,
 				"namespace": "argocd",
 				"labels": map[string]interface{}{
-					"platform.infraforge.io/managed":    "true",
-					"platform.infraforge.io/team":       claim.Spec.Owner.Team,
-					"platform.infraforge.io/env":        claim.Spec.Environment,
-					"platform.infraforge.io/type":       "app-of-apps",
+					"platform.infraforge.io/managed": "true",
+					"platform.infraforge.io/team":    claim.Spec.Owner.Team,
+					"platform.infraforge.io/env":     claim.Spec.Environment,
+					"platform.infraforge.io/type":    "app-of-apps",
 				},
 				"finalizers": []string{
 					"resources-finalizer.argocd.argoproj.io",
@@ -453,7 +472,7 @@ func (r *ApplicationClaimReconciler) buildHelmParameters(app platformv1.Applicat
 	params := []map[string]interface{}{
 		{
 			"name":  "replicaCount",
-			"value": fmt.Sprintf("%d", *app.Replicas),
+			"value": fmt.Sprintf("%d", app.Replicas),
 		},
 		{
 			"name":  "image.tag",
@@ -528,4 +547,249 @@ labels:
 `, component.Name, component.Name, claim.Spec.Owner.Team, component.Type)
 
 	return values
+}
+
+
+// createIndividualApplication creates an ArgoCD Application for a single app or component
+func (r *ApplicationClaimReconciler) createIndividualApplication(ctx context.Context, claim *platformv1.ApplicationClaim, appName, projectName string) error {
+	logger := log.FromContext(ctx)
+	
+	// Read values from ConfigMap
+	valuesYAML, err := r.getValuesYAMLFromConfigMap(ctx, claim.Name, appName)
+	if err != nil {
+		return fmt.Errorf("failed to get values for %s: %w", appName, err)
+	}
+
+	teamName := normalizeK8sName(claim.Spec.Owner.Team)
+	applicationName := fmt.Sprintf("%s-%s", claim.Name, appName)
+
+	app := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "argoproj.io/v1alpha1",
+			"kind":       "Application",
+			"metadata": map[string]interface{}{
+				"name":      applicationName,
+				"namespace": "argocd",
+				"labels": map[string]interface{}{
+					"platform.infraforge.io/managed": "true",
+					"platform.infraforge.io/claim":   claim.Name,
+					"platform.infraforge.io/team":    teamName,
+					"platform.infraforge.io/env":     claim.Spec.Environment,
+				},
+			},
+			"spec": map[string]interface{}{
+				"project": projectName,
+				"source": map[string]interface{}{
+					"repoURL":        "http://chartmuseum.chartmuseum.svc.cluster.local:8080",
+					"targetRevision": "1.0.1",
+					"chart":          "common-app",
+					"helm": map[string]interface{}{
+						"values": valuesYAML,
+					},
+				},
+				"destination": map[string]interface{}{
+					"server":    "https://kubernetes.default.svc",
+					"namespace": claim.Spec.Namespace,
+				},
+				"syncPolicy": map[string]interface{}{
+					"automated": map[string]interface{}{
+						"prune":    true,
+						"selfHeal": true,
+					},
+					"syncOptions": []string{
+						"CreateNamespace=true",
+					},
+				},
+			},
+		},
+	}
+
+	app.SetGroupVersionKind(argoCDApplicationGVK)
+
+	// Check if Application exists
+	existing := &unstructured.Unstructured{}
+	existing.SetGroupVersionKind(argoCDApplicationGVK)
+
+	err = r.Get(ctx, types.NamespacedName{
+		Name:      applicationName,
+		Namespace: "argocd",
+	}, existing)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Create new Application
+			logger.Info("Creating ArgoCD Application", "name", applicationName)
+			if err := r.Create(ctx, app); err != nil {
+				return fmt.Errorf("failed to create Application: %w", err)
+			}
+			return nil
+		}
+		return fmt.Errorf("failed to get Application: %w", err)
+	}
+
+	// Update existing Application
+	logger.Info("Updating ArgoCD Application", "name", applicationName)
+	existing.Object["spec"] = app.Object["spec"]
+	if err := r.Update(ctx, existing); err != nil {
+		return fmt.Errorf("failed to update Application: %w", err)
+	}
+
+	return nil
+}
+
+// createApplicationSet creates an ApplicationSet for all apps/components in a claim
+func (r *ApplicationClaimReconciler) createApplicationSet(ctx context.Context, claim *platformv1.ApplicationClaim) error {
+	logger := log.FromContext(ctx)
+
+	teamName := normalizeK8sName(claim.Spec.Owner.Team)
+	projectName := fmt.Sprintf("%s-%s", teamName, claim.Spec.Environment)
+	
+	// ApplicationSet name: {env}-{claim-name}-appset
+	appSetName := fmt.Sprintf("%s-%s-appset", claim.Spec.Environment, claim.Name)
+
+	// Build list of all apps and components
+	var elements []map[string]string
+
+	// Add applications
+	for _, app := range claim.Spec.Applications {
+		elements = append(elements, map[string]string{
+			"name": app.Name,
+			"type": "app",
+		})
+	}
+
+	// Add components
+	for _, component := range claim.Spec.Components {
+		elements = append(elements, map[string]string{
+			"name": component.Name,
+			"type": "component",
+		})
+	}
+
+	// Build ApplicationSet
+	appSet := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "argoproj.io/v1alpha1",
+			"kind":       "ApplicationSet",
+			"metadata": map[string]interface{}{
+				"name":      appSetName,
+				"namespace": "argocd",
+				"labels": map[string]interface{}{
+					"platform.infraforge.io/managed":     "true",
+					"platform.infraforge.io/claim":       claim.Name,
+					"platform.infraforge.io/team":        teamName,
+					"platform.infraforge.io/environment": claim.Spec.Environment,
+				},
+			},
+			"spec": map[string]interface{}{
+				"generators": []map[string]interface{}{
+					{
+						"list": map[string]interface{}{
+							"elements": elements,
+						},
+					},
+				},
+				"template": map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"name": fmt.Sprintf("%s-{{name}}", claim.Name),
+						"labels": map[string]interface{}{
+							"platform.infraforge.io/managed":     "true",
+							"platform.infraforge.io/claim":       claim.Name,
+							"platform.infraforge.io/team":        teamName,
+							"platform.infraforge.io/environment": claim.Spec.Environment,
+						},
+					},
+					"spec": map[string]interface{}{
+						"project": projectName,
+						"source": map[string]interface{}{
+							"repoURL":        "http://chartmuseum.chartmuseum.svc.cluster.local:8080",
+							"targetRevision": "1.0.1",
+							"chart":          "common-app",
+							"helm": map[string]interface{}{
+								// Values read from ConfigMap by referencing it
+								"valueFiles": []string{
+									fmt.Sprintf("argocd://%s-{{name}}-values", claim.Name),
+								},
+							},
+						},
+						"destination": map[string]interface{}{
+							"server":    "https://kubernetes.default.svc",
+							"namespace": claim.Spec.Namespace,
+						},
+						"syncPolicy": map[string]interface{}{
+							"automated": map[string]interface{}{
+								"prune":    true,
+								"selfHeal": true,
+							},
+							"syncOptions": []string{
+								"CreateNamespace=true",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	appSet.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "argoproj.io",
+		Version: "v1alpha1",
+		Kind:    "ApplicationSet",
+	})
+
+	// Check if ApplicationSet exists
+	existing := &unstructured.Unstructured{}
+	existing.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "argoproj.io",
+		Version: "v1alpha1",
+		Kind:    "ApplicationSet",
+	})
+
+	err := r.Get(ctx, types.NamespacedName{
+		Name:      appSetName,
+		Namespace: "argocd",
+	}, existing)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Create new ApplicationSet
+			logger.Info("Creating ArgoCD ApplicationSet", "name", appSetName)
+			if err := r.Create(ctx, appSet); err != nil {
+				return fmt.Errorf("failed to create ApplicationSet: %w", err)
+			}
+			return nil
+		}
+		return fmt.Errorf("failed to get ApplicationSet: %w", err)
+	}
+
+	// Update existing ApplicationSet
+	logger.Info("Updating ArgoCD ApplicationSet", "name", appSetName)
+	existing.Object["spec"] = appSet.Object["spec"]
+	if err := r.Update(ctx, existing); err != nil {
+		return fmt.Errorf("failed to update ApplicationSet: %w", err)
+	}
+
+	return nil
+}
+
+// getValuesYAMLFromConfigMap retrieves Helm values YAML from ConfigMap
+func (r *ApplicationClaimReconciler) getValuesYAMLFromConfigMap(ctx context.Context, claimName, appName string) (string, error) {
+	configMapName := fmt.Sprintf("%s-%s-values", claimName, appName)
+	
+	configMap := &corev1.ConfigMap{}
+	err := r.Get(ctx, types.NamespacedName{
+		Name:      configMapName,
+		Namespace: "argocd",
+	}, configMap)
+	
+	if err != nil {
+		return "", fmt.Errorf("failed to get ConfigMap %s: %w", configMapName, err)
+	}
+	
+	valuesYAML, ok := configMap.Data["values.yaml"]
+	if !ok {
+		return "", fmt.Errorf("values.yaml not found in ConfigMap %s", configMapName)
+	}
+	
+	return valuesYAML, nil
 }

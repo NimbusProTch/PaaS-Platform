@@ -4,14 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/repo"
@@ -205,7 +202,7 @@ func (c *HelmClient) InstallOrUpgradeChart(ctx context.Context, releaseName, cha
 	_, err := c.GetRelease(releaseName)
 	if err != nil {
 		if err.Error() == fmt.Sprintf("failed to get release: release: not found") ||
-		   err == driver.ErrReleaseNotFound {
+			err == driver.ErrReleaseNotFound {
 			// Release doesn't exist, install it
 			return c.InstallChart(ctx, releaseName, chartName, vals)
 		}

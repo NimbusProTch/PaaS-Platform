@@ -21,15 +21,6 @@ resource "helm_release" "metrics_server" {
       limits:
         cpu: 200m
         memory: 400Mi
-
-    nodeSelector:
-      karpenter.sh/node-pool: system
-
-    tolerations:
-      - key: system
-        operator: Equal
-        value: "true"
-        effect: NoSchedule
     EOT
   ]
 
@@ -72,15 +63,6 @@ resource "helm_release" "cluster_autoscaler" {
       limits:
         cpu: 200m
         memory: 500Mi
-
-    nodeSelector:
-      karpenter.sh/node-pool: system
-
-    tolerations:
-      - key: system
-        operator: Equal
-        value: "true"
-        effect: NoSchedule
     EOT
   ]
 
@@ -117,15 +99,6 @@ resource "helm_release" "aws_load_balancer_controller" {
       limits:
         cpu: 200m
         memory: 256Mi
-
-    nodeSelector:
-      karpenter.sh/node-pool: system
-
-    tolerations:
-      - key: system
-        operator: Equal
-        value: "true"
-        effect: NoSchedule
     EOT
   ]
 
@@ -170,15 +143,6 @@ resource "helm_release" "external_dns" {
       limits:
         cpu: 100m
         memory: 200Mi
-
-    nodeSelector:
-      karpenter.sh/node-pool: system
-
-    tolerations:
-      - key: system
-        operator: Equal
-        value: "true"
-        effect: NoSchedule
     EOT
   ]
 
@@ -218,15 +182,6 @@ resource "helm_release" "karpenter" {
       limits:
         cpu: 2
         memory: 2Gi
-
-    nodeSelector:
-      karpenter.sh/node-pool: system
-
-    tolerations:
-      - key: system
-        operator: Equal
-        value: "true"
-        effect: NoSchedule
     EOT
   ]
 

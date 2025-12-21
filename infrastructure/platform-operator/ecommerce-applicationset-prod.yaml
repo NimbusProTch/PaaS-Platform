@@ -1,0 +1,78 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: ecommerce-platform-prod
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - app: product-service
+            replicas: "2"
+            port: "80"
+          - app: user-service
+            replicas: "2"
+            port: "80"
+          - app: order-service
+            replicas: "2"
+            port: "80"
+          - app: payment-service
+            replicas: "2"
+            port: "80"
+          - app: notification-service
+            replicas: "2"
+            port: "80"
+          - app: postgres
+            replicas: "3"
+            port: "5432"
+          - app: redis
+            replicas: "3"
+            port: "6379"
+          - app: rabbitmq
+            replicas: "3"
+            port: "5672"
+  template:
+    metadata:
+      name: 'ecommerce-platform-prod-{{app}}'
+      labels:
+        platform.infraforge.io/managed: "true"
+        platform.infraforge.io/environment: "prod"
+        platform.infraforge.io/team: "ecommerce-team"
+    spec:
+      project: ecommerce-team-prod
+      source:
+        repoURL: http://chartmuseum.chartmuseum.svc.cluster.local:8080
+        chart: common-app
+        targetRevision: 1.0.1
+        helm:
+          valuesObject:
+            fullnameOverride: '{{app}}'
+            replicaCount: '{{replicas}}'
+            image:
+              repository: nginx
+              tag: "1.27"
+              pullPolicy: IfNotPresent
+            service:
+              type: ClusterIP
+              port: '{{port}}'
+              targetPort: '{{port}}'
+            resources:
+              requests:
+                memory: 512Mi
+                cpu: 250m
+              limits:
+                memory: 1Gi
+                cpu: 500m
+            labels:
+              platform.infraforge.io/managed: "true"
+              platform.infraforge.io/environment: "prod"
+              platform.infraforge.io/app: '{{app}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: prod
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

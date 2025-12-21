@@ -1,0 +1,11 @@
+# Simple Dockerfile - build binary locally first
+FROM gcr.io/distroless/static:nonroot
+
+WORKDIR /
+
+# Copy pre-built binary
+COPY bin/manager-linux-amd64 /manager
+
+USER 65532:65532
+
+ENTRYPOINT ["/manager"]

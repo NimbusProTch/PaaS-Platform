@@ -1,1 +1,24 @@
+# Terraform
 .terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.tfvars
+*.tfplan
+tfplan
+.terraform.lock.hcl
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Build artifacts
+bin/
+dist/

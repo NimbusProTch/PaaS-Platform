@@ -118,6 +118,10 @@ spec:
                           format: int32
                           type: integer
                       type: object
+                    image:
+                      description: Image container image (optional, can be derived
+                        from repository)
+                      type: string
                     name:
                       description: Name application name
                       type: string

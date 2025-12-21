@@ -8,7 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
-	platformv1 "platform.infraforge.io/platform-operator/api/v1"
+	platformv1 "github.com/infraforge/platform-operator/api/v1"
 )
 
 var (
@@ -172,9 +172,9 @@ func init() {
 
 	// Set operator info metric
 	operatorInfo.WithLabelValues(
-		"v1.0.0",        // version
-		"unknown",       // git commit
-		"2024-12-18",    // build date
+		"v1.0.0",     // version
+		"unknown",    // git commit
+		"2024-12-18", // build date
 	).Set(1)
 
 	// Set initial health status

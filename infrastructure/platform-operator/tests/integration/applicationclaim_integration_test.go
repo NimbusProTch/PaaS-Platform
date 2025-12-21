@@ -18,12 +18,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	platformv1 "platform.infraforge.io/platform-operator/api/v1"
+	platformv1 "github.com/infraforge/platform-operator/api/v1"
 )
 
 const (
-	testTimeout  = 5 * time.Minute
-	pollInterval = 5 * time.Second
+	testTimeout   = 5 * time.Minute
+	pollInterval  = 5 * time.Second
 	testNamespace = "integration-test"
 )
 

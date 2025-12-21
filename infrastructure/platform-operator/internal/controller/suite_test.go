@@ -13,7 +13,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	platformv1 "platform.infraforge.io/platform-operator/api/v1"
+	platformv1 "github.com/infraforge/platform-operator/api/v1"
 	//+kubebuilder:scaffold:imports
 )
 

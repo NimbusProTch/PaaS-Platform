@@ -35,6 +35,9 @@ type ApplicationSpec struct {
 	// Version release version/tag
 	Version string `json:"version"`
 
+	// Image container image (optional, can be derived from repository)
+	Image string `json:"image,omitempty"`
+
 	// Replicas number of replicas
 	Replicas int32 `json:"replicas,omitempty"`
 
@@ -89,8 +92,8 @@ type ResourceList struct {
 
 // PortSpec port configuration
 type PortSpec struct {
-	Name string `json:"name"`
-	Port int32  `json:"port"`
+	Name     string `json:"name"`
+	Port     int32  `json:"port"`
 	Protocol string `json:"protocol,omitempty"`
 }
 
@@ -180,21 +183,21 @@ type ApplicationClaimStatus struct {
 
 // ApplicationStatus application deployment status
 type ApplicationStatus struct {
-	Name string `json:"name"`
-	Ready bool `json:"ready"`
-	Version string `json:"version"`
-	Replicas int32 `json:"replicas"`
-	AvailableReplicas int32 `json:"availableReplicas"`
-	Endpoints []string `json:"endpoints,omitempty"`
+	Name              string   `json:"name"`
+	Ready             bool     `json:"ready"`
+	Version           string   `json:"version"`
+	Replicas          int32    `json:"replicas"`
+	AvailableReplicas int32    `json:"availableReplicas"`
+	Endpoints         []string `json:"endpoints,omitempty"`
 }
 
 // ComponentStatus component provision status
 type ComponentStatus struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-	Ready bool `json:"ready"`
+	Name             string `json:"name"`
+	Type             string `json:"type"`
+	Ready            bool   `json:"ready"`
 	ConnectionString string `json:"connectionString,omitempty"`
-	SecretName string `json:"secretName,omitempty"`
+	SecretName       string `json:"secretName,omitempty"`
 }
 
 // +kubebuilder:object:root=true

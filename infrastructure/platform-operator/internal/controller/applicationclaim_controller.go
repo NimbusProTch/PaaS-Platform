@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -38,6 +39,8 @@ type ApplicationClaimReconciler struct {
 //+kubebuilder:rbac:groups=platform.infraforge.io,resources=applicationclaims,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=platform.infraforge.io,resources=applicationclaims/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=platform.infraforge.io,resources=applicationclaims/finalizers,verbs=update
+//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=argoproj.io,resources=appprojects,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
@@ -137,37 +140,9 @@ func (r *ApplicationClaimReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	// Create namespace if specified
-	if claim.Spec.Namespace != "" {
-		if err := r.ensureNamespace(ctx, claim.Spec.Namespace); err != nil {
-			logger.Error(err, "failed to ensure namespace")
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Process platform components
-	for _, component := range claim.Spec.Components {
-		if err := r.reconcileComponent(ctx, claim, component); err != nil {
-			logger.Error(err, "failed to reconcile component", "component", component.Name)
-			claim.Status.Phase = "Failed"
-			r.Status().Update(ctx, claim)
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Process applications
-	for _, app := range claim.Spec.Applications {
-		if err := r.reconcileApplication(ctx, claim, app); err != nil {
-			logger.Error(err, "failed to reconcile application", "app", app.Name)
-			claim.Status.Phase = "Failed"
-			r.Status().Update(ctx, claim)
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Create ArgoCD app-of-apps
-	if err := r.createArgoCDApplication(ctx, claim); err != nil {
-		logger.Error(err, "failed to create ArgoCD application")
+	// Use ArgoCD-based deployment instead of direct deployment
+	if err := r.reconcileWithArgoCD(ctx, claim); err != nil {
+		logger.Error(err, "failed to reconcile with ArgoCD")
 		claim.Status.Phase = "Failed"
 		r.Status().Update(ctx, claim)
 		return ctrl.Result{}, err
@@ -230,9 +205,9 @@ func (r *ApplicationClaimReconciler) reconcileComponent(ctx context.Context, cla
 
 	// Add component status (arrays are cleared at the beginning of reconciliation)
 	claim.Status.Components = append(claim.Status.Components, platformv1.ComponentStatus{
-		Name:  component.Name,
-		Type:  component.Type,
-		Ready: true,
+		Name:       component.Name,
+		Type:       component.Type,
+		Ready:      true,
 		SecretName: fmt.Sprintf("%s-%s-secret", claim.Name, component.Name),
 	})
 
@@ -273,18 +248,18 @@ func (r *ApplicationClaimReconciler) reconcileApplication(ctx context.Context, c
 
 	// Add application status (arrays are cleared at the beginning of reconciliation)
 	claim.Status.Applications = append(claim.Status.Applications, platformv1.ApplicationStatus{
-		Name:    app.Name,
-		Ready:   true,
-		Version: app.Version,
+		Name:     app.Name,
+		Ready:    true,
+		Version:  app.Version,
 		Replicas: app.Replicas,
 	})
 
 	return nil
 }
 
-func (r *ApplicationClaimReconciler) createArgoCDApplication(ctx context.Context, claim *platformv1.ApplicationClaim) error {
+func (r *ApplicationClaimReconciler) createArgoCDAppOfAppsApplication(ctx context.Context, claim *platformv1.ApplicationClaim) error {
 	logger := log.FromContext(ctx)
-	logger.Info("Creating ArgoCD application", "claim", claim.Name)
+	logger.Info("Creating ArgoCD app-of-apps application", "claim", claim.Name)
 
 	if r.ArgoCDClient == nil {
 		logger.Info("ArgoCD client not configured, skipping")
@@ -479,12 +454,12 @@ func (r *ApplicationClaimReconciler) getComponentConfig(environment string, comp
 
 func (r *ApplicationClaimReconciler) getChartForComponent(componentType string) string {
 	charts := map[string]string{
-		"postgresql": "bitnami/postgresql",
-		"redis":      "bitnami/redis",
-		"rabbitmq":   "bitnami/rabbitmq",
-		"mongodb":    "bitnami/mongodb",
-		"mysql":      "bitnami/mysql",
-		"kafka":      "bitnami/kafka",
+		"postgresql":    "bitnami/postgresql",
+		"redis":         "bitnami/redis",
+		"rabbitmq":      "bitnami/rabbitmq",
+		"mongodb":       "bitnami/mongodb",
+		"mysql":         "bitnami/mysql",
+		"kafka":         "bitnami/kafka",
 		"elasticsearch": "elastic/elasticsearch",
 	}
 
@@ -652,10 +627,10 @@ func (r *ApplicationClaimReconciler) createDeployment(namespace string, app plat
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:  app.Name,
-							Image: fmt.Sprintf("%s:%s", app.Name, app.Version),
-							Ports: r.getContainerPorts(app),
-							Env:   r.getEnvVars(app),
+							Name:      app.Name,
+							Image:     fmt.Sprintf("%s:%s", app.Name, app.Version),
+							Ports:     r.getContainerPorts(app),
+							Env:       r.getEnvVars(app),
 							Resources: r.getResourceRequirements(app),
 							LivenessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{

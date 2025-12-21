@@ -23,8 +23,8 @@ spec:
       serviceAccountName: platform-operator
       containers:
       - name: manager
-        image: platform-operator:latest
-        imagePullPolicy: Never
+        image: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/platform-operator:v1.3.3
+        imagePullPolicy: IfNotPresent
         args:
         - --leader-elect
         env:
@@ -122,6 +122,20 @@ rules:
   - applicationclaims/finalizers
   verbs:
   - update
+- apiGroups:
+  - argoproj.io
+  resources:
+  - applications
+  - appprojects
+  - applicationsets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
 - apiGroups:
   - coordination.k8s.io
   resources:

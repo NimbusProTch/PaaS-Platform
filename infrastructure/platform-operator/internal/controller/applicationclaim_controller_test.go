@@ -20,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	platformv1 "platform.infraforge.io/platform-operator/api/v1"
+	platformv1 "github.com/infraforge/platform-operator/api/v1"
 )
 
 var _ = Describe("ApplicationClaim Controller", func() {
@@ -433,9 +433,9 @@ var _ = Describe("ApplicationClaim Controller", func() {
 					Applications: []platformv1.ApplicationSpec{
 						{
 							Name:    "invalid-app",
-							Version: "",  // Invalid: empty version
+							Version: "", // Invalid: empty version
 							Replicas: func() *int32 {
-								r := int32(-1)  // Invalid: negative replicas
+								r := int32(-1) // Invalid: negative replicas
 								return &r
 							}(),
 						},

@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chartmuseum
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chartmuseum
+  namespace: chartmuseum
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chartmuseum
+  template:
+    metadata:
+      labels:
+        app: chartmuseum
+    spec:
+      containers:
+      - name: chartmuseum
+        image: ghcr.io/helm/chartmuseum:v0.16.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DISABLE_API
+          value: "false"
+        - name: ALLOW_OVERWRITE
+          value: "true"
+        - name: STORAGE
+          value: local
+        - name: STORAGE_LOCAL_ROOTDIR
+          value: /charts
+        volumeMounts:
+        - name: charts
+          mountPath: /charts
+      volumes:
+      - name: charts
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chartmuseum
+  namespace: chartmuseum
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+  selector:
+    app: chartmuseum

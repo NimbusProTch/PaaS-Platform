@@ -153,13 +153,7 @@ module "eks" {
         "workload"  = "core-services"
       }
 
-      taints = [
-        {
-          key    = "CriticalAddonsOnly"
-          value  = "true"
-          effect = "NO_SCHEDULE"
-        }
-      ]
+      taints = []
 
       tags = local.common_tags
     }
