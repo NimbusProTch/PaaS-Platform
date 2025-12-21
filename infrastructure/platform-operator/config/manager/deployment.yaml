@@ -24,7 +24,7 @@ spec:
       containers:
       - name: manager
         image: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/platform-operator:latest
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         args:
         - --leader-elect
         env:

@@ -171,30 +171,129 @@ jobs:
         id: changelog
         run: |
           echo "## Changes" > CHANGELOG.md
-          git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --pretty=format:"- %s (%h)" >> CHANGELOG.md
+          git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --pretty=format:"- %s (%h)" >> CHANGELOG.md || echo "Initial release" > CHANGELOG.md
 
-      - name: Create release manifest
+      - name: Set environment variables
         run: |
-          cat > release-manifest.yaml <<EOF
-          apiVersion: platform.infraforge.io/v1
-          kind: ReleasePackage
+          echo "SERVICE_NAME=${{ github.event.repository.name }}" >> $GITHUB_ENV
+          echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+          echo "IMAGE_FULL=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.ref_name }}" >> $GITHUB_ENV
+
+      - name: Create Kubernetes manifests directory
+        run: mkdir -p k8s-manifests
+
+      - name: Generate Deployment manifest
+        run: |
+          cat > k8s-manifests/deployment.yaml <<EOF
+          apiVersion: apps/v1
+          kind: Deployment
           metadata:
-            name: ${{ github.event.repository.name }}
-            version: ${{ github.ref_name }}
+            name: ${{ env.SERVICE_NAME }}
+            labels:
+              app: ${{ env.SERVICE_NAME }}
+              version: ${{ env.VERSION }}
           spec:
-            image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.ref_name }}
-            commit: ${{ github.sha }}
-            buildDate: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
-            tested: true
-            approved: false
+            replicas: 2
+            selector:
+              matchLabels:
+                app: ${{ env.SERVICE_NAME }}
+            template:
+              metadata:
+                labels:
+                  app: ${{ env.SERVICE_NAME }}
+                  version: ${{ env.VERSION }}
+              spec:
+                containers:
+                - name: ${{ env.SERVICE_NAME }}
+                  image: ${{ env.IMAGE_FULL }}
+                  ports:
+                  - containerPort: 8080
+                    name: http
+                    protocol: TCP
+                  env:
+                  - name: SERVICE_NAME
+                    value: "${{ env.SERVICE_NAME }}"
+                  - name: VERSION
+                    value: "${{ env.VERSION }}"
+                  resources:
+                    requests:
+                      cpu: 100m
+                      memory: 128Mi
+                    limits:
+                      cpu: 500m
+                      memory: 512Mi
+                  livenessProbe:
+                    httpGet:
+                      path: /health
+                      port: 8080
+                    initialDelaySeconds: 30
+                    periodSeconds: 10
+                  readinessProbe:
+                    httpGet:
+                      path: /ready
+                      port: 8080
+                    initialDelaySeconds: 5
+                    periodSeconds: 5
           EOF
+
+      - name: Generate Service manifest
+        run: |
+          cat > k8s-manifests/service.yaml <<EOF
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: ${{ env.SERVICE_NAME }}
+            labels:
+              app: ${{ env.SERVICE_NAME }}
+          spec:
+            type: ClusterIP
+            ports:
+            - port: 8080
+              targetPort: 8080
+              protocol: TCP
+              name: http
+            selector:
+              app: ${{ env.SERVICE_NAME }}
+          EOF
+
+      - name: Generate ConfigMap manifest
+        run: |
+          cat > k8s-manifests/configmap.yaml <<EOF
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: ${{ env.SERVICE_NAME }}-config
+          data:
+            service.name: "${{ env.SERVICE_NAME }}"
+            service.version: "${{ env.VERSION }}"
+            log.level: "info"
+          EOF
+
+      - name: Create release metadata
+        run: |
+          cat > k8s-manifests/release-info.yaml <<EOF
+          # Release Information
+          # Service: ${{ env.SERVICE_NAME }}
+          # Version: ${{ env.VERSION }}
+          # Image: ${{ env.IMAGE_FULL }}
+          # Commit: ${{ github.sha }}
+          # Build Date: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          # Built by: GitHub Actions
+          EOF
+
+      - name: Create manifest package
+        run: |
+          cd k8s-manifests
+          tar -czf ../k8s-manifests.tar.gz *
+          cd ..
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           body_path: CHANGELOG.md
           files: |
-            release-manifest.yaml
+            k8s-manifests.tar.gz
+            k8s-manifests/*.yaml
           draft: false
           prerelease: false
         env:

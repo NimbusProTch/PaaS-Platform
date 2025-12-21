@@ -1,0 +1,56 @@
+apiVersion: platform.infraforge.io/v1
+kind: ApplicationClaim
+metadata:
+  name: ecommerce-platform
+  namespace: default
+spec:
+  environment: dev
+  namespace: ecommerce-dev
+
+  owner:
+    team: ecommerce-team
+    email: ecommerce@infraforge.io
+
+  # Microservices from ECR
+  applications:
+    - name: product-service
+      repository: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/product-service
+      version: v1.0.0
+      replicas: 2
+
+    - name: user-service
+      repository: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/user-service
+      version: v1.0.0
+      replicas: 2
+
+    - name: order-service
+      repository: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/order-service
+      version: v1.0.0
+      replicas: 2
+
+    - name: payment-service
+      repository: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/payment-service
+      version: v1.0.0
+      replicas: 2
+
+    - name: notification-service
+      repository: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/notification-service
+      version: v1.0.0
+      replicas: 2
+
+  # Platform components
+  components:
+    - name: postgres-main
+      type: postgresql
+      version: "16"
+      size: small
+
+    - name: redis-cache
+      type: redis
+      version: "7.2"
+      size: small
+
+    - name: rabbitmq-events
+      type: rabbitmq
+      version: "3.12"
+      size: small

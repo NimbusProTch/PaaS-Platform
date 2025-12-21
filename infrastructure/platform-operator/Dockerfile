@@ -11,7 +11,7 @@ RUN go mod download
 COPY . .
 
 # Build the operator
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o manager cmd/manager/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o manager cmd/manager/main.go
 
 # Final stage
 FROM gcr.io/distroless/static:nonroot
