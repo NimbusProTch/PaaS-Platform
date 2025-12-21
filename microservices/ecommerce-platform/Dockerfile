@@ -1,9 +1,9 @@
 # Build stage
 FROM node:18-alpine AS builder
 WORKDIR /app
-COPY package*.json ./
+COPY ecommerce-platform/package*.json ./
 RUN npm ci
-COPY . .
+COPY ecommerce-platform/ .
 RUN npm run build
 
 # Production stage
