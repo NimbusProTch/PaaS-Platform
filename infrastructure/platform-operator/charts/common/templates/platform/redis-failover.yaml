@@ -1,0 +1,56 @@
+{{- if eq .Values.type "redis" }}
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: {{ include "common.fullname" . }}
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+  {{- with .Values.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  sentinel:
+    replicas: {{ .Values.redis.sentinel.replicas | default 3 }}
+    resources:
+      requests:
+        cpu: {{ .Values.redis.resources.requests.cpu | default "100m" }}
+        memory: {{ .Values.redis.resources.requests.memory | default "256Mi" }}
+      limits:
+        cpu: {{ .Values.redis.resources.limits.cpu | default "500m" }}
+        memory: {{ .Values.redis.resources.limits.memory | default "1Gi" }}
+
+  redis:
+    replicas: {{ .Values.redis.redis.replicas | default 3 }}
+    resources:
+      requests:
+        cpu: {{ .Values.redis.resources.requests.cpu | default "100m" }}
+        memory: {{ .Values.redis.resources.requests.memory | default "256Mi" }}
+      limits:
+        cpu: {{ .Values.redis.resources.limits.cpu | default "500m" }}
+        memory: {{ .Values.redis.resources.limits.memory | default "1Gi" }}
+
+    storage:
+      persistentVolumeClaim:
+        metadata:
+          name: {{ include "common.fullname" . }}-data
+          labels:
+            {{- include "common.labels" . | nindent 12 }}
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: {{ .Values.redis.storage.size | default "10Gi" }}
+          {{- if .Values.redis.storage.storageClass }}
+          storageClassName: {{ .Values.redis.storage.storageClass }}
+          {{- end }}
+
+    {{- if .Values.redis.customConfig }}
+    customConfig:
+      {{- toYaml .Values.redis.customConfig | nindent 6 }}
+    {{- end }}
+
+  auth:
+    secretPath: {{ include "common.fullname" . }}-auth
+{{- end }}
