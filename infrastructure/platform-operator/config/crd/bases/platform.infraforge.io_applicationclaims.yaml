@@ -54,6 +54,32 @@ spec:
                 items:
                   description: ApplicationSpec single application configuration
                   properties:
+                    autoscaling:
+                      description: Autoscaling autoscaling configuration
+                      properties:
+                        enabled:
+                          description: Enabled enable autoscaling
+                          type: boolean
+                        maxReplicas:
+                          description: MaxReplicas maximum replicas
+                          format: int32
+                          type: integer
+                        minReplicas:
+                          description: MinReplicas minimum replicas
+                          format: int32
+                          type: integer
+                        targetCPUUtilizationPercentage:
+                          description: TargetCPUUtilizationPercentage target CPU percentage
+                          format: int32
+                          type: integer
+                        targetMemoryUtilizationPercentage:
+                          description: TargetMemoryUtilizationPercentage target memory
+                            percentage
+                          format: int32
+                          type: integer
+                      required:
+                      - enabled
+                      type: object
                     env:
                       description: Env environment variables
                       items:
@@ -188,10 +214,10 @@ spec:
                   description: ComponentSpec platform component specification
                   properties:
                     config:
-                      additionalProperties:
-                        type: string
-                      description: Config additional configuration
+                      description: Config additional configuration (supports nested
+                        YAML)
                       type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     name:
                       description: Name instance name
                       type: string

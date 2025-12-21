@@ -4,6 +4,7 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ApplicationClaimSpec defines the desired state of ApplicationClaim
@@ -52,6 +53,9 @@ type ApplicationSpec struct {
 
 	// Env environment variables
 	Env []EnvVar `json:"env,omitempty"`
+
+	// Autoscaling autoscaling configuration
+	Autoscaling *AutoscalingSpec `json:"autoscaling,omitempty"`
 }
 
 // ComponentSpec platform component specification
@@ -68,8 +72,9 @@ type ComponentSpec struct {
 	// Size configuration size (small, medium, large)
 	Size string `json:"size,omitempty"`
 
-	// Config additional configuration
-	Config map[string]string `json:"config,omitempty"`
+	// Config additional configuration (supports nested YAML)
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Config runtime.RawExtension `json:"config,omitempty"`
 }
 
 // ResourceRequirements resource requirements
@@ -149,6 +154,24 @@ type ConfigMapKeySelector struct {
 
 	// Key key in the configmap
 	Key string `json:"key"`
+}
+
+// AutoscalingSpec autoscaling configuration
+type AutoscalingSpec struct {
+	// Enabled enable autoscaling
+	Enabled bool `json:"enabled"`
+
+	// MinReplicas minimum replicas
+	MinReplicas int32 `json:"minReplicas,omitempty"`
+
+	// MaxReplicas maximum replicas
+	MaxReplicas int32 `json:"maxReplicas,omitempty"`
+
+	// TargetCPUUtilizationPercentage target CPU percentage
+	TargetCPUUtilizationPercentage int32 `json:"targetCPUUtilizationPercentage,omitempty"`
+
+	// TargetMemoryUtilizationPercentage target memory percentage
+	TargetMemoryUtilizationPercentage int32 `json:"targetMemoryUtilizationPercentage,omitempty"`
 }
 
 // OwnerSpec ownership information
