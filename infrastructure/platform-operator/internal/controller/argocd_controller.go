@@ -31,7 +31,13 @@ func (r *ApplicationClaimReconciler) reconcileWithArgoCD(ctx context.Context, cl
 	logger.Info("Reconciling ApplicationClaim with ArgoCD", "name", claim.Name)
 
 	// 1. Create namespace for the team
-	if err := r.ensureNamespace(ctx, claim.Spec.Namespace); err != nil {
+	namespace := claim.Spec.Namespace
+	if namespace == "" {
+		// Auto-generate namespace: {team}-{environment}
+		teamName := normalizeK8sName(claim.Spec.Owner.Team)
+		namespace = fmt.Sprintf("%s-%s", teamName, claim.Spec.Environment)
+	}
+	if err := r.ensureNamespace(ctx, namespace); err != nil {
 		return fmt.Errorf("failed to ensure namespace: %w", err)
 	}
 
