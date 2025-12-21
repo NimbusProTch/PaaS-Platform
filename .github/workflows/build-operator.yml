@@ -55,6 +55,7 @@ jobs:
         run: |
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
 
           # Auto-increment version based on commit count
           VERSION=$(git rev-list --count HEAD)
@@ -63,6 +64,7 @@ jobs:
           echo "version=${VERSION_TAG}" >> $GITHUB_OUTPUT
           echo "short-sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
           echo "timestamp=${TIMESTAMP}" >> $GITHUB_OUTPUT
+          echo "owner=${OWNER_LC}" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -72,10 +74,10 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/platform-operator:latest
-            ghcr.io/${{ github.repository_owner }}/platform-operator:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ github.repository_owner }}/platform-operator:${{ steps.meta.outputs.short-sha }}
-            ghcr.io/${{ github.repository_owner }}/platform-operator:${{ steps.meta.outputs.timestamp }}
+            ghcr.io/${{ steps.meta.outputs.owner }}/platform-operator:latest
+            ghcr.io/${{ steps.meta.outputs.owner }}/platform-operator:${{ steps.meta.outputs.version }}
+            ghcr.io/${{ steps.meta.outputs.owner }}/platform-operator:${{ steps.meta.outputs.short-sha }}
+            ghcr.io/${{ steps.meta.outputs.owner }}/platform-operator:${{ steps.meta.outputs.timestamp }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
