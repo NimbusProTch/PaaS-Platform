@@ -1,0 +1,187 @@
+apiVersion: platform.infraforge.io/v1
+kind: ApplicationClaim
+metadata:
+  name: ecommerce-platform
+  namespace: default
+spec:
+  environment: dev
+  namespace: ecommerce-dev
+
+  owner:
+    team: ecommerce-team
+    email: ecommerce@infraforge.io
+    slack: "#ecommerce-dev"
+
+  # Microservices - Using ECR images
+  applications:
+    - name: product-service
+      repository: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/product-service
+      image: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/product-service
+      version: v1.0.0
+      replicas: 2
+      ports:
+        - name: http
+          port: 8080
+          protocol: TCP
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "256Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+      env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8080"
+      healthCheck:
+        path: /health
+        port: 8080
+        initialDelaySeconds: 30
+        periodSeconds: 10
+      autoscaling:
+        enabled: false
+        minReplicas: 2
+        maxReplicas: 5
+        targetCPUUtilizationPercentage: 70
+
+    - name: user-service
+      repository: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/user-service
+      image: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/user-service
+      version: v1.0.0
+      replicas: 2
+      ports:
+        - name: http
+          port: 8080
+          protocol: TCP
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "256Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+      env:
+        - name: GO_ENV
+          value: "production"
+        - name: PORT
+          value: "8080"
+      healthCheck:
+        path: /health
+        port: 8080
+        initialDelaySeconds: 30
+        periodSeconds: 10
+
+    - name: order-service
+      repository: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/order-service
+      image: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/order-service
+      version: v1.0.0
+      replicas: 2
+      ports:
+        - name: http
+          port: 8080
+          protocol: TCP
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "256Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+      env:
+        - name: GO_ENV
+          value: "production"
+        - name: PORT
+          value: "8080"
+
+    - name: payment-service
+      repository: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/payment-service
+      image: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/payment-service
+      version: v1.0.0
+      replicas: 2
+      ports:
+        - name: http
+          port: 3000
+          protocol: TCP
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "256Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+      env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3000"
+
+    - name: notification-service
+      repository: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/notification-service
+      image: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/notification-service
+      version: v1.0.0
+      replicas: 1
+      ports:
+        - name: http
+          port: 8080
+          protocol: TCP
+      resources:
+        requests:
+          cpu: "50m"
+          memory: "128Mi"
+        limits:
+          cpu: "250m"
+          memory: "256Mi"
+      env:
+        - name: GO_ENV
+          value: "production"
+        - name: PORT
+          value: "8080"
+
+  # Platform Components - Will be deployed using production-ready operators
+  components:
+    - name: postgres-main
+      type: postgresql
+      version: "16"
+      size: medium
+      config:
+        instances: 3
+        storage:
+          size: "50Gi"
+        postgresql:
+          parameters:
+            max_connections: "200"
+            shared_buffers: "256MB"
+        backup:
+          enabled: true
+          retentionPolicy: "30d"
+
+    - name: redis-cache
+      type: redis
+      version: "7.2"
+      size: small
+      config:
+        replicas: 3
+        sentinel:
+          enabled: true
+        persistence:
+          enabled: true
+          size: "10Gi"
+
+    - name: rabbitmq-events
+      type: rabbitmq
+      version: "3.12"
+      size: medium
+      config:
+        replicas: 3
+        persistence:
+          enabled: true
+          size: "20Gi"
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
