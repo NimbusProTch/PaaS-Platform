@@ -40,6 +40,11 @@ func (r *ApplicationClaimReconciler) reconcileWithArgoCD(ctx context.Context, cl
 		return fmt.Errorf("failed to create ArgoCD project: %w", err)
 	}
 
+	// 2.5. Ensure required operators are installed
+	if err := r.ensureOperatorsInstalled(ctx, claim); err != nil {
+		return fmt.Errorf("failed to ensure operators are installed: %w", err)
+	}
+
 	// 3. Generate and store Helm values for each application
 	for _, app := range claim.Spec.Applications {
 		valuesYAML, err := r.generateValuesForApp(claim, app)
