@@ -17,9 +17,13 @@ func (r *ApplicationClaimReconciler) generateValuesForApp(claim *platformv1.Appl
 	values["replicaCount"] = app.Replicas
 
 	// Image configuration
-	// app.Image may already include tag (e.g., repo:latest), so use it as-is for repository
-	// and use version as tag
+	// If app.Image is provided, use it; otherwise derive from serviceName
 	imageRepo := app.Image
+	if imageRepo == "" && app.ServiceName != "" {
+		// Derive image repository from serviceName for GHCR
+		imageRepo = fmt.Sprintf("ghcr.io/nimbusprotch/%s", app.ServiceName)
+	}
+
 	// Remove any existing tag from image
 	if strings.Contains(imageRepo, ":") {
 		imageRepo = strings.Split(imageRepo, ":")[0]
@@ -31,9 +35,9 @@ func (r *ApplicationClaimReconciler) generateValuesForApp(claim *platformv1.Appl
 		"pullPolicy": "IfNotPresent",
 	}
 
-	// ECR credentials for private images
+	// Image pull secrets for private images
 	values["imagePullSecrets"] = []map[string]string{
-		{"name": "ecr-credentials"},
+		{"name": "ghcr-secret"},
 	}
 
 	// Service configuration
@@ -173,9 +177,9 @@ func (r *ApplicationClaimReconciler) generateValuesForComponent(claim *platformv
 		}
 	}
 
-	// ECR credentials for private images (not needed for public Docker Hub images but keeping for consistency)
+	// Image pull secrets for private images (not needed for public Docker Hub images but keeping for consistency)
 	values["imagePullSecrets"] = []map[string]string{
-		{"name": "ecr-credentials"},
+		{"name": "ghcr-secret"},
 	}
 
 	// Environment-specific configuration
