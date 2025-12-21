@@ -9,6 +9,8 @@ on:
     paths:
       - 'microservices/**'
       - '.github/workflows/build-microservices.yml'
+    tags:
+      - '*-v*.*.*'  # Build on tags too
   pull_request:
     paths:
       - 'microservices/**'
@@ -114,11 +116,28 @@ jobs:
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 
+          # Check if this is a tag push
+          TAGS="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}/${SERVICE_NAME}:latest"
+          TAGS="${TAGS}\n${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}/${SERVICE_NAME}:${SHORT_SHA}"
+          TAGS="${TAGS}\n${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}/${SERVICE_NAME}:${TIMESTAMP}"
+
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            # Extract version from tag (format: service-name-vX.Y.Z)
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+            VERSION=$(echo "$TAG_NAME" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+$')
+            TAG_SERVICE=$(echo "$TAG_NAME" | sed -E 's/-v[0-9]+\.[0-9]+\.[0-9]+$//')
+
+            # Only add version tag if this tag is for this service
+            if [ "$TAG_SERVICE" == "$SERVICE_NAME" ]; then
+              TAGS="${TAGS}\n${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}/${SERVICE_NAME}:${VERSION}"
+              echo "Building release version: ${VERSION}"
+            fi
+          fi
+
           echo "service-name=${SERVICE_NAME}" >> $GITHUB_OUTPUT
-          echo "image-tag-latest=${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}/${SERVICE_NAME}:latest" >> $GITHUB_OUTPUT
-          echo "image-tag-sha=${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}/${SERVICE_NAME}:${SHORT_SHA}" >> $GITHUB_OUTPUT
-          echo "image-tag-v1=${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}/${SERVICE_NAME}:v1.0.0" >> $GITHUB_OUTPUT
-          echo "image-tag-timestamp=${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}/${SERVICE_NAME}:${TIMESTAMP}" >> $GITHUB_OUTPUT
+          echo "tags<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$TAGS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         if: steps.should-build.outputs.build == 'true'
@@ -127,16 +146,14 @@ jobs:
           context: ./microservices/${{ matrix.service }}
           platforms: linux/amd64
           push: true
-          tags: |
-            ${{ steps.meta.outputs.image-tag-latest }}
-            ${{ steps.meta.outputs.image-tag-sha }}
-            ${{ steps.meta.outputs.image-tag-v1 }}
-            ${{ steps.meta.outputs.image-tag-timestamp }}
+          tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Image digest
         if: steps.should-build.outputs.build == 'true'
         run: |
-          echo "Built and pushed: ${{ steps.meta.outputs.image-tag-latest }}"
-          echo "Tags: latest, ${{ github.sha }}, v1.0.0"
+          echo "✅ Built and pushed: ${{ steps.meta.outputs.service-name }}"
+          echo ""
+          echo "Tags:"
+          echo "${{ steps.meta.outputs.tags }}"
