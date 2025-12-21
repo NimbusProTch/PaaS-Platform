@@ -419,9 +419,8 @@ func (r *ApplicationClaimReconciler) getComponentConfig(environment string, comp
 	}
 
 	// Apply custom config
-	for k, v := range component.Config {
-		config[k] = v
-	}
+	// Note: component.Config is now runtime.RawExtension
+	// Custom config is handled in values_generator.go
 
 	// Size-based overrides
 	switch component.Size {

@@ -242,9 +242,7 @@ func (r *ApplicationClaimReconciler) generateValuesForComponent(claim *platformv
 	}
 
 	// Apply custom config from claim
-	for k, v := range component.Config {
-		values[k] = v
-	}
+	// Note: This is old code - custom config already handled above via JSON unmarshal
 
 	// Convert to YAML
 	yamlBytes, err := yaml.Marshal(values)
