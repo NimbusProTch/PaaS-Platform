@@ -1,10 +1,10 @@
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install dependencies
 COPY ecommerce-platform/package*.json ./
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY ecommerce-platform/ .
@@ -14,7 +14,7 @@ RUN npx prisma generate || true
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine
+FROM node:20-alpine
 WORKDIR /app
 
 ENV NODE_ENV=production

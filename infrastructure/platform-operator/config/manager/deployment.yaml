@@ -23,8 +23,8 @@ spec:
       serviceAccountName: platform-operator
       containers:
       - name: manager
-        image: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/platform-operator:v1.3.3
-        imagePullPolicy: IfNotPresent
+        image: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/platform-operator:latest
+        imagePullPolicy: Never
         args:
         - --leader-elect
         env:
