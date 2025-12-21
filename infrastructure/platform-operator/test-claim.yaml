@@ -10,6 +10,7 @@ spec:
     email: platform@test.com
   applications:
     - name: nginx-app
+      repository: nginx/nginx
       image: nginx
       version: latest
       replicas: 1

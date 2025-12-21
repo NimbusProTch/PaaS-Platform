@@ -554,11 +554,10 @@ labels:
 	return values
 }
 
-
 // createIndividualApplication creates an ArgoCD Application for a single app or component
 func (r *ApplicationClaimReconciler) createIndividualApplication(ctx context.Context, claim *platformv1.ApplicationClaim, appName, projectName string) error {
 	logger := log.FromContext(ctx)
-	
+
 	// Read values from ConfigMap
 	valuesYAML, err := r.getValuesYAMLFromConfigMap(ctx, claim.Name, appName)
 	if err != nil {
@@ -586,8 +585,8 @@ func (r *ApplicationClaimReconciler) createIndividualApplication(ctx context.Con
 				"project": projectName,
 				"source": map[string]interface{}{
 					"repoURL":        "http://chartmuseum.chartmuseum.svc.cluster.local:8080",
-					"targetRevision": "1.0.1",
-					"chart":          "common-app",
+					"targetRevision": "2.0.0",
+					"chart":          "common",
 					"helm": map[string]interface{}{
 						"values": valuesYAML,
 					},
@@ -648,26 +647,38 @@ func (r *ApplicationClaimReconciler) createApplicationSet(ctx context.Context, c
 
 	teamName := normalizeK8sName(claim.Spec.Owner.Team)
 	projectName := fmt.Sprintf("%s-%s", teamName, claim.Spec.Environment)
-	
+
 	// ApplicationSet name: {env}-{claim-name}-appset
 	appSetName := fmt.Sprintf("%s-%s-appset", claim.Spec.Environment, claim.Name)
 
 	// Build list of all apps and components
-	var elements []map[string]string
+	var elements []map[string]interface{}
 
 	// Add applications
 	for _, app := range claim.Spec.Applications {
-		elements = append(elements, map[string]string{
-			"name": app.Name,
-			"type": "app",
+		valuesYAML, err := r.generateValuesForApp(claim, app)
+		if err != nil {
+			return fmt.Errorf("failed to generate values for app %s: %w", app.Name, err)
+		}
+
+		elements = append(elements, map[string]interface{}{
+			"name":       app.Name,
+			"type":       "app",
+			"helmValues": valuesYAML,
 		})
 	}
 
 	// Add components
 	for _, component := range claim.Spec.Components {
-		elements = append(elements, map[string]string{
-			"name": component.Name,
-			"type": "component",
+		valuesYAML, err := r.generateValuesForComponent(claim, component)
+		if err != nil {
+			return fmt.Errorf("failed to generate values for component %s: %w", component.Name, err)
+		}
+
+		elements = append(elements, map[string]interface{}{
+			"name":       component.Name,
+			"type":       "component",
+			"helmValues": valuesYAML,
 		})
 	}
 
@@ -708,13 +719,11 @@ func (r *ApplicationClaimReconciler) createApplicationSet(ctx context.Context, c
 						"project": projectName,
 						"source": map[string]interface{}{
 							"repoURL":        "http://chartmuseum.chartmuseum.svc.cluster.local:8080",
-							"targetRevision": "1.0.1",
-							"chart":          "common-app",
+							"targetRevision": "2.0.0",
+							"chart":          "common",
 							"helm": map[string]interface{}{
-								// Values read from ConfigMap by referencing it
-								"valueFiles": []string{
-									fmt.Sprintf("argocd://%s-{{name}}-values", claim.Name),
-								},
+								// Values embedded inline from list generator
+								"values": "{{helmValues}}",
 							},
 						},
 						"destination": map[string]interface{}{
@@ -780,21 +789,21 @@ func (r *ApplicationClaimReconciler) createApplicationSet(ctx context.Context, c
 // getValuesYAMLFromConfigMap retrieves Helm values YAML from ConfigMap
 func (r *ApplicationClaimReconciler) getValuesYAMLFromConfigMap(ctx context.Context, claimName, appName string) (string, error) {
 	configMapName := fmt.Sprintf("%s-%s-values", claimName, appName)
-	
+
 	configMap := &corev1.ConfigMap{}
 	err := r.Get(ctx, types.NamespacedName{
 		Name:      configMapName,
 		Namespace: "argocd",
 	}, configMap)
-	
+
 	if err != nil {
 		return "", fmt.Errorf("failed to get ConfigMap %s: %w", configMapName, err)
 	}
-	
+
 	valuesYAML, ok := configMap.Data["values.yaml"]
 	if !ok {
 		return "", fmt.Errorf("values.yaml not found in ConfigMap %s", configMapName)
 	}
-	
+
 	return valuesYAML, nil
 }
