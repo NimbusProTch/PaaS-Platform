@@ -21,10 +21,12 @@ spec:
         app: platform-operator
     spec:
       serviceAccountName: platform-operator
+      imagePullSecrets:
+      - name: ghcr-secret
       containers:
       - name: manager
         image: ghcr.io/nimbusprotech/platform-operator:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         args:
         - --leader-elect
         env:
