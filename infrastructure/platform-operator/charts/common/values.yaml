@@ -1,0 +1,137 @@
+# Default values for common chart
+# This chart supports both microservices and platform components
+
+# Type of deployment: microservice, postgresql, redis, rabbitmq, mongodb, elasticsearch
+type: microservice
+
+# Common settings
+fullnameOverride: ""
+replicaCount: 1
+
+# Microservice specific settings
+image:
+  repository: nginx
+  tag: latest
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+env: []
+# - name: DATABASE_URL
+#   value: postgresql://db:5432/app
+
+# Platform component settings
+
+# PostgreSQL (CloudNativePG)
+postgresql:
+  version: "16"
+  instances: 3
+  storage:
+    size: 20Gi
+    storageClass: gp3
+  backup:
+    enabled: false
+    s3Bucket: ""
+    schedule: "0 2 * * *"
+    retention: "30d"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+# Redis (Redis Operator)
+redis:
+  version: "7.2"
+  mode: sentinel  # sentinel or cluster
+  sentinel:
+    replicas: 3
+  redis:
+    replicas: 3
+  storage:
+    size: 10Gi
+    storageClass: gp3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+# RabbitMQ (RabbitMQ Cluster Operator)
+rabbitmq:
+  version: "3.12"
+  replicas: 3
+  storage:
+    size: 10Gi
+    storageClass: gp3
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+# MongoDB (MongoDB Community Operator)
+mongodb:
+  version: "7.0"
+  type: ReplicaSet
+  members: 3
+  storage:
+    size: 20Gi
+    storageClass: gp3
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+
+# Elasticsearch (ECK)
+elasticsearch:
+  version: "8.11"
+  nodeSets:
+    master:
+      count: 3
+      storage: 10Gi
+    data:
+      count: 3
+      storage: 100Gi
+    ingest:
+      count: 2
+      storage: 5Gi
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+
+labels: {}
+annotations: {}

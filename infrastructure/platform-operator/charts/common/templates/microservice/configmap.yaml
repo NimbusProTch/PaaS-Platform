@@ -1,0 +1,14 @@
+{{- if and (eq .Values.type "microservice") .Values.env }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "common.fullname" . }}-config
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+data:
+  {{- range .Values.env }}
+  {{- if .value }}
+  {{ .name }}: {{ .value | quote }}
+  {{- end }}
+  {{- end }}
+{{- end }}
