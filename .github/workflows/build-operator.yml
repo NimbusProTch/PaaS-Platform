@@ -71,7 +71,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./infrastructure/platform-operator
-          file: ./infrastructure/platform-operator/Dockerfile.simple
+          file: ./infrastructure/platform-operator/Dockerfile
           platforms: linux/amd64
           push: true
           tags: |
