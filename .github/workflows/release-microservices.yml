@@ -5,11 +5,6 @@ on:
     tags:
       - '*-v*.*.*'  # Format: service-name-vX.Y.Z (e.g., ecommerce-platform-v1.0.0)
 
-env:
-  AWS_REGION: eu-west-1
-  ECR_REGISTRY: 715841344657.dkr.ecr.eu-west-1.amazonaws.com
-  ECR_REPOSITORY_PREFIX: infraforge-dev
-
 jobs:
   create-release:
     runs-on: ubuntu-latest
@@ -32,10 +27,13 @@ jobs:
           SERVICE_NAME=$(echo "$TAG" | sed -E 's/-v[0-9]+\.[0-9]+\.[0-9]+$//')
           VERSION=$(echo "$TAG" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+$')
 
+          # Convert repository owner to lowercase for GHCR
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+
           echo "service-name=${SERVICE_NAME}" >> $GITHUB_OUTPUT
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "image=${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}/${SERVICE_NAME}:${VERSION}" >> $GITHUB_OUTPUT
+          echo "image=ghcr.io/${OWNER_LC}/${SERVICE_NAME}:${VERSION}" >> $GITHUB_OUTPUT
 
           echo "Service: $SERVICE_NAME"
           echo "Version: $VERSION"
