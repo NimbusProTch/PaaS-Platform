@@ -239,11 +239,11 @@ func (c *MetricsCollector) CollectApplicationClaimMetrics(ctx context.Context) e
 				app.Version,
 			).Inc()
 
-			if app.Replicas != nil {
+			if app.Replicas > 0 {
 				applicationReplicas.WithLabelValues(
 					claim.Spec.Namespace,
 					app.Name,
-				).Set(float64(*app.Replicas))
+				).Set(float64(app.Replicas))
 			}
 		}
 

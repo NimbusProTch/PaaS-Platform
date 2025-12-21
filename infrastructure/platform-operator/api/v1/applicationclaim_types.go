@@ -195,6 +195,15 @@ type ApplicationClaimStatus struct {
 	// Phase current phase (Pending, Provisioning, Ready, Failed)
 	Phase string `json:"phase,omitempty"`
 
+	// Ready overall readiness status
+	Ready bool `json:"ready"`
+
+	// ApplicationsReady all applications ready
+	ApplicationsReady bool `json:"applicationsReady"`
+
+	// ComponentsReady all components ready
+	ComponentsReady bool `json:"componentsReady"`
+
 	// Applications application statuses
 	Applications []ApplicationStatus `json:"applications,omitempty"`
 

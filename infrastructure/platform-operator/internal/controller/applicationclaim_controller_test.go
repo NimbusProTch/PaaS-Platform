@@ -605,9 +605,9 @@ func TestCreateDeployment(t *testing.T) {
 				}
 
 				// Verify deployment spec
-				if *deployment.Spec.Replicas != *tt.app.Replicas {
+				if *deployment.Spec.Replicas != tt.app.Replicas {
 					t.Errorf("Replicas mismatch: got %d, want %d",
-						*deployment.Spec.Replicas, *tt.app.Replicas)
+						*deployment.Spec.Replicas, tt.app.Replicas)
 				}
 
 				// Verify environment variables
