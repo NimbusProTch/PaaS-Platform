@@ -1,29 +1,25 @@
 apiVersion: platform.infraforge.io/v1
 kind: ApplicationClaim
 metadata:
-  name: demo-app
-  namespace: default
+  name: test-app
 spec:
+  namespace: test
   environment: dev
-  namespace: demo-app
   owner:
     team: platform-team
-    email: platform@infraforge.io
-    slack: "#platform"
-
-  components:
-    - type: postgresql
-      name: postgres-db
-      version: "13"
-      size: small
-
-    - type: redis
-      name: redis-cache
-      version: "6"
-      size: small
-
+    email: platform@test.com
   applications:
-    - name: backend-api
-      repository: infraforge/test-app
-      version: v1.0.0
-      replicas: 2
+    - name: nginx-app
+      image: nginx
+      version: latest
+      replicas: 1
+      ports:
+        - name: http
+          port: 80
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "128Mi"
+        limits:
+          cpu: "200m"
+          memory: "256Mi"
