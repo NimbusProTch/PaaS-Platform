@@ -25,7 +25,7 @@ spec:
       - name: ghcr-secret
       containers:
       - name: manager
-        image: ghcr.io/nimbusprotech/platform-operator:latest
+        image: ghcr.io/nimbusprotch/platform-operator:latest
         imagePullPolicy: Always
         args:
         - --leader-elect
