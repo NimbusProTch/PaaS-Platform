@@ -55,7 +55,7 @@ jobs:
         run: |
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          OWNER_LC="nimbusprotch"
 
           # Auto-increment version based on commit count
           VERSION=$(git rev-list --count HEAD)
