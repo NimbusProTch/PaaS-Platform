@@ -83,7 +83,18 @@ jobs:
       - name: Check if service changed
         id: should-build
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          # If this is a tag push, check if tag matches this service
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+            SERVICE_FROM_TAG=$(echo "$TAG_NAME" | sed -E 's/-v[0-9]+\.[0-9]+\.[0-9]+$//')
+
+            if [ "$SERVICE_FROM_TAG" == "${{ matrix.service }}" ]; then
+              echo "build=true" >> $GITHUB_OUTPUT
+              echo "Building ${{ matrix.service }} from tag ${TAG_NAME}"
+            else
+              echo "build=false" >> $GITHUB_OUTPUT
+            fi
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "build=true" >> $GITHUB_OUTPUT
           elif [ "${{ needs.detect-changes.outputs[matrix.service] }}" == "true" ]; then
             echo "build=true" >> $GITHUB_OUTPUT
