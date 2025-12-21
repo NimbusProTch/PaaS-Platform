@@ -23,7 +23,7 @@ spec:
       serviceAccountName: platform-operator
       containers:
       - name: manager
-        image: 715841344657.dkr.ecr.eu-west-1.amazonaws.com/infraforge-dev/platform-operator:latest
+        image: ghcr.io/nimbusprotech/platform-operator:latest
         imagePullPolicy: IfNotPresent
         args:
         - --leader-elect

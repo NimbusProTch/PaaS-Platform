@@ -145,8 +145,8 @@ spec:
                           type: integer
                       type: object
                     image:
-                      description: Image container image (optional, can be derived
-                        from repository)
+                      description: Image container image (optional, falls back to
+                        GitHub release if ServiceName+Version provided)
                       type: string
                     name:
                       description: Name application name
@@ -173,7 +173,8 @@ spec:
                       format: int32
                       type: integer
                     repository:
-                      description: Repository GitHub repository (org/repo)
+                      description: Repository GitHub repository (org/repo) - deprecated,
+                        use ServiceName
                       type: string
                     resources:
                       description: Resources CPU/memory requirements
@@ -199,12 +200,16 @@ spec:
                               type: string
                           type: object
                       type: object
+                    serviceName:
+                      description: |-
+                        ServiceName microservice name in GitHub releases (e.g., "ecommerce-platform")
+                        If provided with Version, image will be resolved from GitHub release
+                      type: string
                     version:
-                      description: Version release version/tag
+                      description: Version release version/tag (e.g., "v1.0.0")
                       type: string
                   required:
                   - name
-                  - repository
                   - version
                   type: object
                 type: array

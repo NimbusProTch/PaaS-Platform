@@ -11,6 +11,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v2"
+)
+
+const (
+	DefaultGitHubOrg  = "NimbusProTch"
+	DefaultGitHubRepo = "PaaS-Platform"
 )
 
 type GitHubClient struct {
@@ -27,6 +34,23 @@ type GitHubRelease struct {
 type Asset struct {
 	Name               string `json:"name"`
 	BrowserDownloadURL string `json:"browser_download_url"`
+}
+
+// ReleaseInfo represents the release-info.yaml metadata
+type ReleaseInfo struct {
+	APIVersion string `yaml:"apiVersion"`
+	Kind       string `yaml:"kind"`
+	Metadata   struct {
+		Name    string `yaml:"name"`
+		Version string `yaml:"version"`
+		Tag     string `yaml:"tag"`
+	} `yaml:"metadata"`
+	Spec struct {
+		Image      string `yaml:"image"`
+		Commit     string `yaml:"commit"`
+		BuildDate  string `yaml:"buildDate"`
+		Repository string `yaml:"repository"`
+	} `yaml:"spec"`
 }
 
 func NewGitHubClient(token string) *GitHubClient {
@@ -216,4 +240,75 @@ func (c *GitHubClient) GetManifests(ctx context.Context, owner, repo, tag string
 	}
 
 	return tempDir, nil
+}
+
+// GetReleaseInfo fetches release-info.yaml from a GitHub release
+func (c *GitHubClient) GetReleaseInfo(ctx context.Context, serviceName, version string) (*ReleaseInfo, error) {
+	// Construct tag name: service-name-vX.Y.Z
+	tag := fmt.Sprintf("%s-%s", serviceName, version)
+
+	// GitHub release asset URL
+	url := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/release-info.yaml",
+		DefaultGitHubOrg, DefaultGitHubRepo, tag)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if c.token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch release info: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to fetch release info: status %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var releaseInfo ReleaseInfo
+	if err := yaml.Unmarshal(bodyBytes, &releaseInfo); err != nil {
+		return nil, fmt.Errorf("failed to parse release info: %w", err)
+	}
+
+	return &releaseInfo, nil
+}
+
+// ResolveImageURL resolves the image URL from GitHub release
+// If serviceName and version are provided, fetches from release-info.yaml
+// Otherwise falls back to direct image specification
+func (c *GitHubClient) ResolveImageURL(ctx context.Context, serviceName, version, fallbackImage string) (string, error) {
+	// If no serviceName/version, use fallback image
+	if serviceName == "" || version == "" {
+		if fallbackImage == "" {
+			return "", fmt.Errorf("either serviceName+version or image must be specified")
+		}
+		return fallbackImage, nil
+	}
+
+	// Fetch from GitHub release
+	releaseInfo, err := c.GetReleaseInfo(ctx, serviceName, version)
+	if err != nil {
+		// If GitHub fetch fails and fallback exists, use it
+		if fallbackImage != "" {
+			return fallbackImage, nil
+		}
+		return "", fmt.Errorf("failed to resolve image from GitHub release: %w", err)
+	}
+
+	if releaseInfo.Spec.Image == "" {
+		return "", fmt.Errorf("release info does not contain image URL")
+	}
+
+	return releaseInfo.Spec.Image, nil
 }

@@ -216,7 +216,7 @@ func (r *ApplicationClaimReconciler) reconcileComponent(ctx context.Context, cla
 
 func (r *ApplicationClaimReconciler) reconcileApplication(ctx context.Context, claim *platformv1.ApplicationClaim, app platformv1.ApplicationSpec) error {
 	logger := log.FromContext(ctx)
-	logger.Info("Reconciling application", "name", app.Name, "version", app.Version)
+	logger.Info("Reconciling application", "name", app.Name, "version", app.Version, "serviceName", app.ServiceName)
 
 	// Deploy application directly using Kubernetes manifests
 	namespace := claim.Spec.Namespace
@@ -229,21 +229,25 @@ func (r *ApplicationClaimReconciler) reconcileApplication(ctx context.Context, c
 		return fmt.Errorf("failed to ensure namespace: %w", err)
 	}
 
-	// Check if this is a GitHub release deployment
-	if app.Repository != "" && app.Version != "" {
-		logger.Info("Deploying from GitHub release", "repo", app.Repository, "version", app.Version)
-		if err := r.deployFromGitHub(ctx, namespace, app); err != nil {
-			logger.Error(err, "Failed to deploy from GitHub, falling back to direct deployment")
-			// Fall back to direct deployment
-			if err := r.deployBackendService(ctx, namespace, app); err != nil {
-				return fmt.Errorf("failed to deploy application: %w", err)
+	// Resolve image URL from GitHub release if ServiceName is provided
+	imageURL := app.Image
+	if app.ServiceName != "" && app.Version != "" && r.GitHubClient != nil {
+		logger.Info("Resolving image URL from GitHub release", "serviceName", app.ServiceName, "version", app.Version)
+		resolvedImage, err := r.GitHubClient.ResolveImageURL(ctx, app.ServiceName, app.Version, app.Image)
+		if err != nil {
+			logger.Error(err, "Failed to resolve image from GitHub release, using fallback")
+			if app.Image == "" {
+				return fmt.Errorf("failed to resolve image and no fallback provided: %w", err)
 			}
+		} else {
+			imageURL = resolvedImage
+			logger.Info("Resolved image URL from GitHub release", "image", imageURL)
 		}
-	} else {
-		// For now, deploy our test backend-service directly
-		if err := r.deployBackendService(ctx, namespace, app); err != nil {
-			return fmt.Errorf("failed to deploy application: %w", err)
-		}
+	}
+
+	// Deploy the application
+	if err := r.deployBackendService(ctx, namespace, app, imageURL); err != nil {
+		return fmt.Errorf("failed to deploy application: %w", err)
 	}
 
 	// Add application status (arrays are cleared at the beginning of reconciliation)
@@ -556,15 +560,14 @@ func (r *ApplicationClaimReconciler) deployFromGitHub(ctx context.Context, names
 	return fmt.Errorf("GitHub deployment not yet fully implemented")
 }
 
-func (r *ApplicationClaimReconciler) deployBackendService(ctx context.Context, namespace string, app platformv1.ApplicationSpec) error {
+func (r *ApplicationClaimReconciler) deployBackendService(ctx context.Context, namespace string, app platformv1.ApplicationSpec, imageURL string) error {
 	logger := log.FromContext(ctx)
-	logger.Info("Deploying backend service", "namespace", namespace, "app", app.Name)
+	logger.Info("Deploying backend service", "namespace", namespace, "app", app.Name, "image", imageURL)
 
 	// Deploy the backend service deployment and service
-	// For now, we'll apply our test app directly
 
 	// Create Deployment
-	deployment := r.createDeployment(namespace, app)
+	deployment := r.createDeployment(namespace, app, imageURL)
 	existingDeployment := &appsv1.Deployment{}
 	err := r.Get(ctx, types.NamespacedName{Name: deployment.Name, Namespace: namespace}, existingDeployment)
 	if err != nil {
@@ -574,6 +577,15 @@ func (r *ApplicationClaimReconciler) deployBackendService(ctx context.Context, n
 			}
 		} else {
 			return err
+		}
+	} else {
+		// Update existing deployment if image changed
+		if existingDeployment.Spec.Template.Spec.Containers[0].Image != imageURL {
+			logger.Info("Updating deployment with new image", "oldImage", existingDeployment.Spec.Template.Spec.Containers[0].Image, "newImage", imageURL)
+			existingDeployment.Spec.Template.Spec.Containers[0].Image = imageURL
+			if err := r.Update(ctx, existingDeployment); err != nil {
+				return fmt.Errorf("failed to update deployment: %w", err)
+			}
 		}
 	}
 
@@ -594,10 +606,16 @@ func (r *ApplicationClaimReconciler) deployBackendService(ctx context.Context, n
 	return nil
 }
 
-func (r *ApplicationClaimReconciler) createDeployment(namespace string, app platformv1.ApplicationSpec) *appsv1.Deployment {
+func (r *ApplicationClaimReconciler) createDeployment(namespace string, app platformv1.ApplicationSpec, imageURL string) *appsv1.Deployment {
 	replicas := app.Replicas
 	if replicas == 0 {
 		replicas = 1
+	}
+
+	// Use provided imageURL, or construct from app.Name and app.Version as fallback
+	image := imageURL
+	if image == "" {
+		image = fmt.Sprintf("%s:%s", app.Name, app.Version)
 	}
 
 	return &appsv1.Deployment{
@@ -627,7 +645,7 @@ func (r *ApplicationClaimReconciler) createDeployment(namespace string, app plat
 					Containers: []corev1.Container{
 						{
 							Name:      app.Name,
-							Image:     fmt.Sprintf("%s:%s", app.Name, app.Version),
+							Image:     image,
 							Ports:     r.getContainerPorts(app),
 							Env:       r.getEnvVars(app),
 							Resources: r.getResourceRequirements(app),

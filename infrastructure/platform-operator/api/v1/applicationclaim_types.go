@@ -30,13 +30,17 @@ type ApplicationSpec struct {
 	// Name application name
 	Name string `json:"name"`
 
-	// Repository GitHub repository (org/repo)
-	Repository string `json:"repository"`
+	// ServiceName microservice name in GitHub releases (e.g., "ecommerce-platform")
+	// If provided with Version, image will be resolved from GitHub release
+	ServiceName string `json:"serviceName,omitempty"`
 
-	// Version release version/tag
+	// Repository GitHub repository (org/repo) - deprecated, use ServiceName
+	Repository string `json:"repository,omitempty"`
+
+	// Version release version/tag (e.g., "v1.0.0")
 	Version string `json:"version"`
 
-	// Image container image (optional, can be derived from repository)
+	// Image container image (optional, falls back to GitHub release if ServiceName+Version provided)
 	Image string `json:"image,omitempty"`
 
 	// Replicas number of replicas
