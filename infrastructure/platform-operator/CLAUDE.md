@@ -21,6 +21,8 @@
 - ✅ Updated deployment claims to use correct kinds
 - ✅ Added clusterType field to all claims
 - ✅ Generated new CRDs with updated types
+- ✅ Fixed register.go to use PlatformApplicationClaim types
+- ✅ Regenerated deep copy code (api/v1/zz_generated.deepcopy.go)
 
 ## Custom Resource Definitions (CRDs)
 
