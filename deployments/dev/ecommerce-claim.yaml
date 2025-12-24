@@ -1,20 +1,23 @@
 apiVersion: platform.infraforge.io/v1
 kind: ApplicationClaim
 metadata:
-  name: ecommerce-demo
+  name: ecommerce-platform
   namespace: default
+  labels:
+    environment: dev
+    team: platform-team
 spec:
   environment: dev
+
   owner:
     team: platform-team
     email: platform@infraforge.io
-    slack: "#platform"
+    slack: "#platform-dev"
 
   applications:
-    - name: ecommerce-platform
-      serviceName: ecommerce-platform  # Microservice name in GitHub releases
-      version: v1.0.0                  # GitHub release version
-      # image field is optional - will be resolved from GitHub release
+    - name: ecommerce-api
+      serviceName: ecommerce-platform
+      version: v1.0.0
       replicas: 2
 
       ports:
@@ -30,16 +33,30 @@ spec:
 
       resources:
         requests:
-          cpu: "100m"
-          memory: "128Mi"
+          cpu: "200m"
+          memory: "256Mi"
         limits:
           cpu: "500m"
           memory: "512Mi"
 
       env:
         - name: LOG_LEVEL
-          value: "info"
+          value: "debug"
         - name: ENVIRONMENT
           value: "development"
+        - name: PORT
+          value: "8080"
 
-  components: []
+  components:
+    - type: postgresql
+      name: main-db
+      version: "15"
+      storage: 10Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "1000m"
+          memory: "2Gi"

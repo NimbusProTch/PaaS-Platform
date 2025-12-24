@@ -14,7 +14,8 @@ import (
 )
 
 // storeValuesInConfigMap stores generated Helm values in a ConfigMap
-func (r *ApplicationClaimReconciler) storeValuesInConfigMap(ctx context.Context, claim *platformv1.ApplicationClaim, appName, valuesYAML string) error {
+// Returns (changed bool, error) - changed is true if ConfigMap was created or updated
+func (r *ApplicationClaimReconciler) storeValuesInConfigMap(ctx context.Context, claim *platformv1.ApplicationClaim, appName, valuesYAML string) (bool, error) {
 	logger := log.FromContext(ctx)
 
 	cmName := fmt.Sprintf("%s-%s-values", claim.Name, appName)
@@ -44,21 +45,27 @@ func (r *ApplicationClaimReconciler) storeValuesInConfigMap(ctx context.Context,
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Create new ConfigMap
-			logger.Info("Creating values ConfigMap", "name", cmName)
+			logger.Info("✅ Creating values ConfigMap", "name", cmName, "app", appName)
 			if err := r.Create(ctx, cm); err != nil {
-				return fmt.Errorf("failed to create ConfigMap: %w", err)
+				return false, fmt.Errorf("failed to create ConfigMap: %w", err)
 			}
-			return nil
+			return true, nil // Changed!
 		}
-		return fmt.Errorf("failed to get ConfigMap: %w", err)
+		return false, fmt.Errorf("failed to get ConfigMap: %w", err)
+	}
+
+	// DIFF CHECK: Only update if values actually changed
+	if existing.Data["values.yaml"] == valuesYAML {
+		logger.V(1).Info("⏭️  ConfigMap unchanged, skipping update", "name", cmName, "app", appName)
+		return false, nil // Not changed
 	}
 
 	// Update existing ConfigMap
-	logger.Info("Updating values ConfigMap", "name", cmName)
+	logger.Info("🔄 Updating values ConfigMap", "name", cmName, "app", appName)
 	existing.Data = cm.Data
 	if err := r.Update(ctx, existing); err != nil {
-		return fmt.Errorf("failed to update ConfigMap: %w", err)
+		return false, fmt.Errorf("failed to update ConfigMap: %w", err)
 	}
 
-	return nil
+	return true, nil // Changed!
 }

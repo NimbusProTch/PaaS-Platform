@@ -53,7 +53,8 @@ func (r *ApplicationClaimReconciler) reconcileWithArgoCD(ctx context.Context, cl
 		return fmt.Errorf("failed to ensure operators are installed: %w", err)
 	}
 
-	// 3. Generate and store Helm values for each application
+	// 3. Generate and store Helm values for each application (with diff-based updates)
+	anyChanged := false
 	for _, app := range claim.Spec.Applications {
 		valuesYAML, err := r.generateValuesForApp(claim, app)
 		if err != nil {
@@ -61,14 +62,18 @@ func (r *ApplicationClaimReconciler) reconcileWithArgoCD(ctx context.Context, cl
 			return fmt.Errorf("failed to generate values for app %s: %w", app.Name, err)
 		}
 
-		if err := r.storeValuesInConfigMap(ctx, claim, app.Name, valuesYAML); err != nil {
+		changed, err := r.storeValuesInConfigMap(ctx, claim, app.Name, valuesYAML)
+		if err != nil {
 			logger.Error(err, "Failed to store values for app", "app", app.Name)
 			return fmt.Errorf("failed to store values for app %s: %w", app.Name, err)
 		}
-		logger.Info("Generated and stored values for app", "app", app.Name)
+
+		if changed {
+			anyChanged = true
+		}
 	}
 
-	// 4. Generate and store Helm values for each component
+	// 4. Generate and store Helm values for each component (with diff-based updates)
 	for _, component := range claim.Spec.Components {
 		valuesYAML, err := r.generateValuesForComponent(claim, component)
 		if err != nil {
@@ -76,19 +81,28 @@ func (r *ApplicationClaimReconciler) reconcileWithArgoCD(ctx context.Context, cl
 			return fmt.Errorf("failed to generate values for component %s: %w", component.Name, err)
 		}
 
-		if err := r.storeValuesInConfigMap(ctx, claim, component.Name, valuesYAML); err != nil {
+		changed, err := r.storeValuesInConfigMap(ctx, claim, component.Name, valuesYAML)
+		if err != nil {
 			logger.Error(err, "Failed to store values for component", "component", component.Name)
 			return fmt.Errorf("failed to store values for component %s: %w", component.Name, err)
 		}
-		logger.Info("Generated and stored values for component", "component", component.Name)
+
+		if changed {
+			anyChanged = true
+		}
 	}
 
-	// 5. Create ApplicationSet for this claim (one per environment/claim)
-	if err := r.createApplicationSet(ctx, claim); err != nil {
-		logger.Error(err, "Failed to create ApplicationSet")
-		return fmt.Errorf("failed to create ApplicationSet: %w", err)
+	// 5. Create/Update ApplicationSet only if something changed
+	if anyChanged {
+		logger.Info("Changes detected, updating ApplicationSet", "claim", claim.Name)
+		if err := r.createOrUpdateApplicationSet(ctx, claim); err != nil {
+			logger.Error(err, "Failed to create/update ApplicationSet")
+			return fmt.Errorf("failed to create/update ApplicationSet: %w", err)
+		}
+		logger.Info("Updated ArgoCD ApplicationSet", "claim", claim.Name, "environment", claim.Spec.Environment)
+	} else {
+		logger.V(1).Info("⏭️  No changes detected, skipping ApplicationSet update", "claim", claim.Name)
 	}
-	logger.Info("Created ArgoCD ApplicationSet", "claim", claim.Name, "environment", claim.Spec.Environment)
 
 	return nil
 }
@@ -649,8 +663,8 @@ func (r *ApplicationClaimReconciler) createIndividualApplication(ctx context.Con
 	return nil
 }
 
-// createApplicationSet creates an ApplicationSet for all apps/components in a claim
-func (r *ApplicationClaimReconciler) createApplicationSet(ctx context.Context, claim *platformv1.ApplicationClaim) error {
+// createOrUpdateApplicationSet creates or updates an ApplicationSet for all apps/components in a claim
+func (r *ApplicationClaimReconciler) createOrUpdateApplicationSet(ctx context.Context, claim *platformv1.ApplicationClaim) error {
 	logger := log.FromContext(ctx)
 
 	teamName := normalizeK8sName(claim.Spec.Owner.Team)
