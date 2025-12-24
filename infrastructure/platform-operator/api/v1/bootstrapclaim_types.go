@@ -19,6 +19,29 @@ type BootstrapClaimSpec struct {
 
 	// GitOps configuration
 	GitOps GitOpsSpec `json:"gitOps"`
+
+	// ChartsRepository defines the external Git repository containing chart templates
+	ChartsRepository *ChartsRepositorySpec `json:"chartsRepository,omitempty"`
+}
+
+// ChartsRepositorySpec defines the external charts repository configuration
+type ChartsRepositorySpec struct {
+	// Type of repository: "git" or "oci" (default: "git")
+	Type string `json:"type,omitempty"`
+
+	// URL of the repository
+	// For git: https://github.com/org/repo.git
+	// For OCI: oci://ghcr.io/org/chart-name
+	URL string `json:"url"`
+
+	// Branch to clone from (only for git, default: "main")
+	Branch string `json:"branch,omitempty"`
+
+	// Path within the repository where charts are located (only for git, default: "")
+	Path string `json:"path,omitempty"`
+
+	// Version/Tag to pull (for OCI: chart version, for git: can override branch)
+	Version string `json:"version,omitempty"`
 }
 
 // RepositoriesSpec defines the repositories to create

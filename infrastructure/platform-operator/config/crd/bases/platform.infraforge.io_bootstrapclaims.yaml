@@ -49,6 +49,33 @@ spec:
           spec:
             description: BootstrapClaimSpec defines the desired state of BootstrapClaim
             properties:
+              chartsRepository:
+                description: ChartsRepository defines the external Git repository
+                  containing chart templates
+                properties:
+                  branch:
+                    description: 'Branch to clone from (only for git, default: "main")'
+                    type: string
+                  path:
+                    description: 'Path within the repository where charts are located
+                      (only for git, default: "")'
+                    type: string
+                  type:
+                    description: 'Type of repository: "git" or "oci" (default: "git")'
+                    type: string
+                  url:
+                    description: |-
+                      URL of the repository
+                      For git: https://github.com/org/repo.git
+                      For OCI: oci://ghcr.io/org/chart-name
+                    type: string
+                  version:
+                    description: 'Version/Tag to pull (for OCI: chart version, for
+                      git: can override branch)'
+                    type: string
+                required:
+                - url
+                type: object
               gitOps:
                 description: GitOps configuration
                 properties:

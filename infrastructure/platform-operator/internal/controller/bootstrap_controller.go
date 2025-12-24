@@ -125,11 +125,58 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Step 3: Upload charts to charts repository (contains both app and platform templates)
 	logger.Info("Uploading charts (microservice & platform templates)", "repo", chartsRepo)
-	chartFiles, err := r.loadChartsFromEmbedded(r.ChartsPath)
-	if err != nil {
-		logger.Error(err, "failed to load charts")
-		r.updateStatusFailed(ctx, claim, "Failed to load charts: "+err.Error())
-		return ctrl.Result{}, err
+
+	var chartFiles map[string]string
+	var err error
+
+	// Check if external charts repository is specified
+	if claim.Spec.ChartsRepository != nil {
+		repoType := claim.Spec.ChartsRepository.Type
+		if repoType == "" {
+			repoType = "git" // Default to git for backwards compatibility
+		}
+
+		logger.Info("Loading charts from external repository", "url", claim.Spec.ChartsRepository.URL, "type", repoType)
+
+		if repoType == "oci" {
+			// Pull from OCI registry
+			version := claim.Spec.ChartsRepository.Version
+			if version == "" {
+				version = "latest"
+			}
+
+			logger.Info("Pulling chart from OCI registry", "version", version)
+			chartFiles, err = r.GiteaClient.PullOCIChartAndExtract(ctx, claim.Spec.ChartsRepository.URL, version)
+			if err != nil {
+				logger.Error(err, "failed to pull charts from OCI registry")
+				r.updateStatusFailed(ctx, claim, "Failed to pull OCI chart: "+err.Error())
+				return ctrl.Result{}, err
+			}
+		} else {
+			// Clone from Git repository
+			chartsBranch := claim.Spec.ChartsRepository.Branch
+			if chartsBranch == "" {
+				chartsBranch = "main"
+			}
+			chartsPath := claim.Spec.ChartsRepository.Path
+
+			logger.Info("Cloning charts from Git repository", "branch", chartsBranch, "path", chartsPath)
+			chartFiles, err = r.GiteaClient.CloneAndExtractFiles(ctx, claim.Spec.ChartsRepository.URL, chartsBranch, chartsPath)
+			if err != nil {
+				logger.Error(err, "failed to clone charts from Git repository")
+				r.updateStatusFailed(ctx, claim, "Failed to clone charts: "+err.Error())
+				return ctrl.Result{}, err
+			}
+		}
+	} else {
+		// Fallback to embedded charts for backwards compatibility
+		logger.Info("Loading charts from embedded path", "path", r.ChartsPath)
+		chartFiles, err = r.loadChartsFromEmbedded(r.ChartsPath)
+		if err != nil {
+			logger.Error(err, "failed to load charts")
+			r.updateStatusFailed(ctx, claim, "Failed to load charts: "+err.Error())
+			return ctrl.Result{}, err
+		}
 	}
 
 	if err := r.GiteaClient.PushFiles(ctx, repoURLs[chartsRepo], branch, chartFiles,

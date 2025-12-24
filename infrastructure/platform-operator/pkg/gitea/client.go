@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -174,8 +175,9 @@ func (c *Client) GetRepository(ctx context.Context, orgName, repoName string) (*
 
 // PushFiles pushes multiple files to a repository
 func (c *Client) PushFiles(ctx context.Context, repoURL, branch string, files map[string]string, commitMsg, authorName, authorEmail string) error {
-	// Clone repository to temp directory
-	tempDir := fmt.Sprintf("/tmp/gitea-repo-%d", time.Now().Unix())
+	// Clone repository to temp directory with unique name (using nanosecond for uniqueness)
+	tempDir := fmt.Sprintf("/tmp/gitea-repo-%d", time.Now().UnixNano())
+	defer os.RemoveAll(tempDir) // Cleanup temp directory after push
 
 	repo, err := git.PlainClone(tempDir, false, &git.CloneOptions{
 		URL: repoURL,
@@ -250,6 +252,154 @@ func (c *Client) GetBaseURL() string {
 // This ensures we use the cluster-internal URL instead of the external ROOT_URL from Gitea API
 func (c *Client) ConstructCloneURL(orgName, repoName string) string {
 	return fmt.Sprintf("%s/%s/%s.git", c.baseURL, orgName, repoName)
+}
+
+// PullOCIChartAndExtract pulls a Helm chart from an OCI registry and extracts all files
+// Returns a map of file paths to file contents
+func (c *Client) PullOCIChartAndExtract(ctx context.Context, chartURL, version string) (map[string]string, error) {
+	// Create temporary directory for chart download
+	tmpDir, err := os.MkdirTemp("", "oci-chart-*")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temp dir: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Prepare helm pull command
+	args := []string{"pull", chartURL}
+	if version != "" {
+		args = append(args, "--version", version)
+	}
+	args = append(args, "--destination", tmpDir, "--untar")
+
+	// Execute helm pull
+	cmd := exec.CommandContext(ctx, "helm", args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("helm pull failed: %w\nOutput: %s", err, string(output))
+	}
+
+	// Find the extracted chart directory
+	entries, err := os.ReadDir(tmpDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read temp dir: %w", err)
+	}
+
+	if len(entries) == 0 {
+		return nil, fmt.Errorf("no chart extracted")
+	}
+
+	chartDir := filepath.Join(tmpDir, entries[0].Name())
+
+	// Extract all files from the chart
+	files := make(map[string]string)
+	err = filepath.Walk(chartDir, func(filePath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip directories and Chart.yaml at root (we don't need it in Gitea)
+		if info.IsDir() {
+			return nil
+		}
+
+		// Read file content
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			return fmt.Errorf("failed to read file %s: %w", filePath, err)
+		}
+
+		// Calculate relative path from chart root
+		relPath, err := filepath.Rel(chartDir, filePath)
+		if err != nil {
+			return fmt.Errorf("failed to get relative path: %w", err)
+		}
+
+		// Store with forward slashes for Git compatibility
+		files[filepath.ToSlash(relPath)] = string(content)
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to walk chart directory: %w", err)
+	}
+
+	return files, nil
+}
+
+// CloneAndExtractFiles clones a Git repository and extracts all files from a specific path
+// Returns a map of file paths to file contents
+func (c *Client) CloneAndExtractFiles(ctx context.Context, repoURL, branch, subPath string) (map[string]string, error) {
+	// Create temporary directory for cloning
+	tmpDir, err := os.MkdirTemp("", "charts-clone-*")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temp dir: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Clone options
+	cloneOpts := &git.CloneOptions{
+		URL:      repoURL,
+		Progress: nil,
+		Depth:    1, // Shallow clone for faster performance
+	}
+
+	// Set branch if specified
+	if branch != "" {
+		cloneOpts.ReferenceName = plumbing.NewBranchReferenceName(branch)
+		cloneOpts.SingleBranch = true
+	}
+
+	// Clone the repository
+	_, err = git.PlainCloneContext(ctx, tmpDir, false, cloneOpts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to clone repository: %w", err)
+	}
+
+	// Determine the source path
+	sourcePath := tmpDir
+	if subPath != "" {
+		sourcePath = filepath.Join(tmpDir, subPath)
+	}
+
+	// Extract all files from the source path
+	files := make(map[string]string)
+	err = filepath.Walk(sourcePath, func(filePath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip .git directory
+		if info.IsDir() && info.Name() == ".git" {
+			return filepath.SkipDir
+		}
+
+		// Skip directories
+		if info.IsDir() {
+			return nil
+		}
+
+		// Read file content
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			return fmt.Errorf("failed to read file %s: %w", filePath, err)
+		}
+
+		// Calculate relative path from source
+		relPath, err := filepath.Rel(sourcePath, filePath)
+		if err != nil {
+			return fmt.Errorf("failed to get relative path: %w", err)
+		}
+
+		// Store with forward slashes for Git compatibility
+		files[filepath.ToSlash(relPath)] = string(content)
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to walk directory: %w", err)
+	}
+
+	return files, nil
 }
 
 // Helper functions

@@ -24,9 +24,6 @@ WORKDIR /
 # Copy the operator binary
 COPY --from=builder /workspace/manager .
 
-# Copy charts from project root (for bootstrap)
-COPY charts/ /charts/
-
 USER 65532:65532
 
 ENTRYPOINT ["/manager"]
