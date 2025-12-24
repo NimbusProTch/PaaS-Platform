@@ -16,10 +16,12 @@
   │
   └── 📦 voltran/                   (GitOps Config Repo)
       ├── root-apps/
-      │   ├── nonprod-apps-rootapp.yaml       🔥 Application apps için
-      │   ├── nonprod-platform-rootapp.yaml   🔥 Platform services için
-      │   ├── prod-apps-rootapp.yaml
-      │   └── prod-platform-rootapp.yaml
+      │   ├── nonprod/
+                - nonprod-apps-rootapp.yaml       🔥 Application apps için
+      │   ├──   -  nonprod-platform-rootapp.yaml   🔥 Platform services için
+              prod/
+      │   ├──   - prod-apps-rootapp.yaml
+      │   └──   - prod-platform-rootapp.yaml
       │
       ├── appsets/
       │   ├── nonprod/

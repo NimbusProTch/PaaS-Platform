@@ -246,9 +246,12 @@ This repository contains the GitOps configuration managed by the platform operat
 ## Cluster Type: %s
 `, clusterType)
 
-	// Root application for the cluster type
-	rootAppPath := fmt.Sprintf("root-apps/%s-root.yaml", clusterType)
-	files[rootAppPath] = r.generateRootApp(clusterType, branch)
+	// Root applications for the cluster type (separate for apps and platform)
+	appsRootAppPath := fmt.Sprintf("root-apps/%s/%s-apps-rootapp.yaml", clusterType, clusterType)
+	files[appsRootAppPath] = r.generateAppsRootApp(clusterType, branch)
+
+	platformRootAppPath := fmt.Sprintf("root-apps/%s/%s-platform-rootapp.yaml", clusterType, clusterType)
+	files[platformRootAppPath] = r.generatePlatformRootApp(clusterType, branch)
 
 	// Create directory structure for appsets
 	files[fmt.Sprintf("appsets/%s/apps/.gitkeep", clusterType)] = ""
@@ -263,12 +266,12 @@ This repository contains the GitOps configuration managed by the platform operat
 	return files
 }
 
-// generateRootApp generates the root ArgoCD application
-func (r *BootstrapReconciler) generateRootApp(clusterType, branch string) string {
+// generateAppsRootApp generates the root ArgoCD application for business applications
+func (r *BootstrapReconciler) generateAppsRootApp(clusterType, branch string) string {
 	return fmt.Sprintf(`apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: %s-root
+  name: %s-apps-root
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -276,7 +279,41 @@ spec:
   project: default
   source:
     repoURL: http://gitea.gitea.svc.cluster.local:3000/platform/voltran
-    path: appsets/%s
+    path: appsets/%s/apps
+    targetRevision: %s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+`, clusterType, clusterType, branch)
+}
+
+// generatePlatformRootApp generates the root ArgoCD application for platform services
+func (r *BootstrapReconciler) generatePlatformRootApp(clusterType, branch string) string {
+	return fmt.Sprintf(`apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: %s-platform-root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: http://gitea.gitea.svc.cluster.local:3000/platform/voltran
+    path: appsets/%s/platform
     targetRevision: %s
   destination:
     server: https://kubernetes.default.svc

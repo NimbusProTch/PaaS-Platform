@@ -70,7 +70,7 @@ func (r *PlatformClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	files := make(map[string]string)
 
 	// Generate ApplicationSet for platform services
-	appSetPath := fmt.Sprintf("appsets/%s/platform/%s-appset.yaml", claim.Spec.ClusterType, claim.Spec.Environment)
+	appSetPath := fmt.Sprintf("appsets/%s/platform/%s-platform-appset.yaml", claim.Spec.ClusterType, claim.Spec.Environment)
 	appSetContent := r.generatePlatformApplicationSet(claim)
 	files[appSetPath] = appSetContent
 

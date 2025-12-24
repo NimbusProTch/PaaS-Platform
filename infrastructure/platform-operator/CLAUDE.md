@@ -18,6 +18,8 @@
 - ✅ Fixed PlatformClaim controller file paths and naming
 - ✅ All appsets now generate as `{env}-appset.yaml` (not `-applications.yaml`)
 - ✅ All paths now include cluster type separation (nonprod/prod)
+- ✅ Fixed Bootstrap to create 2 separate root apps (apps & platform)
+- ✅ Fixed PlatformClaim appset naming to `{env}-platform-appset.yaml`
 
 ## Fixed GitOps Structure
 
@@ -26,8 +28,12 @@ The corrected directory structure in voltran repository:
 ```
 voltran/
   root-apps/
-    nonprod-root.yaml    ← Points to appsets/nonprod
-    prod-root.yaml       ← Points to appsets/prod
+    nonprod/
+      nonprod-apps-rootapp.yaml      ← Points to appsets/nonprod/apps
+      nonprod-platform-rootapp.yaml  ← Points to appsets/nonprod/platform
+    prod/
+      prod-apps-rootapp.yaml         ← Points to appsets/prod/apps
+      prod-platform-rootapp.yaml     ← Points to appsets/prod/platform
 
   appsets/
     nonprod/
@@ -36,14 +42,14 @@ voltran/
         qa-appset.yaml       ← ApplicationSet for qa applications
         sandbox-appset.yaml  ← ApplicationSet for sandbox applications
       platform/
-        dev-appset.yaml      ← ApplicationSet for dev platform services
-        qa-appset.yaml       ← ApplicationSet for qa platform services
+        dev-platform-appset.yaml      ← ApplicationSet for dev platform services
+        qa-platform-appset.yaml       ← ApplicationSet for qa platform services
     prod/
       apps/
         prod-appset.yaml     ← ApplicationSet for prod applications
         stage-appset.yaml    ← ApplicationSet for stage applications
       platform/
-        prod-appset.yaml     ← ApplicationSet for prod platform services
+        prod-platform-appset.yaml     ← ApplicationSet for prod platform services
 
   environments/
     nonprod/
@@ -75,7 +81,9 @@ voltran/
 ### Key Changes Made
 
 1. **Bootstrap Controller** (`bootstrap_controller.go`):
-   - Root app path: `appsets` → `appsets/{clusterType}`
+   - Created 2 separate root apps for each cluster type:
+     - `root-apps/{clusterType}/{clusterType}-apps-rootapp.yaml` → points to `appsets/{clusterType}/apps`
+     - `root-apps/{clusterType}/{clusterType}-platform-rootapp.yaml` → points to `appsets/{clusterType}/platform`
    - Created hierarchy: `appsets/{clusterType}/{apps|platform}/`
    - Created hierarchy: `environments/{clusterType}/{env}/{applications|platform}/`
 
@@ -85,7 +93,7 @@ voltran/
    - Git generator path updated to match new structure
 
 3. **PlatformClaim Controller** (`platformclaim_controller.go`):
-   - Appset file: `appsets/{env}-platform.yaml` → `appsets/{clusterType}/platform/{env}-appset.yaml`
+   - Appset file: `appsets/{env}-platform.yaml` → `appsets/{clusterType}/platform/{env}-platform-appset.yaml`
    - Values path: `environments/{env}/{service}-values.yaml` → `environments/{clusterType}/{env}/platform/{service}/values.yaml`
    - ValueFiles path in ApplicationSet updated to match new structure
    - Fixed repoURL from `platform-charts` to `charts`
