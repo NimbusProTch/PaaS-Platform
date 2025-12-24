@@ -23,104 +23,144 @@ spec:
     - type: postgresql
       name: product-db
       version: "15"
-      storage: 20Gi
-      replicas: 1
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "1Gi"
-        limits:
-          cpu: "1000m"
-          memory: "2Gi"
+      size: medium
+      chart:
+        name: postgresql
+        repository: charts
+      values:
+        persistence:
+          size: 20Gi
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
 
     - type: postgresql
       name: user-db
       version: "15"
-      storage: 10Gi
-      replicas: 1
-      resources:
-        requests:
-          cpu: "250m"
-          memory: "512Mi"
-        limits:
-          cpu: "500m"
-          memory: "1Gi"
+      size: small
+      chart:
+        name: postgresql
+        repository: charts
+      values:
+        persistence:
+          size: 10Gi
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
 
     - type: postgresql
       name: order-db
       version: "15"
-      storage: 20Gi
-      replicas: 1
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "1Gi"
-        limits:
-          cpu: "1000m"
-          memory: "2Gi"
+      size: medium
+      chart:
+        name: postgresql
+        repository: charts
+      values:
+        persistence:
+          size: 20Gi
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
 
     - type: postgresql
       name: payment-db
       version: "15"
-      storage: 10Gi
-      replicas: 1
-      resources:
-        requests:
-          cpu: "250m"
-          memory: "512Mi"
-        limits:
-          cpu: "500m"
-          memory: "1Gi"
+      size: small
+      chart:
+        name: postgresql
+        repository: charts
+      values:
+        persistence:
+          size: 10Gi
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
 
     - type: postgresql
       name: notification-db
       version: "15"
-      storage: 5Gi
-      replicas: 1
-      resources:
-        requests:
-          cpu: "250m"
-          memory: "256Mi"
-        limits:
-          cpu: "500m"
-          memory: "512Mi"
+      size: small
+      chart:
+        name: postgresql
+        repository: charts
+      values:
+        persistence:
+          size: 5Gi
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
 
     # Shared Services
     - type: redis
       name: redis
       version: "7"
-      storage: 5Gi
-      replicas: 1
-      resources:
-        requests:
-          cpu: "100m"
-          memory: "256Mi"
-        limits:
-          cpu: "250m"
-          memory: "512Mi"
+      size: small
+      chart:
+        name: redis
+        repository: charts
+      values:
+        persistence:
+          size: 5Gi
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "250m"
+            memory: "512Mi"
 
     - type: rabbitmq
       name: rabbitmq
       version: "3.12"
-      storage: 10Gi
-      replicas: 1
-      resources:
-        requests:
-          cpu: "250m"
-          memory: "512Mi"
-        limits:
-          cpu: "500m"
-          memory: "1Gi"
+      size: medium
+      chart:
+        name: rabbitmq
+        repository: charts
+      values:
+        persistence:
+          size: 10Gi
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
 
     - type: elasticsearch
       name: elasticsearch
       version: "8.11"
-      storage: 30Gi
-      replicas: 1
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "2Gi"
-        limits:
-          cpu: "1000m"
-          memory: "4Gi"
+      size: large
+      chart:
+        name: elasticsearch
+        repository: charts
+      values:
+        persistence:
+          size: 30Gi
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "2Gi"
+          limits:
+            cpu: "1000m"
+            memory: "4Gi"

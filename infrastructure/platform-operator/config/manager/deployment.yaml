@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: controller-manager
+  namespace: platform-operator-system
   labels:
     control-plane: controller-manager
 spec:
@@ -17,12 +18,13 @@ spec:
       serviceAccountName: platform-operator
       containers:
       - name: manager
-        image: controller:latest
+        image: platform-operator:latest
         imagePullPolicy: IfNotPresent
         args:
         - --leader-elect
         - --gitea-url=http://gitea-http.gitea.svc.cluster.local:3000
         - --gitea-username=gitea_admin
+        - --charts-path=/charts
         env:
         - name: GITEA_TOKEN
           valueFrom:
@@ -101,7 +103,7 @@ rules:
   resources:
   - applicationclaims
   - bootstrapclaims
-  - platformclaims
+  - platformapplicationclaims
   verbs:
   - get
   - list
@@ -115,7 +117,7 @@ rules:
   resources:
   - applicationclaims/status
   - bootstrapclaims/status
-  - platformclaims/status
+  - platformapplicationclaims/status
   verbs:
   - get
   - update
@@ -125,7 +127,7 @@ rules:
   resources:
   - applicationclaims/finalizers
   - bootstrapclaims/finalizers
-  - platformclaims/finalizers
+  - platformapplicationclaims/finalizers
   verbs:
   - update
 - apiGroups:
