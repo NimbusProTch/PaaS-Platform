@@ -6,7 +6,7 @@ RUN apk add --no-cache git
 
 WORKDIR /workspace
 
-# Copy go mod files
+# Copy go mod files from operator directory
 COPY infrastructure/platform-operator/go.mod infrastructure/platform-operator/go.sum ./
 RUN go mod download
 
@@ -24,8 +24,7 @@ WORKDIR /
 # Copy the operator binary
 COPY --from=builder /workspace/manager .
 
-# Copy charts from project root (build context is project root)
-# Charts contain both microservice and platform templates
+# Copy charts from project root (for bootstrap)
 COPY charts/ /charts/
 
 USER 65532:65532
