@@ -70,19 +70,19 @@ func (r *ApplicationClaimGitOpsReconciler) Reconcile(ctx context.Context, req ct
 	files := make(map[string]string)
 
 	// Generate ApplicationSet
-	appSetPath := fmt.Sprintf("appsets/%s-applications.yaml", claim.Spec.Environment)
+	appSetPath := fmt.Sprintf("appsets/%s/apps/%s-appset.yaml", claim.Spec.ClusterType, claim.Spec.Environment)
 	appSetContent := r.generateApplicationSet(claim)
 	files[appSetPath] = appSetContent
 
 	// Generate directory structure for each application
 	for _, app := range claim.Spec.Applications {
 		// values.yaml
-		valuesPath := fmt.Sprintf("environments/%s/%s/values.yaml", claim.Spec.Environment, app.Name)
+		valuesPath := fmt.Sprintf("environments/%s/%s/applications/%s/values.yaml", claim.Spec.ClusterType, claim.Spec.Environment, app.Name)
 		valuesContent := r.generateValuesYAML(claim, app)
 		files[valuesPath] = valuesContent
 
 		// config.yaml (metadata)
-		configPath := fmt.Sprintf("environments/%s/%s/config.yaml", claim.Spec.Environment, app.Name)
+		configPath := fmt.Sprintf("environments/%s/%s/applications/%s/config.yaml", claim.Spec.ClusterType, claim.Spec.Environment, app.Name)
 		configContent := r.generateConfigYAML(app)
 		files[configPath] = configContent
 	}
@@ -134,12 +134,12 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 						"revision": r.Branch,
 						"directories": []map[string]interface{}{
 							{
-								"path": fmt.Sprintf("environments/%s/*", claim.Spec.Environment),
+								"path": fmt.Sprintf("environments/%s/%s/applications/*", claim.Spec.ClusterType, claim.Spec.Environment),
 							},
 						},
 						"files": []map[string]interface{}{
 							{
-								"path": fmt.Sprintf("environments/%s/*/config.yaml", claim.Spec.Environment),
+								"path": fmt.Sprintf("environments/%s/%s/applications/*/config.yaml", claim.Spec.ClusterType, claim.Spec.Environment),
 							},
 						},
 					},

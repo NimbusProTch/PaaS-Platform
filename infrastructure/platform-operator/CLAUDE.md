@@ -9,11 +9,86 @@
 - ✅ Fixed metrics collector compilation error
 - ✅ Updated all controllers to use Git Directory Generator pattern
 - ✅ Created ConstructCloneURL() method for internal URLs
+- ✅ Fixed GitOps directory structure with cluster-type hierarchy
+- ✅ Fixed all controllers to generate correct file paths and naming
 
-### Current Issue
-- ❌ Bootstrap failing on charts upload: "lstat /charts: no such file or directory"
-- **Root Cause**: ChartsPath parameter not set when starting operator
-- **Status**: Bootstrap at 90% complete (org created, repos created, charts upload failing)
+### Latest Changes (Session 2)
+- ✅ Fixed Bootstrap controller to create proper directory hierarchy
+- ✅ Fixed ApplicationClaim controller file paths and naming
+- ✅ Fixed PlatformClaim controller file paths and naming
+- ✅ All appsets now generate as `{env}-appset.yaml` (not `-applications.yaml`)
+- ✅ All paths now include cluster type separation (nonprod/prod)
+
+## Fixed GitOps Structure
+
+The corrected directory structure in voltran repository:
+
+```
+voltran/
+  root-apps/
+    nonprod-root.yaml    ← Points to appsets/nonprod
+    prod-root.yaml       ← Points to appsets/prod
+
+  appsets/
+    nonprod/
+      apps/
+        dev-appset.yaml      ← ApplicationSet for dev applications
+        qa-appset.yaml       ← ApplicationSet for qa applications
+        sandbox-appset.yaml  ← ApplicationSet for sandbox applications
+      platform/
+        dev-appset.yaml      ← ApplicationSet for dev platform services
+        qa-appset.yaml       ← ApplicationSet for qa platform services
+    prod/
+      apps/
+        prod-appset.yaml     ← ApplicationSet for prod applications
+        stage-appset.yaml    ← ApplicationSet for stage applications
+      platform/
+        prod-appset.yaml     ← ApplicationSet for prod platform services
+
+  environments/
+    nonprod/
+      dev/
+        applications/        ← Business app values
+          api-gateway/
+            values.yaml
+            config.yaml
+          product-service/
+            values.yaml
+            config.yaml
+        platform/           ← Platform service values
+          postgresql/
+            values.yaml
+          redis/
+            values.yaml
+      qa/
+        applications/
+        platform/
+    prod/
+      prod/
+        applications/
+        platform/
+      stage/
+        applications/
+        platform/
+```
+
+### Key Changes Made
+
+1. **Bootstrap Controller** (`bootstrap_controller.go`):
+   - Root app path: `appsets` → `appsets/{clusterType}`
+   - Created hierarchy: `appsets/{clusterType}/{apps|platform}/`
+   - Created hierarchy: `environments/{clusterType}/{env}/{applications|platform}/`
+
+2. **ApplicationClaim Controller** (`applicationclaim_gitops_controller.go`):
+   - Appset file: `appsets/{env}-applications.yaml` → `appsets/{clusterType}/apps/{env}-appset.yaml`
+   - Values path: `environments/{env}/{app}/` → `environments/{clusterType}/{env}/applications/{app}/`
+   - Git generator path updated to match new structure
+
+3. **PlatformClaim Controller** (`platformclaim_controller.go`):
+   - Appset file: `appsets/{env}-platform.yaml` → `appsets/{clusterType}/platform/{env}-appset.yaml`
+   - Values path: `environments/{env}/{service}-values.yaml` → `environments/{clusterType}/{env}/platform/{service}/values.yaml`
+   - ValueFiles path in ApplicationSet updated to match new structure
+   - Fixed repoURL from `platform-charts` to `charts`
 
 ## Files Modified in This Session
 

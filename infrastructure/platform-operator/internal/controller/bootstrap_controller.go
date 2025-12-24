@@ -240,8 +240,8 @@ This repository contains the GitOps configuration managed by the platform operat
 ## Structure
 
 - root-apps/: ArgoCD root applications
-- appsets/: ApplicationSet definitions
-- environments/: Environment-specific values
+- appsets/: ApplicationSet definitions (apps & platform separated)
+- environments/: Environment-specific values (applications & platform separated)
 
 ## Cluster Type: %s
 `, clusterType)
@@ -250,12 +250,14 @@ This repository contains the GitOps configuration managed by the platform operat
 	rootAppPath := fmt.Sprintf("root-apps/%s-root.yaml", clusterType)
 	files[rootAppPath] = r.generateRootApp(clusterType, branch)
 
-	// Placeholder appsets and environments
-	files["appsets/.gitkeep"] = ""
-	files["environments/.gitkeep"] = ""
+	// Create directory structure for appsets
+	files[fmt.Sprintf("appsets/%s/apps/.gitkeep", clusterType)] = ""
+	files[fmt.Sprintf("appsets/%s/platform/.gitkeep", clusterType)] = ""
 
+	// Create directory structure for environments
 	for _, env := range environments {
-		files[fmt.Sprintf("environments/%s/.gitkeep", env)] = ""
+		files[fmt.Sprintf("environments/%s/%s/applications/.gitkeep", clusterType, env)] = ""
+		files[fmt.Sprintf("environments/%s/%s/platform/.gitkeep", clusterType, env)] = ""
 	}
 
 	return files
@@ -274,7 +276,7 @@ spec:
   project: default
   source:
     repoURL: http://gitea.gitea.svc.cluster.local:3000/platform/voltran
-    path: appsets
+    path: appsets/%s
     targetRevision: %s
   destination:
     server: https://kubernetes.default.svc
@@ -292,7 +294,7 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
-`, clusterType, branch)
+`, clusterType, clusterType, branch)
 }
 
 // updateStatusFailed updates the status to Failed

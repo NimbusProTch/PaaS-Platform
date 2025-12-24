@@ -70,13 +70,13 @@ func (r *PlatformClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	files := make(map[string]string)
 
 	// Generate ApplicationSet for platform services
-	appSetPath := fmt.Sprintf("appsets/%s-platform.yaml", claim.Spec.Environment)
+	appSetPath := fmt.Sprintf("appsets/%s/platform/%s-appset.yaml", claim.Spec.ClusterType, claim.Spec.Environment)
 	appSetContent := r.generatePlatformApplicationSet(claim)
 	files[appSetPath] = appSetContent
 
 	// Generate values.yaml for each service
 	for _, service := range claim.Spec.Services {
-		valuesPath := fmt.Sprintf("environments/%s/%s-values.yaml", claim.Spec.Environment, service.Name)
+		valuesPath := fmt.Sprintf("environments/%s/%s/platform/%s/values.yaml", claim.Spec.ClusterType, claim.Spec.Environment, service.Name)
 		valuesContent := r.generatePlatformValuesYAML(claim, service)
 		files[valuesPath] = valuesContent
 	}
@@ -142,12 +142,12 @@ func (r *PlatformClaimReconciler) generatePlatformApplicationSet(claim *platform
 				"spec": map[string]interface{}{
 					"project": "default",
 					"source": map[string]interface{}{
-						"repoURL":        fmt.Sprintf("http://gitea.gitea.svc.cluster.local:3000/%s/platform-charts", r.Organization),
+						"repoURL":        fmt.Sprintf("http://gitea.gitea.svc.cluster.local:3000/%s/charts", r.Organization),
 						"path":           "{{chart}}",
 						"targetRevision": r.Branch,
 						"helm": map[string]interface{}{
 							"valueFiles": []string{
-								fmt.Sprintf("../../voltran/environments/%s/{{service}}-values.yaml", claim.Spec.Environment),
+								fmt.Sprintf("../../voltran/environments/%s/%s/platform/{{service}}/values.yaml", claim.Spec.ClusterType, claim.Spec.Environment),
 							},
 						},
 					},
