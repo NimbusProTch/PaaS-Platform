@@ -374,40 +374,94 @@ func (c *Client) InstallOrUpgrade(ctx context.Context, release Release) error {
 2. Validate with ecommerce-claim
 3. Optional: Migrate to Kustomize-based GitOps (future iteration)
 
-## Next Steps (Morning Restart)
+## Current Status (2025-12-24 17:00)
 
-### Step 1: Recreate Infrastructure
+**Last Updated**: 2025-12-24 17:00 (UTC+3)
+**Status**: ✅ Operator ready for deployment (Git-based, no ChartMuseum needed)
+
+### Completed Today
+- ✅ Operator build successful (66MB binary)
+- ✅ Switched from ChartMuseum to Git repo (simpler architecture)
+- ✅ ArgoCD ApplicationSet now pulls charts from GitHub
+- ✅ Diff-based ConfigMap reconciliation
+- ✅ ArgoCD Sync Waves (infrastructure wave 0 → apps wave 1)
+- ✅ Configurable IMAGE_REGISTRY environment variable
+- ✅ Two-claim architecture (platform-infrastructure + apps)
+- ✅ Project cleanup (removed disabled tests, cleaned structure)
+- ✅ Terraform validation passed
+
+### Architecture Change
+**Before**: Operator → ChartMuseum → ArgoCD
+**After**: Operator → GitHub (charts/common/) → ArgoCD
+
+Benefits:
+- No ChartMuseum deployment needed
+- Simpler infrastructure
+- Charts versioned in Git
+- Faster iteration
+
+### Chart Source
+```yaml
+source:
+  repoURL: "https://github.com/nimbusprotch/platform-operator"
+  targetRevision: "main"
+  path: "charts/common"
+  helm:
+    values: "{{helmValues}}"  # Inline from operator
+```
+
+## Next Steps
+
+### 1. Deploy Infrastructure (EKS + ArgoCD)
 ```bash
 cd infrastructure/aws
 tofu apply
 # Wait ~15 minutes for EKS cluster ready
 ```
 
-### Step 2: Complete ChartMuseum Integration
-1. Add chart upload automation to `infrastructure/aws/chartmuseum.tf`
-2. Apply Terraform changes
-3. Verify chart available: `helm search repo chartmuseum/common`
-
-### Step 3: Fix Health Check
-1. Update `applicationclaim_controller.go:654-671`
-2. Use `app.HealthCheck` spec instead of hardcoded values
-3. Rebuild and redeploy operator
-
-### Step 4: Test with E-commerce Claim
+### 2. Deploy Platform Operator
 ```bash
-kubectl apply -f infrastructure/platform-operator/examples/claims/ecommerce-claim-ghcr.yaml
-kubectl get applicationclaim ecommerce-demo -w
-kubectl get applicationset -n argocd
-kubectl get application -n argocd
+kubectl apply -f infrastructure/platform-operator/config/crd/
+kubectl apply -f infrastructure/platform-operator/config/manager/
 ```
 
-### Step 5: Validate End-to-End Flow
-1. ApplicationClaim created
-2. Operator generates Helm values
-3. ArgoCD ApplicationSet created
-4. ArgoCD deploys from ChartMuseum
-5. Application pods running with correct health checks
-6. PostgreSQL provisioned and connected
+### 3. Deploy Two Claims
+```bash
+# Infrastructure first (PostgreSQL, Redis, RabbitMQ, Elasticsearch)
+kubectl apply -f deployments/dev/platform-infrastructure-claim.yaml
+
+# Applications second (product, user, order, payment, notification services)
+kubectl apply -f deployments/dev/apps-claim.yaml
+```
+
+### 4. Monitor Deployment
+```bash
+# Watch claims
+kubectl get applicationclaim -w
+
+# Watch ArgoCD ApplicationSets
+kubectl get applicationset -n argocd
+
+# Watch ArgoCD Applications
+kubectl get application -n argocd
+
+# Check sync waves (infrastructure deploys before apps)
+kubectl get application -n argocd -o custom-columns=\
+NAME:.metadata.name,\
+WAVE:.metadata.annotations.argocd\.argoproj\.io/sync-wave,\
+HEALTH:.status.health.status,\
+SYNC:.status.sync.status
+```
+
+### 5. Validate End-to-End Flow
+1. ✅ ApplicationClaim created
+2. ✅ Operator generates Helm values (inline in ApplicationSet)
+3. ✅ ArgoCD ApplicationSet created
+4. ⏳ ArgoCD pulls chart from GitHub
+5. ⏳ ArgoCD deploys with inline values
+6. ⏳ Infrastructure pods running (wave 0)
+7. ⏳ Application pods running (wave 1)
+8. ⏳ Services accessible
 
 ## Test Coverage
 

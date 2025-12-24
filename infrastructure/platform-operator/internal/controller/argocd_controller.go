@@ -745,9 +745,9 @@ func (r *ApplicationClaimReconciler) createOrUpdateApplicationSet(ctx context.Co
 					"spec": map[string]interface{}{
 						"project": projectName,
 						"source": map[string]interface{}{
-							"repoURL":        "http://chartmuseum.chartmuseum.svc.cluster.local:8080",
-							"targetRevision": "2.0.0",
-							"chart":          "common",
+							"repoURL":        "https://github.com/nimbusprotch/platform-operator",
+							"targetRevision": "main",
+							"path":           "charts/common",
 							"helm": map[string]interface{}{
 								// Values embedded inline from list generator
 								"values": "{{helmValues}}",

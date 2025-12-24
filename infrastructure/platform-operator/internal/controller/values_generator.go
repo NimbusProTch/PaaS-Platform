@@ -25,7 +25,7 @@ func (r *ApplicationClaimReconciler) generateValuesForApp(claim *platformv1.Appl
 		// Default: GHCR with configurable organization
 		imageRegistry := os.Getenv("IMAGE_REGISTRY")
 		if imageRegistry == "" {
-			imageRegistry = "ghcr.io/nimbusprotch"  // Default GHCR org
+			imageRegistry = "ghcr.io/nimbusprotch" // Default GHCR org
 		}
 		imageRepo = fmt.Sprintf("%s/%s", imageRegistry, app.ServiceName)
 	}
