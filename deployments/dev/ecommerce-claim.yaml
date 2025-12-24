@@ -1,0 +1,363 @@
+apiVersion: platform.infraforge.io/v1
+kind: ApplicationClaim
+metadata:
+  name: ecommerce-platform
+  namespace: default
+  labels:
+    environment: dev
+    team: platform-team
+    project: ecommerce
+spec:
+  environment: dev
+
+  owner:
+    team: platform-team
+    email: platform@infraforge.io
+    slack: "#platform-dev"
+
+  # All microservices
+  applications:
+    # Product Service (Node.js)
+    - name: product-service
+      serviceName: product-service
+      version: v1.0.0
+      replicas: 2
+
+      ports:
+        - name: http
+          port: 8080
+          protocol: TCP
+        - name: metrics
+          port: 9090
+          protocol: TCP
+
+      healthCheck:
+        path: /health
+        port: 8080
+        initialDelaySeconds: 40
+        periodSeconds: 10
+
+      resources:
+        requests:
+          cpu: "250m"
+          memory: "512Mi"
+        limits:
+          cpu: "500m"
+          memory: "1Gi"
+
+      env:
+        - name: NODE_ENV
+          value: "development"
+        - name: PORT
+          value: "8080"
+        - name: DATABASE_URL
+          value: "postgresql://product_user:product_pass@product-db:5432/product_db"
+        - name: REDIS_URL
+          value: "redis://redis:6379"
+        - name: AMQP_URL
+          value: "amqp://guest:guest@rabbitmq:5672"
+        - name: ELASTICSEARCH_URL
+          value: "http://elasticsearch:9200"
+
+    # User Service (Go)
+    - name: user-service
+      serviceName: user-service
+      version: v1.0.0
+      replicas: 2
+
+      ports:
+        - name: http
+          port: 8081
+          protocol: TCP
+
+      healthCheck:
+        path: /health
+        port: 8081
+        initialDelaySeconds: 40
+        periodSeconds: 10
+
+      resources:
+        requests:
+          cpu: "200m"
+          memory: "256Mi"
+        limits:
+          cpu: "400m"
+          memory: "512Mi"
+
+      env:
+        - name: ENVIRONMENT
+          value: "development"
+        - name: PORT
+          value: "8081"
+        - name: DB_HOST
+          value: "user-db"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
+          value: "user_service"
+        - name: DB_PASSWORD
+          value: "user_pass"
+        - name: DB_NAME
+          value: "user_db"
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: AMQP_URL
+          value: "amqp://guest:guest@rabbitmq:5672/"
+
+    # Order Service (Go)
+    - name: order-service
+      serviceName: order-service
+      version: v1.0.0
+      replicas: 2
+
+      ports:
+        - name: http
+          port: 8082
+          protocol: TCP
+
+      healthCheck:
+        path: /health
+        port: 8082
+        initialDelaySeconds: 40
+        periodSeconds: 10
+
+      resources:
+        requests:
+          cpu: "200m"
+          memory: "256Mi"
+        limits:
+          cpu: "400m"
+          memory: "512Mi"
+
+      env:
+        - name: ENVIRONMENT
+          value: "development"
+        - name: PORT
+          value: "8082"
+        - name: DB_HOST
+          value: "order-db"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
+          value: "order_user"
+        - name: DB_PASSWORD
+          value: "order_pass"
+        - name: DB_NAME
+          value: "order_db"
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: AMQP_URL
+          value: "amqp://guest:guest@rabbitmq:5672/"
+
+    # Payment Service (Node.js)
+    - name: payment-service
+      serviceName: payment-service
+      version: v1.0.0
+      replicas: 2
+
+      ports:
+        - name: http
+          port: 8083
+          protocol: TCP
+        - name: metrics
+          port: 9090
+          protocol: TCP
+
+      healthCheck:
+        path: /health
+        port: 8083
+        initialDelaySeconds: 40
+        periodSeconds: 10
+
+      resources:
+        requests:
+          cpu: "250m"
+          memory: "512Mi"
+        limits:
+          cpu: "500m"
+          memory: "1Gi"
+
+      env:
+        - name: NODE_ENV
+          value: "development"
+        - name: PORT
+          value: "8083"
+        - name: DATABASE_URL
+          value: "postgresql://payment_user:payment_pass@payment-db:5432/payment_db"
+        - name: REDIS_URL
+          value: "redis://redis:6379"
+        - name: AMQP_URL
+          value: "amqp://guest:guest@rabbitmq:5672"
+        - name: STRIPE_SECRET_KEY
+          value: "sk_test_dummy"
+
+    # Notification Service (Go)
+    - name: notification-service
+      serviceName: notification-service
+      version: v1.0.0
+      replicas: 1
+
+      ports:
+        - name: http
+          port: 8084
+          protocol: TCP
+
+      healthCheck:
+        path: /health
+        port: 8084
+        initialDelaySeconds: 40
+        periodSeconds: 10
+
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "128Mi"
+        limits:
+          cpu: "200m"
+          memory: "256Mi"
+
+      env:
+        - name: ENVIRONMENT
+          value: "development"
+        - name: PORT
+          value: "8084"
+        - name: DB_HOST
+          value: "notification-db"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
+          value: "notification_user"
+        - name: DB_PASSWORD
+          value: "notification_pass"
+        - name: DB_NAME
+          value: "notification_db"
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: AMQP_URL
+          value: "amqp://guest:guest@rabbitmq:5672/"
+        - name: SMTP_HOST
+          value: "smtp.gmail.com"
+        - name: SMTP_PORT
+          value: "587"
+        - name: SMTP_FROM
+          value: "noreply@infraforge.io"
+
+  # Infrastructure Components
+  components:
+    # PostgreSQL for Product Service
+    - type: postgresql
+      name: product-db
+      version: "15"
+      storage: 20Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "1000m"
+          memory: "2Gi"
+
+    # PostgreSQL for User Service
+    - type: postgresql
+      name: user-db
+      version: "15"
+      storage: 10Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "250m"
+          memory: "512Mi"
+        limits:
+          cpu: "500m"
+          memory: "1Gi"
+
+    # PostgreSQL for Order Service
+    - type: postgresql
+      name: order-db
+      version: "15"
+      storage: 20Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "1000m"
+          memory: "2Gi"
+
+    # PostgreSQL for Payment Service
+    - type: postgresql
+      name: payment-db
+      version: "15"
+      storage: 10Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "250m"
+          memory: "512Mi"
+        limits:
+          cpu: "500m"
+          memory: "1Gi"
+
+    # PostgreSQL for Notification Service
+    - type: postgresql
+      name: notification-db
+      version: "15"
+      storage: 5Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "250m"
+          memory: "256Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+
+    # Redis for caching
+    - type: redis
+      name: redis
+      version: "7"
+      storage: 5Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "256Mi"
+        limits:
+          cpu: "250m"
+          memory: "512Mi"
+
+    # RabbitMQ for messaging
+    - type: rabbitmq
+      name: rabbitmq
+      version: "3.12"
+      storage: 10Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "250m"
+          memory: "512Mi"
+        limits:
+          cpu: "500m"
+          memory: "1Gi"
+
+    # Elasticsearch for search
+    - type: elasticsearch
+      name: elasticsearch
+      version: "8.11"
+      storage: 30Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "2Gi"
+        limits:
+          cpu: "1000m"
+          memory: "4Gi"
