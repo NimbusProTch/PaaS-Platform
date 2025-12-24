@@ -1,0 +1,46 @@
+apiVersion: platform.infraforge.io/v1
+kind: ApplicationClaim
+metadata:
+  name: ecommerce-platform
+  namespace: default
+spec:
+  owner:
+    team: ecommerce-team
+    email: ecommerce@example.com
+    slack: "#ecommerce"
+  environment: dev
+  clusterType: nonprod
+  namespace: ecommerce-dev
+  applications:
+    - name: api-gateway
+      chart:
+        name: common
+        version: "1.0.0"
+      image:
+        repository: nginx
+        tag: "1.21"
+      replicas: 2
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "128Mi"
+        limits:
+          cpu: "200m"
+          memory: "256Mi"
+      ingress:
+        enabled: true
+        host: api.ecommerce-dev.local
+        path: /
+        tls: false
+    - name: product-service
+      chart:
+        name: common
+        version: "1.0.0"
+      image:
+        repository: nginx
+        tag: "1.21"
+      replicas: 1
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "128Mi"

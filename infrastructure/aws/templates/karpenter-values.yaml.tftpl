@@ -1,0 +1,19 @@
+settings:
+  clusterName: ${cluster_name}
+  clusterEndpoint: ${cluster_endpoint}
+  interruptionQueueName: ${cluster_name}
+  aws:
+    vmMemoryOverheadPercent: ${vm_memory_overhead}
+
+serviceAccount:
+  annotations: {}
+
+replicas: ${replicas}
+
+resources:
+  requests:
+    cpu: ${cpu_request}
+    memory: ${memory_request}
+  limits:
+    cpu: ${cpu_limit}
+    memory: ${memory_limit}

@@ -1,0 +1,44 @@
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude all .tfvars files (sensitive data)
+# But we keep environment-specific ones in git for reference
+terraform.tfvars
+
+# Ignore override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# CLI configuration files
+.terraform lock.hcl
+.terraformrc
+terraform.rc
+
+# Temporary files
+tfplan
+*.backup
+*.lock.info
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Mac files
+.DS_Store
+
+# Logs
+logs/
+*.log

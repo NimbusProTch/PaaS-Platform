@@ -1,0 +1,121 @@
+{{- if eq .Values.type "elasticsearch" }}
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: {{ include "common.fullname" . }}
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+  {{- with .Values.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  version: {{ .Values.elasticsearch.version | default "8.11.0" }}
+
+  nodeSets:
+    # Master nodes
+    - name: master
+      count: {{ .Values.elasticsearch.nodeSets.master.count | default 3 }}
+      config:
+        node.roles: ["master"]
+        node.store.allow_mmap: false
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ .Values.elasticsearch.nodeSets.master.storage | default "10Gi" }}
+            {{- if .Values.elasticsearch.storage.storageClass }}
+            storageClassName: {{ .Values.elasticsearch.storage.storageClass }}
+            {{- end }}
+      podTemplate:
+        spec:
+          containers:
+            - name: elasticsearch
+              resources:
+                requests:
+                  cpu: {{ .Values.elasticsearch.resources.requests.cpu | default "1000m" }}
+                  memory: {{ .Values.elasticsearch.resources.requests.memory | default "2Gi" }}
+                limits:
+                  cpu: {{ .Values.elasticsearch.resources.limits.cpu | default "4000m" }}
+                  memory: {{ .Values.elasticsearch.resources.limits.memory | default "8Gi" }}
+              env:
+                - name: ES_JAVA_OPTS
+                  value: "-Xms1g -Xmx1g"
+
+    # Data nodes
+    - name: data
+      count: {{ .Values.elasticsearch.nodeSets.data.count | default 3 }}
+      config:
+        node.roles: ["data", "ingest", "ml"]
+        node.store.allow_mmap: false
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ .Values.elasticsearch.nodeSets.data.storage | default "100Gi" }}
+            {{- if .Values.elasticsearch.storage.storageClass }}
+            storageClassName: {{ .Values.elasticsearch.storage.storageClass }}
+            {{- end }}
+      podTemplate:
+        spec:
+          containers:
+            - name: elasticsearch
+              resources:
+                requests:
+                  cpu: {{ .Values.elasticsearch.resources.requests.cpu | default "1000m" }}
+                  memory: {{ .Values.elasticsearch.resources.requests.memory | default "2Gi" }}
+                limits:
+                  cpu: {{ .Values.elasticsearch.resources.limits.cpu | default "4000m" }}
+                  memory: {{ .Values.elasticsearch.resources.limits.memory | default "8Gi" }}
+              env:
+                - name: ES_JAVA_OPTS
+                  value: "-Xms2g -Xmx2g"
+
+    {{- if gt (int (.Values.elasticsearch.nodeSets.ingest.count | default 0)) 0 }}
+    # Ingest nodes (optional)
+    - name: ingest
+      count: {{ .Values.elasticsearch.nodeSets.ingest.count }}
+      config:
+        node.roles: ["ingest"]
+        node.store.allow_mmap: false
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ .Values.elasticsearch.nodeSets.ingest.storage | default "5Gi" }}
+            {{- if .Values.elasticsearch.storage.storageClass }}
+            storageClassName: {{ .Values.elasticsearch.storage.storageClass }}
+            {{- end }}
+      podTemplate:
+        spec:
+          containers:
+            - name: elasticsearch
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 1Gi
+                limits:
+                  cpu: 2000m
+                  memory: 4Gi
+              env:
+                - name: ES_JAVA_OPTS
+                  value: "-Xms512m -Xmx512m"
+    {{- end }}
+
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: true
+{{- end }}

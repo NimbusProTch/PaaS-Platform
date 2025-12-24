@@ -1,0 +1,24 @@
+provider: aws
+
+aws:
+  region: ${aws_region}
+  zoneType: public
+
+domainFilters:
+  - ${domain_name}
+
+policy: sync
+
+serviceAccount:
+  create: true
+  name: external-dns
+  annotations:
+    eks.amazonaws.com/role-arn: ${irsa_role_arn}
+
+resources:
+  requests:
+    cpu: ${cpu_request}
+    memory: ${memory_request}
+  limits:
+    cpu: ${cpu_limit}
+    memory: ${memory_limit}

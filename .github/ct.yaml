@@ -1,0 +1,18 @@
+# Chart Testing Configuration
+chart-dirs:
+  - charts
+
+chart-repos:
+  - bitnami=https://charts.bitnami.com/bitnami
+
+helm-extra-args: --timeout 600s
+
+validate-maintainers: false
+
+check-version-increment: false
+
+# Exclude test values files
+excluded-charts: []
+
+# Additional Helm lint options
+helm-lint-extra-args: --strict

@@ -1,0 +1,186 @@
+name: Publish Helm Charts to OCI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'charts/**'
+      - '.github/workflows/chart-publish.yml'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Package & Publish to GitHub Packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
+            --username ${{ github.actor }} \
+            --password-stdin
+
+      - name: Extract chart metadata
+        id: meta
+        run: |
+          # Get repository owner (lowercase for OCI compatibility)
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "owner=$OWNER" >> $GITHUB_OUTPUT
+
+          # Extract version from Chart.yaml
+          VERSION=$(grep '^version:' charts/common/Chart.yaml | awk '{print $2}')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Generate timestamp-based build number
+          BUILD_DATE=$(date +%Y%m%d%H%M%S)
+          echo "build_date=$BUILD_DATE" >> $GITHUB_OUTPUT
+
+          echo "📦 Chart version: $VERSION"
+          echo "🏷️  Owner: $OWNER"
+
+      - name: Package Helm Charts
+        run: |
+          mkdir -p .helm-packages
+
+          for chart_dir in charts/*/; do
+            chart_name=$(basename "$chart_dir")
+            echo "📦 Packaging chart: $chart_name"
+
+            # Package the chart
+            helm package "$chart_dir" \
+              --destination .helm-packages \
+              --version "${{ steps.meta.outputs.version }}"
+
+            echo "✅ Packaged: $chart_name-${{ steps.meta.outputs.version }}.tgz"
+          done
+
+          ls -lh .helm-packages/
+
+      - name: Push to GitHub Packages (OCI)
+        run: |
+          OWNER="${{ steps.meta.outputs.owner }}"
+          VERSION="${{ steps.meta.outputs.version }}"
+
+          for package in .helm-packages/*.tgz; do
+            chart_name=$(basename "$package" | sed "s/-${VERSION}.tgz//")
+
+            echo "🚀 Pushing $chart_name to OCI registry..."
+
+            # Push with semantic version
+            helm push "$package" "oci://ghcr.io/${OWNER}"
+
+            echo "✅ Published: oci://ghcr.io/${OWNER}/${chart_name}:${VERSION}"
+          done
+
+      - name: Tag as latest
+        run: |
+          OWNER="${{ steps.meta.outputs.owner }}"
+          VERSION="${{ steps.meta.outputs.version }}"
+
+          for package in .helm-packages/*.tgz; do
+            chart_name=$(basename "$package" | sed "s/-${VERSION}.tgz//")
+
+            echo "🏷️  Tagging $chart_name:$VERSION as latest..."
+
+            # Pull the versioned chart
+            helm pull "oci://ghcr.io/${OWNER}/${chart_name" \
+              --version "$VERSION" \
+              --destination /tmp
+
+            # Re-package as latest
+            chart_dir=$(mktemp -d)
+            tar -xzf "/tmp/${chart_name}-${VERSION}.tgz" -C "$chart_dir"
+
+            # Update version to latest in Chart.yaml
+            sed -i "s/^version:.*/version: latest/" "$chart_dir/${chart_name}/Chart.yaml"
+
+            # Package and push as latest
+            helm package "$chart_dir/${chart_name}" --destination /tmp
+            helm push "/tmp/${chart_name}-latest.tgz" "oci://ghcr.io/${OWNER}"
+
+            echo "✅ Tagged as latest: oci://ghcr.io/${OWNER}/${chart_name}:latest"
+          done
+
+      - name: Generate Release Notes
+        id: release_notes
+        run: |
+          cat > release-notes.md << EOF
+          ## Helm Charts Published 📦
+
+          **Version:** ${{ steps.meta.outputs.version }}
+          **Build Date:** ${{ steps.meta.outputs.build_date }}
+
+          ### Published Charts
+
+          EOF
+
+          for package in .helm-packages/*.tgz; do
+            chart_name=$(basename "$package" | sed "s/-${{ steps.meta.outputs.version }}.tgz//")
+            echo "- \`oci://ghcr.io/${{ steps.meta.outputs.owner }}/${chart_name}:${{ steps.meta.outputs.version }}\`" >> release-notes.md
+            echo "- \`oci://ghcr.io/${{ steps.meta.outputs.owner }}/${chart_name}:latest\`" >> release-notes.md
+          done
+
+          cat >> release-notes.md << EOF
+
+          ### Usage
+
+          \`\`\`bash
+          # Pull specific version
+          helm pull oci://ghcr.io/${{ steps.meta.outputs.owner }}/common --version ${{ steps.meta.outputs.version }}
+
+          # Pull latest
+          helm pull oci://ghcr.io/${{ steps.meta.outputs.owner }}/common --version latest
+
+          # Install
+          helm install my-app oci://ghcr.io/${{ steps.meta.outputs.owner }}/common --version latest
+          \`\`\`
+
+          ### Bootstrap Usage
+
+          \`\`\`yaml
+          apiVersion: platform.infraforge.io/v1
+          kind: BootstrapClaim
+          spec:
+            chartsRepository:
+              type: oci
+              url: oci://ghcr.io/${{ steps.meta.outputs.owner }}/common
+              version: latest
+          \`\`\`
+
+          ---
+          🤖 Auto-published by GitHub Actions
+          EOF
+
+          cat release-notes.md
+
+      - name: Comment on Commit
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const notes = fs.readFileSync('release-notes.md', 'utf8');
+
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: notes
+            });
+
+      - name: Cleanup
+        if: always()
+        run: |
+          helm registry logout ghcr.io
+          rm -rf .helm-packages /tmp/*.tgz

@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaaS Platform - Enterprise Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glassmorphism {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .neon-border {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+        }
+
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .hover-scale {
+            transition: transform 0.3s ease;
+        }
+
+        .hover-scale:hover {
+            transform: scale(1.05);
+        }
+
+        .loading-skeleton {
+            animation: skeleton 1.5s ease-in-out infinite;
+            background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+            background-size: 200% 100%;
+        }
+
+        @keyframes skeleton {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .notification-enter {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    animation: {
+                        'spin-slow': 'spin 3s linear infinite',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-900 text-gray-100" x-data="dashboardApp()">
+    <!-- Animated Background -->
+    <div class="fixed inset-0 z-0">
+        <div class="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-pink-900/20"></div>
+        <div class="absolute inset-0">
+            <div class="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
+            <div class="absolute top-0 -right-4 w-72 h-72 bg-yellow-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
+            <div class="absolute -bottom-8 left-20 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="relative z-10 min-h-screen">
+        <!-- Header -->
+        <header class="glassmorphism sticky top-0 z-50">
+            <div class="container mx-auto px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-rocket text-white"></i>
+                            </div>
+                            <div class="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full pulse-dot"></div>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+                                PaaS Platform
+                            </h1>
+                            <p class="text-xs text-gray-400">Enterprise Mikroservis Yönetimi</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-6">
+                        <!-- Search -->
+                        <div class="relative">
+                            <input type="text"
+                                   class="bg-gray-800/50 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                                   placeholder="Ara...">
+                            <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                        </div>
+
+                        <!-- Notifications -->
+                        <div class="relative" @click="showNotifications = !showNotifications">
+                            <button class="relative p-2 hover:bg-gray-800 rounded-lg transition-colors">
+                                <i class="fas fa-bell text-gray-400"></i>
+                                <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                            </button>
+
+                            <div x-show="showNotifications"
+                                 x-transition
+                                 class="absolute right-0 mt-2 w-80 glassmorphism rounded-lg shadow-xl p-4"
+                                 @click.away="showNotifications = false">
+                                <h3 class="font-semibold mb-3">Bildirimler</h3>
+                                <div class="space-y-2">
+                                    <div class="p-3 bg-gray-800/50 rounded-lg">
+                                        <p class="text-sm">🎉 Yeni kullanıcı kaydı: test@example.com</p>
+                                        <p class="text-xs text-gray-400 mt-1">2 dakika önce</p>
+                                    </div>
+                                    <div class="p-3 bg-gray-800/50 rounded-lg">
+                                        <p class="text-sm">📦 Order Service yeniden başlatıldı</p>
+                                        <p class="text-xs text-gray-400 mt-1">5 dakika önce</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Theme Toggle -->
+                        <button @click="toggleTheme()" class="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+                            <i class="fas fa-moon text-gray-400"></i>
+                        </button>
+
+                        <!-- User Menu -->
+                        <div class="flex items-center space-x-3 pl-6 border-l border-gray-700">
+                            <img src="https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff"
+                                 class="w-8 h-8 rounded-full">
+                            <div>
+                                <p class="text-sm font-medium">Admin</p>
+                                <p class="text-xs text-gray-400">Süper Yönetici</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="container mx-auto px-6 py-8">
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <!-- Total Users -->
+                <div class="glassmorphism rounded-xl p-6 hover-scale cursor-pointer">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-users text-blue-500"></i>
+                        </div>
+                        <span class="text-xs text-green-400 flex items-center">
+                            <i class="fas fa-arrow-up mr-1"></i> 12%
+                        </span>
+                    </div>
+                    <h3 class="text-2xl font-bold" x-text="stats.users"></h3>
+                    <p class="text-gray-400 text-sm">Toplam Kullanıcı</p>
+                    <div class="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-blue-500 rounded-full" style="width: 75%"></div>
+                    </div>
+                </div>
+
+                <!-- Active Orders -->
+                <div class="glassmorphism rounded-xl p-6 hover-scale cursor-pointer">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-shopping-cart text-green-500"></i>
+                        </div>
+                        <span class="text-xs text-green-400 flex items-center">
+                            <i class="fas fa-arrow-up mr-1"></i> 8%
+                        </span>
+                    </div>
+                    <h3 class="text-2xl font-bold" x-text="stats.orders"></h3>
+                    <p class="text-gray-400 text-sm">Aktif Siparişler</p>
+                    <div class="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-green-500 rounded-full" style="width: 60%"></div>
+                    </div>
+                </div>
+
+                <!-- Revenue -->
+                <div class="glassmorphism rounded-xl p-6 hover-scale cursor-pointer">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-dollar-sign text-purple-500"></i>
+                        </div>
+                        <span class="text-xs text-red-400 flex items-center">
+                            <i class="fas fa-arrow-down mr-1"></i> 3%
+                        </span>
+                    </div>
+                    <h3 class="text-2xl font-bold">₺<span x-text="stats.revenue"></span></h3>
+                    <p class="text-gray-400 text-sm">Toplam Gelir</p>
+                    <div class="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-purple-500 rounded-full" style="width: 85%"></div>
+                    </div>
+                </div>
+
+                <!-- System Health -->
+                <div class="glassmorphism rounded-xl p-6 hover-scale cursor-pointer">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-heartbeat text-yellow-500"></i>
+                        </div>
+                        <span class="text-xs text-green-400">Çalışıyor</span>
+                    </div>
+                    <h3 class="text-2xl font-bold" x-text="stats.uptime"></h3>
+                    <p class="text-gray-400 text-sm">Sistem Uptime</p>
+                    <div class="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-yellow-500 rounded-full" style="width: 99%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Services Status & Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Service Status -->
+                <div class="lg:col-span-1 glassmorphism rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-lg font-semibold">Servis Durumu</h2>
+                        <button @click="refreshServices()"
+                                class="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+                            <i class="fas fa-sync-alt text-gray-400" :class="{'animate-spin': loading}"></i>
+                        </button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <template x-for="service in services" :key="service.name">
+                            <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800/70 transition-colors">
+                                <div class="flex items-center space-x-3">
+                                    <div class="relative">
+                                        <div class="w-2 h-2 rounded-full"
+                                             :class="{
+                                                'bg-green-500': service.status === 'running',
+                                                'bg-yellow-500': service.status === 'starting',
+                                                'bg-red-500': service.status === 'stopped'
+                                             }"></div>
+                                        <div class="absolute inset-0 rounded-full animate-ping"
+                                             :class="{
+                                                'bg-green-500': service.status === 'running',
+                                                'bg-yellow-500': service.status === 'starting',
+                                                'bg-red-500': service.status === 'stopped'
+                                             }"></div>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium" x-text="service.name"></p>
+                                        <p class="text-xs text-gray-400" x-text="service.endpoint"></p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xs px-2 py-1 rounded-full"
+                                          :class="{
+                                              'bg-green-500/20 text-green-400': service.status === 'running',
+                                              'bg-yellow-500/20 text-yellow-400': service.status === 'starting',
+                                              'bg-red-500/20 text-red-400': service.status === 'stopped'
+                                          }"
+                                          x-text="service.status === 'running' ? 'Aktif' : service.status === 'starting' ? 'Başlıyor' : 'Durdu'">
+                                    </span>
+                                    <button class="p-1 hover:bg-gray-700 rounded transition-colors">
+                                        <i class="fas fa-ellipsis-v text-gray-400 text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                        <p class="text-sm text-blue-400">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Tüm servisler normal çalışıyor
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Traffic Chart -->
+                <div class="lg:col-span-2 glassmorphism rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-lg font-semibold">API Trafik Analizi</h2>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 text-xs bg-gray-800 rounded-lg">1S</button>
+                            <button class="px-3 py-1 text-xs bg-blue-600 rounded-lg">1D</button>
+                            <button class="px-3 py-1 text-xs bg-gray-800 rounded-lg">1H</button>
+                            <button class="px-3 py-1 text-xs bg-gray-800 rounded-lg">1A</button>
+                        </div>
+                    </div>
+                    <canvas id="trafficChart" class="w-full" style="height: 300px;"></canvas>
+                </div>
+            </div>
+
+            <!-- Data Tables -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Recent Users -->
+                <div class="glassmorphism rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-lg font-semibold">Son Kullanıcılar</h2>
+                        <button @click="showUserModal = true"
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Yeni Kullanıcı
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-left text-xs text-gray-400 border-b border-gray-800">
+                                    <th class="pb-3">Kullanıcı</th>
+                                    <th class="pb-3">Email</th>
+                                    <th class="pb-3">Durum</th>
+                                    <th class="pb-3">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm">
+                                <template x-for="user in recentUsers" :key="user.id">
+                                    <tr class="border-b border-gray-800/50 hover:bg-gray-800/30">
+                                        <td class="py-3">
+                                            <div class="flex items-center space-x-3">
+                                                <img :src="'https://ui-avatars.com/api/?name=' + user.name + '&background=6366f1&color=fff'"
+                                                     class="w-8 h-8 rounded-full">
+                                                <span x-text="user.name"></span>
+                                            </div>
+                                        </td>
+                                        <td x-text="user.email" class="text-gray-400"></td>
+                                        <td>
+                                            <span class="px-2 py-1 text-xs rounded-full"
+                                                  :class="user.active ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'"
+                                                  x-text="user.active ? 'Aktif' : 'Pasif'"></span>
+                                        </td>
+                                        <td>
+                                            <button class="p-1 hover:bg-gray-700 rounded transition-colors">
+                                                <i class="fas fa-ellipsis-h text-gray-400"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recent Orders -->
+                <div class="glassmorphism rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-lg font-semibold">Son Siparişler</h2>
+                        <a href="#" class="text-sm text-blue-400 hover:text-blue-300">Tümünü Gör →</a>
+                    </div>
+
+                    <div class="space-y-3">
+                        <template x-for="order in recentOrders" :key="order.id">
+                            <div class="p-4 bg-gray-800/50 rounded-lg hover:bg-gray-800/70 transition-colors">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium">#<span x-text="order.id"></span></span>
+                                    <span class="text-xs px-2 py-1 rounded-full"
+                                          :class="{
+                                              'bg-yellow-500/20 text-yellow-400': order.status === 'pending',
+                                              'bg-blue-500/20 text-blue-400': order.status === 'processing',
+                                              'bg-green-500/20 text-green-400': order.status === 'completed'
+                                          }"
+                                          x-text="order.status === 'pending' ? 'Bekliyor' : order.status === 'processing' ? 'İşleniyor' : 'Tamamlandı'">
+                                    </span>
+                                </div>
+                                <p class="text-xs text-gray-400 mb-1" x-text="order.customer"></p>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-lg font-bold text-green-400">₺<span x-text="order.amount"></span></span>
+                                    <span class="text-xs text-gray-500" x-text="order.date"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div x-show="showUserModal"
+         x-transition
+         class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="fixed inset-0 bg-black/50" @click="showUserModal = false"></div>
+        <div class="relative glassmorphism rounded-xl p-6 w-full max-w-md">
+            <h3 class="text-xl font-semibold mb-4">Yeni Kullanıcı Ekle</h3>
+            <form @submit.prevent="addUser()">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Kullanıcı Adı</label>
+                        <input type="text" x-model="newUser.username"
+                               class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Email</label>
+                        <input type="email" x-model="newUser.email"
+                               class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Telefon</label>
+                        <input type="tel" x-model="newUser.phone"
+                               class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="flex space-x-3 mt-6">
+                    <button type="button" @click="showUserModal = false"
+                            class="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                        İptal
+                    </button>
+                    <button type="submit"
+                            class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                        Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="fixed bottom-4 right-4 z-50 space-y-2">
+        <template x-for="(notification, index) in notifications" :key="index">
+            <div x-show="notification.show"
+                 x-transition
+                 class="glassmorphism rounded-lg p-4 min-w-[300px] notification-enter"
+                 :class="{
+                     'border-l-4 border-green-500': notification.type === 'success',
+                     'border-l-4 border-red-500': notification.type === 'error',
+                     'border-l-4 border-yellow-500': notification.type === 'warning'
+                 }">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas"
+                           :class="{
+                               'fa-check-circle text-green-500': notification.type === 'success',
+                               'fa-times-circle text-red-500': notification.type === 'error',
+                               'fa-exclamation-circle text-yellow-500': notification.type === 'warning'
+                           }"></i>
+                        <div>
+                            <p class="font-medium" x-text="notification.title"></p>
+                            <p class="text-sm text-gray-400" x-text="notification.message"></p>
+                        </div>
+                    </div>
+                    <button @click="notification.show = false" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <script>
+        function dashboardApp() {
+            return {
+                loading: false,
+                showNotifications: false,
+                showUserModal: false,
+                notifications: [],
+                stats: {
+                    users: 1,
+                    orders: 0,
+                    revenue: '0',
+                    uptime: '99.9%'
+                },
+                services: [
+                    { name: 'User Service', endpoint: 'localhost:8081', status: 'running' },
+                    { name: 'Product Service', endpoint: 'localhost:8080', status: 'stopped' },
+                    { name: 'Order Service', endpoint: 'localhost:8082', status: 'stopped' },
+                    { name: 'Payment Service', endpoint: 'localhost:8083', status: 'stopped' },
+                    { name: 'Notification Service', endpoint: 'localhost:8084', status: 'stopped' }
+                ],
+                recentUsers: [],
+                recentOrders: [
+                    { id: '10001', customer: 'Ahmet Yılmaz', amount: '2,450', status: 'completed', date: '5 dk önce' },
+                    { id: '10002', customer: 'Ayşe Demir', amount: '1,280', status: 'processing', date: '12 dk önce' },
+                    { id: '10003', customer: 'Mehmet Kaya', amount: '890', status: 'pending', date: '25 dk önce' }
+                ],
+                newUser: {
+                    username: '',
+                    email: '',
+                    phone: ''
+                },
+                trafficChart: null,
+
+                async init() {
+                    await this.loadUsers();
+                    await this.checkServices();
+                    this.initCharts();
+
+                    // Real-time updates
+                    setInterval(() => {
+                        this.checkServices();
+                        this.updateStats();
+                    }, 5000);
+                },
+
+                async loadUsers() {
+                    try {
+                        const response = await fetch('http://localhost:8081/api/v1/users');
+                        if (response.ok) {
+                            const users = await response.json();
+                            this.recentUsers = users.map(u => ({
+                                id: u.id,
+                                name: u.first_name ? `${u.first_name} ${u.last_name}` : u.username,
+                                email: u.email,
+                                active: u.active
+                            }));
+                            this.stats.users = users.length;
+                        }
+                    } catch (error) {
+                        console.error('Failed to load users:', error);
+                    }
+                },
+
+                async checkServices() {
+                    for (let service of this.services) {
+                        try {
+                            const port = service.endpoint.split(':')[1];
+                            const response = await fetch(`http://localhost:${port}/health`, {
+                                method: 'GET',
+                                mode: 'no-cors'
+                            });
+                            service.status = 'running';
+                        } catch (error) {
+                            service.status = 'stopped';
+                        }
+                    }
+                },
+
+                async addUser() {
+                    try {
+                        const response = await fetch('http://localhost:8081/api/v1/users', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                username: this.newUser.username,
+                                email: this.newUser.email,
+                                phone: this.newUser.phone,
+                                first_name: this.newUser.username,
+                                last_name: ''
+                            })
+                        });
+
+                        if (response.ok) {
+                            this.showNotification('Başarılı', 'Kullanıcı başarıyla eklendi', 'success');
+                            this.showUserModal = false;
+                            this.newUser = { username: '', email: '', phone: '' };
+                            await this.loadUsers();
+                        } else {
+                            this.showNotification('Hata', 'Kullanıcı eklenemedi', 'error');
+                        }
+                    } catch (error) {
+                        this.showNotification('Hata', 'Bağlantı hatası', 'error');
+                    }
+                },
+
+                showNotification(title, message, type) {
+                    const notification = {
+                        title,
+                        message,
+                        type,
+                        show: true
+                    };
+                    this.notifications.push(notification);
+                    setTimeout(() => {
+                        notification.show = false;
+                        setTimeout(() => {
+                            this.notifications = this.notifications.filter(n => n !== notification);
+                        }, 300);
+                    }, 3000);
+                },
+
+                refreshServices() {
+                    this.loading = true;
+                    this.checkServices().then(() => {
+                        this.loading = false;
+                        this.showNotification('Güncellendi', 'Servis durumları güncellendi', 'success');
+                    });
+                },
+
+                updateStats() {
+                    // Simulate real-time updates
+                    const randomChange = Math.random() > 0.5 ? 1 : -1;
+                    const currentRevenue = parseInt(this.stats.revenue.replace(/,/g, '') || '0');
+                    this.stats.revenue = (currentRevenue + randomChange * Math.floor(Math.random() * 100)).toLocaleString('tr-TR');
+                },
+
+                toggleTheme() {
+                    document.documentElement.classList.toggle('dark');
+                },
+
+                initCharts() {
+                    const ctx = document.getElementById('trafficChart').getContext('2d');
+                    this.trafficChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+                            datasets: [
+                                {
+                                    label: 'API İstekleri',
+                                    data: [30, 45, 60, 120, 180, 150, 90],
+                                    borderColor: 'rgb(59, 130, 246)',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    tension: 0.4
+                                },
+                                {
+                                    label: 'Hatalar',
+                                    data: [5, 8, 3, 15, 10, 8, 4],
+                                    borderColor: 'rgb(239, 68, 68)',
+                                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                    tension: 0.4
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        color: '#9CA3AF'
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    grid: {
+                                        color: 'rgba(75, 85, 99, 0.3)'
+                                    },
+                                    ticks: {
+                                        color: '#9CA3AF'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: 'rgba(75, 85, 99, 0.3)'
+                                    },
+                                    ticks: {
+                                        color: '#9CA3AF'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Git
+.git
+.gitignore
+
+# Terraform
+infrastructure/aws/.terraform/
+infrastructure/aws/*.tfstate
+infrastructure/aws/*.tfstate.backup
+infrastructure/aws/tfplan
+infrastructure/aws/.terraform.lock.hcl
+
+# Microservices (don't include when building operator)
+microservices/
+
+# Development
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+/tmp/
+
+# OS files
+.DS_Store
+Thumbs.db

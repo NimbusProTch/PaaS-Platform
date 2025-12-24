@@ -1,5 +1,0 @@
-labels:
-    environment: dev
-    managed-by: infraforge
-    tenant: test
-name: test-dev

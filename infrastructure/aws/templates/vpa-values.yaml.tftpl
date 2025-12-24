@@ -1,0 +1,20 @@
+recommender:
+  resources:
+    requests:
+      cpu: ${recommender_cpu_request}
+      memory: ${recommender_memory_request}
+    limits:
+      cpu: ${recommender_cpu_limit}
+      memory: ${recommender_memory_limit}
+
+updater:
+  enabled: ${updater_enabled}
+
+admissionController:
+  resources:
+    requests:
+      cpu: ${admission_cpu_request}
+      memory: ${admission_memory_request}
+    limits:
+      cpu: ${admission_cpu_limit}
+      memory: ${admission_memory_limit}

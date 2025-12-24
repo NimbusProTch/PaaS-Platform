@@ -1,0 +1,514 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  name: applicationclaims.platform.infraforge.io
+spec:
+  group: platform.infraforge.io
+  names:
+    kind: ApplicationClaim
+    listKind: ApplicationClaimList
+    plural: applicationclaims
+    singular: applicationclaim
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.environment
+      name: Environment
+      type: string
+    - jsonPath: .spec.clusterType
+      name: ClusterType
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.ready
+      name: Ready
+      type: boolean
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: ApplicationClaim is the Schema for the applicationclaims API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ApplicationClaimSpec defines the desired state of ApplicationClaim
+            properties:
+              applications:
+                description: Applications multi-application support
+                items:
+                  description: ApplicationSpec single application configuration
+                  properties:
+                    autoscaling:
+                      description: Autoscaling autoscaling configuration
+                      properties:
+                        enabled:
+                          description: Enabled enable autoscaling
+                          type: boolean
+                        maxReplicas:
+                          description: MaxReplicas maximum replicas
+                          format: int32
+                          type: integer
+                        minReplicas:
+                          description: MinReplicas minimum replicas
+                          format: int32
+                          type: integer
+                        targetCPUUtilizationPercentage:
+                          description: TargetCPUUtilizationPercentage target CPU percentage
+                          format: int32
+                          type: integer
+                        targetMemoryUtilizationPercentage:
+                          description: TargetMemoryUtilizationPercentage target memory
+                            percentage
+                          format: int32
+                          type: integer
+                      required:
+                      - enabled
+                      type: object
+                    chart:
+                      description: Chart Helm chart configuration
+                      properties:
+                        name:
+                          description: Name chart name
+                          type: string
+                        repository:
+                          description: Repository Helm repository URL (if external)
+                          type: string
+                        source:
+                          description: Source chart source (embedded, github, helm-repo)
+                          type: string
+                        version:
+                          description: Version chart version
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    env:
+                      description: Env environment variables
+                      items:
+                        description: EnvVar environment variable
+                        properties:
+                          name:
+                            description: Name variable name
+                            type: string
+                          value:
+                            description: Value variable value
+                            type: string
+                          valueFrom:
+                            description: ValueFrom source for the variable value
+                            properties:
+                              configMapKeyRef:
+                                description: ConfigMapKeyRef configmap reference
+                                properties:
+                                  key:
+                                    description: Key key in the configmap
+                                    type: string
+                                  name:
+                                    description: Name configmap name
+                                    type: string
+                                required:
+                                - key
+                                - name
+                                type: object
+                              secretKeyRef:
+                                description: SecretKeyRef secret reference
+                                properties:
+                                  key:
+                                    description: Key key in the secret
+                                    type: string
+                                  name:
+                                    description: Name secret name
+                                    type: string
+                                required:
+                                - key
+                                - name
+                                type: object
+                            type: object
+                        required:
+                        - name
+                        type: object
+                      type: array
+                    healthCheck:
+                      description: HealthCheck health check configuration
+                      properties:
+                        initialDelaySeconds:
+                          description: InitialDelaySeconds delay before first check
+                          format: int32
+                          type: integer
+                        path:
+                          description: Path HTTP path for health check
+                          type: string
+                        periodSeconds:
+                          description: PeriodSeconds check interval
+                          format: int32
+                          type: integer
+                        port:
+                          description: Port port for health check
+                          format: int32
+                          type: integer
+                      type: object
+                    image:
+                      description: Image container image configuration
+                      properties:
+                        pullPolicy:
+                          description: PullPolicy image pull policy (Always, IfNotPresent,
+                            Never)
+                          type: string
+                        pullSecrets:
+                          description: PullSecrets image pull secrets
+                          items:
+                            type: string
+                          type: array
+                        repository:
+                          description: Repository image repository (e.g., "ghcr.io/infraforge/ecommerce-platform")
+                          type: string
+                        tag:
+                          description: Tag image tag (e.g., "v1.2.3")
+                          type: string
+                      required:
+                      - repository
+                      - tag
+                      type: object
+                    ingress:
+                      description: Ingress ingress configuration
+                      properties:
+                        annotations:
+                          additionalProperties:
+                            type: string
+                          description: Annotations ingress annotations
+                          type: object
+                        enabled:
+                          description: Enabled enable ingress
+                          type: boolean
+                        host:
+                          description: Host ingress hostname
+                          type: string
+                        path:
+                          description: Path ingress path
+                          type: string
+                        tls:
+                          description: TLS enable TLS
+                          type: boolean
+                      required:
+                      - enabled
+                      type: object
+                    name:
+                      description: Name application name
+                      type: string
+                    ports:
+                      description: Ports exposed ports
+                      items:
+                        description: PortSpec port configuration
+                        properties:
+                          name:
+                            type: string
+                          port:
+                            format: int32
+                            type: integer
+                          protocol:
+                            type: string
+                        required:
+                        - name
+                        - port
+                        type: object
+                      type: array
+                    replicas:
+                      description: Replicas number of replicas
+                      format: int32
+                      type: integer
+                    resources:
+                      description: Resources CPU/memory requirements
+                      properties:
+                        limits:
+                          description: Limits resource limits
+                          properties:
+                            cpu:
+                              description: CPU in millicores (e.g., "100m")
+                              type: string
+                            memory:
+                              description: Memory in bytes (e.g., "128Mi")
+                              type: string
+                          type: object
+                        requests:
+                          description: Requests resource requests
+                          properties:
+                            cpu:
+                              description: CPU in millicores (e.g., "100m")
+                              type: string
+                            memory:
+                              description: Memory in bytes (e.g., "128Mi")
+                              type: string
+                          type: object
+                      type: object
+                    serviceName:
+                      description: ServiceName Kubernetes service name (optional,
+                        defaults to name)
+                      type: string
+                    version:
+                      description: Version application version
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+              clusterType:
+                description: ClusterType cluster type (nonprod, prod) for GitOps structure
+                type: string
+              components:
+                description: Components platform components like databases
+                items:
+                  description: ComponentSpec platform component specification
+                  properties:
+                    config:
+                      description: Config additional configuration (supports nested
+                        YAML)
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    name:
+                      description: Name instance name
+                      type: string
+                    replicas:
+                      description: Replicas number of replicas
+                      format: int32
+                      type: integer
+                    resources:
+                      description: Resources CPU/memory requirements
+                      properties:
+                        limits:
+                          description: Limits resource limits
+                          properties:
+                            cpu:
+                              description: CPU in millicores (e.g., "100m")
+                              type: string
+                            memory:
+                              description: Memory in bytes (e.g., "128Mi")
+                              type: string
+                          type: object
+                        requests:
+                          description: Requests resource requests
+                          properties:
+                            cpu:
+                              description: CPU in millicores (e.g., "100m")
+                              type: string
+                            memory:
+                              description: Memory in bytes (e.g., "128Mi")
+                              type: string
+                          type: object
+                      type: object
+                    size:
+                      description: Size configuration size (small, medium, large)
+                      type: string
+                    storage:
+                      description: Storage storage size (e.g., "20Gi")
+                      type: string
+                    type:
+                      description: Type component type (postgresql, redis, rabbitmq,
+                        elasticsearch)
+                      type: string
+                    version:
+                      description: Version component version
+                      type: string
+                  required:
+                  - name
+                  - type
+                  type: object
+                type: array
+              environment:
+                description: Environment deployment environment (dev, qa, sandbox,
+                  staging, prod)
+                type: string
+              namespace:
+                description: Namespace target namespace (auto-generated if empty)
+                type: string
+              owner:
+                description: Owner team ownership information
+                properties:
+                  email:
+                    description: Email contact email
+                    type: string
+                  slack:
+                    description: Slack slack channel
+                    type: string
+                  team:
+                    description: Team team name
+                    type: string
+                required:
+                - email
+                - team
+                type: object
+            required:
+            - applications
+            - clusterType
+            - environment
+            - owner
+            type: object
+          status:
+            description: ApplicationClaimStatus defines the observed state of ApplicationClaim
+            properties:
+              applications:
+                description: Applications application statuses
+                items:
+                  description: ApplicationStatus application deployment status
+                  properties:
+                    availableReplicas:
+                      format: int32
+                      type: integer
+                    endpoints:
+                      items:
+                        type: string
+                      type: array
+                    name:
+                      type: string
+                    ready:
+                      type: boolean
+                    replicas:
+                      format: int32
+                      type: integer
+                    version:
+                      type: string
+                  required:
+                  - availableReplicas
+                  - name
+                  - ready
+                  - replicas
+                  - version
+                  type: object
+                type: array
+              applicationsReady:
+                description: ApplicationsReady all applications ready
+                type: boolean
+              components:
+                description: Components component statuses
+                items:
+                  description: ComponentStatus component provision status
+                  properties:
+                    connectionString:
+                      type: string
+                    name:
+                      type: string
+                    ready:
+                      type: boolean
+                    secretName:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - name
+                  - ready
+                  - type
+                  type: object
+                type: array
+              componentsReady:
+                description: ComponentsReady all components ready
+                type: boolean
+              conditions:
+                description: Conditions detailed conditions
+                items:
+                  description: "Condition contains details for one aspect of the current
+                    state of this API Resource.\n---\nThis struct is intended for
+                    direct use as an array at the field path .status.conditions.  For
+                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
+                    observations of a foo's current state.\n\t    // Known .status.conditions.type
+                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
+                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
+                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
+                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
+                    \   // other fields\n\t}"
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        ---
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
+                        useful (see .node.status.conditions), the ability to deconflict is important.
+                        The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              lastUpdated:
+                description: LastUpdated last update timestamp
+                format: date-time
+                type: string
+              phase:
+                description: Phase current phase (Pending, Provisioning, Ready, Failed)
+                type: string
+              ready:
+                description: Ready overall readiness status
+                type: boolean
+            required:
+            - applicationsReady
+            - componentsReady
+            - ready
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
