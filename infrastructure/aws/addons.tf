@@ -39,6 +39,29 @@ locals {
     cpu_limit      = "100m"
     memory_limit   = "200Mi"
   }
+
+  karpenter_config = {
+    cluster_name         = local.cluster_name
+    cluster_endpoint     = module.eks.cluster_endpoint
+    vm_memory_overhead   = "0.075"
+    replicas             = 2
+    cpu_request          = "1"
+    memory_request       = "1Gi"
+    cpu_limit            = "2"
+    memory_limit         = "2Gi"
+  }
+
+  vpa_config = {
+    recommender_cpu_request    = "50m"
+    recommender_memory_request = "100Mi"
+    recommender_cpu_limit      = "100m"
+    recommender_memory_limit   = "200Mi"
+    updater_enabled            = "false"
+    admission_cpu_request      = "50m"
+    admission_memory_request   = "100Mi"
+    admission_cpu_limit        = "100m"
+    admission_memory_limit     = "200Mi"
+  }
 }
 
 # Metrics Server
@@ -119,29 +142,7 @@ resource "helm_release" "karpenter" {
   create_namespace = true
 
   values = [
-    <<-EOT
-    settings:
-      clusterName: ${local.cluster_name}
-      clusterEndpoint: ${module.eks.cluster_endpoint}
-      interruptionQueueName: ${local.cluster_name}
-      aws:
-        # defaultInstanceProfile: ${var.karpenter_instance_profile_name}  # TODO: Add Karpenter IRSA module
-        vmMemoryOverheadPercent: 0.075
-
-    serviceAccount:
-      annotations:
-        # eks.amazonaws.com/role-arn: ${var.karpenter_irsa_role_arn}  # TODO: Add Karpenter IRSA module
-
-    replicas: 2
-
-    resources:
-      requests:
-        cpu: 1
-        memory: 1Gi
-      limits:
-        cpu: 2
-        memory: 2Gi
-    EOT
+    templatefile("${path.module}/templates/karpenter-values.yaml.tftpl", local.karpenter_config)
   ]
 
   depends_on = [module.eks]
@@ -157,28 +158,7 @@ resource "helm_release" "vpa" {
   namespace        = "kube-system"
 
   values = [
-    <<-EOT
-    recommender:
-      resources:
-        requests:
-          cpu: 50m
-          memory: 100Mi
-        limits:
-          cpu: 100m
-          memory: 200Mi
-
-    updater:
-      enabled: false  # We'll only use recommendations, not auto-updates
-
-    admissionController:
-      resources:
-        requests:
-          cpu: 50m
-          memory: 100Mi
-        limits:
-          cpu: 100m
-          memory: 200Mi
-    EOT
+    templatefile("${path.module}/templates/vpa-values.yaml.tftpl", local.vpa_config)
   ]
 
   depends_on = [module.eks]

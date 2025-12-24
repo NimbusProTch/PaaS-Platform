@@ -1,11 +1,11 @@
-# ArgoCD AppProjects - Team × Environment Matrix
+# ArgoCD AppProjects - Team ï¿½ Environment Matrix
 # Provides multi-tenancy and RBAC isolation
 
 locals {
   teams = ["ecommerce-team", "analytics-team", "platform-team"]
   environments = ["dev", "qa", "staging", "prod"]
 
-  # Create team × environment combinations
+  # Create team ï¿½ environment combinations
   team_env_combinations = flatten([
     for team in local.teams : [
       for env in local.environments : {
@@ -17,7 +17,7 @@ locals {
   ])
 }
 
-# Create AppProjects for each team × environment combination
+# Create AppProjects for each team ï¿½ environment combination
 resource "kubectl_manifest" "argocd_appproject" {
   for_each = { for combo in local.team_env_combinations : combo.name => combo }
 
@@ -94,9 +94,4 @@ resource "kubectl_manifest" "argocd_appproject" {
   depends_on = [
     helm_release.argocd
   ]
-}
-
-output "argocd_projects" {
-  description = "List of created ArgoCD AppProjects"
-  value       = [for combo in local.team_env_combinations : combo.name]
 }

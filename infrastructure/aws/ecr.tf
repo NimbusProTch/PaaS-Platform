@@ -70,21 +70,3 @@ resource "aws_ecr_lifecycle_policy" "microservices" {
     ]
   })
 }
-
-# Outputs
-output "ecr_repositories" {
-  value = {
-    for k, v in aws_ecr_repository.microservices :
-    k => {
-      repository_url = v.repository_url
-      registry_id    = v.registry_id
-      arn           = v.arn
-    }
-  }
-  description = "ECR repository details for microservices"
-}
-
-output "ecr_login_command" {
-  value       = "aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
-  description = "Command to authenticate Docker to ECR"
-}

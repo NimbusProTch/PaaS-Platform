@@ -15,6 +15,7 @@ import (
 
 	platformv1 "github.com/infraforge/platform-operator/api/v1"
 	"github.com/infraforge/platform-operator/internal/controller"
+	"github.com/infraforge/platform-operator/pkg/gitea"
 )
 
 var (
@@ -31,13 +32,34 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
+	var giteaURL string
+	var giteaUsername string
+	var giteaToken string
+	var giteaOrg string
+	var voltranRepo string
+	var gitBranch string
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false, "Enable leader election")
+	flag.StringVar(&giteaURL, "gitea-url", "http://gitea.gitea.svc.cluster.local:3000", "Gitea server URL")
+	flag.StringVar(&giteaUsername, "gitea-username", "platform", "Gitea username")
+	flag.StringVar(&giteaToken, "gitea-token", os.Getenv("GITEA_TOKEN"), "Gitea access token")
+	flag.StringVar(&giteaOrg, "gitea-org", "platform", "Gitea organization")
+	flag.StringVar(&voltranRepo, "voltran-repo", "voltran", "GitOps voltran repository name")
+	flag.StringVar(&gitBranch, "git-branch", "main", "Git branch to use")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
+
+	// Initialize Gitea client
+	var giteaClient *gitea.Client
+	if giteaToken != "" {
+		giteaClient = gitea.NewClient(giteaURL, giteaUsername, giteaToken)
+		setupLog.Info("Gitea client initialized", "url", giteaURL, "org", giteaOrg)
+	} else {
+		setupLog.Info("Gitea token not provided, GitOps features will be disabled")
+	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
@@ -56,14 +78,56 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup controller
-	if err = (&controller.ApplicationClaimReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		// External clients will be initialized here
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ApplicationClaim")
-		os.Exit(1)
+	// Setup Bootstrap controller
+	if giteaClient != nil {
+		if err = (&controller.BootstrapReconciler{
+			Client:             mgr.GetClient(),
+			Scheme:             mgr.GetScheme(),
+			GiteaClient:        giteaClient,
+			ChartsPath:         "/charts",
+			PlatformChartsPath: "/platform-charts",
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Bootstrap")
+			os.Exit(1)
+		}
+
+		// Setup ApplicationClaim GitOps controller
+		if err = (&controller.ApplicationClaimGitOpsReconciler{
+			Client:       mgr.GetClient(),
+			Scheme:       mgr.GetScheme(),
+			GiteaClient:  giteaClient,
+			Organization: giteaOrg,
+			VoltranRepo:  voltranRepo,
+			Branch:       gitBranch,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ApplicationClaimGitOps")
+			os.Exit(1)
+		}
+
+		// Setup PlatformClaim controller
+		if err = (&controller.PlatformClaimReconciler{
+			Client:       mgr.GetClient(),
+			Scheme:       mgr.GetScheme(),
+			GiteaClient:  giteaClient,
+			Organization: giteaOrg,
+			VoltranRepo:  voltranRepo,
+			Branch:       gitBranch,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "PlatformClaim")
+			os.Exit(1)
+		}
+
+		setupLog.Info("All controllers registered successfully with GitOps enabled")
+	} else {
+		// Fallback to old ApplicationClaim controller if no Gitea
+		if err = (&controller.ApplicationClaimReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ApplicationClaim")
+			os.Exit(1)
+		}
+		setupLog.Info("Fallback controller registered (GitOps disabled)")
 	}
 
 	// Add health and readiness checks

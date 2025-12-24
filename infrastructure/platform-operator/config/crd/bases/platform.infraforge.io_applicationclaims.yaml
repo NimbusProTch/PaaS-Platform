@@ -18,9 +18,15 @@ spec:
     - jsonPath: .spec.environment
       name: Environment
       type: string
+    - jsonPath: .spec.clusterType
+      name: ClusterType
+      type: string
     - jsonPath: .status.phase
       name: Phase
       type: string
+    - jsonPath: .status.ready
+      name: Ready
+      type: boolean
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -79,6 +85,25 @@ spec:
                           type: integer
                       required:
                       - enabled
+                      type: object
+                    chart:
+                      description: Chart Helm chart configuration
+                      properties:
+                        name:
+                          description: Name chart name
+                          type: string
+                        repository:
+                          description: Repository Helm repository URL (if external)
+                          type: string
+                        source:
+                          description: Source chart source (embedded, bitnami, elastic,
+                            etc.)
+                          type: string
+                        version:
+                          description: Version chart version
+                          type: string
+                      required:
+                      - name
                       type: object
                     env:
                       description: Env environment variables
@@ -145,9 +170,50 @@ spec:
                           type: integer
                       type: object
                     image:
-                      description: Image container image (optional, falls back to
-                        GitHub release if ServiceName+Version provided)
-                      type: string
+                      description: Image container image configuration
+                      properties:
+                        pullPolicy:
+                          description: PullPolicy image pull policy (Always, IfNotPresent,
+                            Never)
+                          type: string
+                        pullSecrets:
+                          description: PullSecrets image pull secrets
+                          items:
+                            type: string
+                          type: array
+                        repository:
+                          description: Repository image repository (e.g., "ghcr.io/infraforge/ecommerce-platform")
+                          type: string
+                        tag:
+                          description: Tag image tag (e.g., "v1.2.3")
+                          type: string
+                      required:
+                      - repository
+                      - tag
+                      type: object
+                    ingress:
+                      description: Ingress ingress configuration
+                      properties:
+                        annotations:
+                          additionalProperties:
+                            type: string
+                          description: Annotations ingress annotations
+                          type: object
+                        enabled:
+                          description: Enabled enable ingress
+                          type: boolean
+                        host:
+                          description: Host ingress hostname
+                          type: string
+                        path:
+                          description: Path ingress path
+                          type: string
+                        tls:
+                          description: TLS enable TLS
+                          type: boolean
+                      required:
+                      - enabled
+                      type: object
                     name:
                       description: Name application name
                       type: string
@@ -172,10 +238,6 @@ spec:
                       description: Replicas number of replicas
                       format: int32
                       type: integer
-                    repository:
-                      description: Repository GitHub repository (org/repo) - deprecated,
-                        use ServiceName
-                      type: string
                     resources:
                       description: Resources CPU/memory requirements
                       properties:
@@ -200,19 +262,15 @@ spec:
                               type: string
                           type: object
                       type: object
-                    serviceName:
-                      description: |-
-                        ServiceName microservice name in GitHub releases (e.g., "ecommerce-platform")
-                        If provided with Version, image will be resolved from GitHub release
-                      type: string
-                    version:
-                      description: Version release version/tag (e.g., "v1.0.0")
-                      type: string
                   required:
+                  - chart
+                  - image
                   - name
-                  - version
                   type: object
                 type: array
+              clusterType:
+                description: ClusterType cluster type (nonprod, prod) for GitOps structure
+                type: string
               components:
                 description: Components platform components like databases
                 items:
@@ -241,7 +299,8 @@ spec:
                   type: object
                 type: array
               environment:
-                description: Environment deployment environment (dev, staging, prod)
+                description: Environment deployment environment (dev, qa, sandbox,
+                  staging, prod)
                 type: string
               namespace:
                 description: Namespace target namespace (auto-generated if empty)
@@ -264,6 +323,7 @@ spec:
                 type: object
             required:
             - applications
+            - clusterType
             - environment
             - owner
             type: object
@@ -299,6 +359,9 @@ spec:
                   - version
                   type: object
                 type: array
+              applicationsReady:
+                description: ApplicationsReady all applications ready
+                type: boolean
               components:
                 description: Components component statuses
                 items:
@@ -320,6 +383,9 @@ spec:
                   - type
                   type: object
                 type: array
+              componentsReady:
+                description: ComponentsReady all components ready
+                type: boolean
               conditions:
                 description: Conditions detailed conditions
                 items:
@@ -397,6 +463,13 @@ spec:
               phase:
                 description: Phase current phase (Pending, Provisioning, Ready, Failed)
                 type: string
+              ready:
+                description: Ready overall readiness status
+                type: boolean
+            required:
+            - applicationsReady
+            - componentsReady
+            - ready
             type: object
         type: object
     served: true

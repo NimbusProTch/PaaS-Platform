@@ -88,13 +88,6 @@ variable "node_groups" {
   }
 }
 
-# Database node group for production
-variable "enable_database_nodes" {
-  description = "Enable dedicated database nodes"
-  type        = bool
-  default     = false
-}
-
 # Addons
 variable "enable_aws_load_balancer_controller" {
   description = "Enable AWS Load Balancer Controller"
@@ -108,18 +101,6 @@ variable "enable_external_dns" {
   default     = true
 }
 
-variable "enable_cert_manager" {
-  description = "Enable cert-manager for TLS certificates"
-  type        = bool
-  default     = true
-}
-
-variable "enable_metrics_server" {
-  description = "Enable metrics-server"
-  type        = bool
-  default     = true
-}
-
 variable "enable_cluster_autoscaler" {
   description = "Enable Cluster Autoscaler"
   type        = bool
@@ -128,34 +109,6 @@ variable "enable_cluster_autoscaler" {
 
 variable "enable_ebs_csi_driver" {
   description = "Enable EBS CSI Driver"
-  type        = bool
-  default     = true
-}
-
-# Storage
-variable "storage_class_parameters" {
-  description = "Parameters for default storage class"
-  type = object({
-    type      = string # gp3, io1, io2
-    iops      = number
-    encrypted = string
-  })
-  default = {
-    type      = "gp3"
-    iops      = 3000
-    encrypted = "true"
-  }
-}
-
-# Monitoring
-variable "enable_prometheus" {
-  description = "Enable Prometheus monitoring"
-  type        = bool
-  default     = true
-}
-
-variable "enable_grafana" {
-  description = "Enable Grafana dashboards"
   type        = bool
   default     = true
 }
@@ -180,21 +133,6 @@ variable "domain_name" {
   default     = ""
 }
 
-variable "create_route53_zone" {
-  description = "Create Route53 hosted zone"
-  type        = bool
-  default     = false
-}
-
-# Platform Operator Configuration
-
-# Kong API Gateway
-variable "enable_kong" {
-  description = "Enable Kong API Gateway"
-  type        = bool
-  default     = true
-}
-
 # Karpenter
 variable "enable_karpenter" {
   description = "Enable Karpenter for node autoscaling"
@@ -209,55 +147,12 @@ variable "enable_vpa" {
   default     = false
 }
 
-# Logging
-variable "enable_loki" {
-  description = "Enable Loki for log aggregation"
-  type        = bool
-  default     = false
-}
-
-# Tracing
-variable "enable_tempo" {
-  description = "Enable Tempo for distributed tracing"
-  type        = bool
-  default     = false
-}
-
-# PaaS Platform Variables
-variable "enable_argocd" {
-  description = "Enable ArgoCD for GitOps"
-  type        = bool
-  default     = true
-}
-
 # GitOps and Operator Configuration
 
 variable "github_org" {
   description = "GitHub organization name"
   type        = string
   default     = "infraforge"
-}
-
-variable "github_token" {
-  description = "GitHub personal access token for integrations"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-# SSL/TLS Configuration
-
-variable "acm_certificate_arn" {
-  description = "ACM Certificate ARN for HTTPS endpoints"
-  type        = string
-  default     = ""
-}
-
-# Cluster Configuration
-variable "cluster_name" {
-  description = "Name of the EKS cluster"
-  type        = string
-  default     = ""
 }
 
 # GitOps Configuration
@@ -271,37 +166,4 @@ variable "gitops_repo_branch" {
   description = "Git repository branch for GitOps"
   type        = string
   default     = "main"
-}
-
-# Karpenter Configuration
-variable "karpenter_instance_profile_name" {
-  description = "Instance profile name for Karpenter nodes"
-  type        = string
-  default     = ""
-}
-
-variable "karpenter_irsa_role_arn" {
-  description = "IAM role ARN for Karpenter IRSA"
-  type        = string
-  default     = ""
-}
-
-# External DNS Configuration
-variable "external_dns_irsa_role_arn" {
-  description = "IAM role ARN for External DNS IRSA"
-  type        = string
-  default     = ""
-}
-
-# ECR Configuration
-variable "enable_ecr_pull_through_cache" {
-  description = "Enable ECR pull through cache for Docker Hub"
-  type        = bool
-  default     = false
-}
-
-variable "dockerhub_credentials_arn" {
-  description = "ARN of AWS Secrets Manager secret containing Docker Hub credentials"
-  type        = string
-  default     = ""
 }

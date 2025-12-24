@@ -1,0 +1,301 @@
+package controller
+
+import (
+	"context"
+	"fmt"
+	"path/filepath"
+
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	platformv1 "github.com/infraforge/platform-operator/api/v1"
+	"github.com/infraforge/platform-operator/pkg/gitea"
+)
+
+// BootstrapReconciler reconciles a BootstrapClaim object
+type BootstrapReconciler struct {
+	client.Client
+	Scheme *runtime.Scheme
+
+	// GiteaClient for Git operations
+	GiteaClient *gitea.Client
+
+	// ChartsPath embedded charts directory path
+	ChartsPath string
+
+	// PlatformChartsPath embedded platform-charts directory path
+	PlatformChartsPath string
+}
+
+//+kubebuilder:rbac:groups=platform.infraforge.io,resources=bootstrapclaims,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=platform.infraforge.io,resources=bootstrapclaims/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=platform.infraforge.io,resources=bootstrapclaims/finalizers,verbs=update
+
+// Reconcile handles BootstrapClaim reconciliation
+func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+	logger.Info("Reconciling BootstrapClaim", "name", req.Name)
+
+	// Fetch the BootstrapClaim
+	claim := &platformv1.BootstrapClaim{}
+	if err := r.Get(ctx, req.NamespacedName, claim); err != nil {
+		if errors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		logger.Error(err, "unable to fetch BootstrapClaim")
+		return ctrl.Result{}, err
+	}
+
+	// Initialize status if needed
+	if claim.Status.Phase == "" {
+		claim.Status.Phase = "Pending"
+		claim.Status.LastUpdated = metav1.Now()
+		if err := r.Status().Update(ctx, claim); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true}, nil
+	}
+
+	// Skip if already ready
+	if claim.Status.Ready {
+		logger.Info("BootstrapClaim already ready", "name", claim.Name)
+		return ctrl.Result{}, nil
+	}
+
+	// Update status to Bootstrapping
+	claim.Status.Phase = "Bootstrapping"
+	claim.Status.LastUpdated = metav1.Now()
+	if err := r.Status().Update(ctx, claim); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Step 1: Create organization
+	logger.Info("Creating Gitea organization", "org", claim.Spec.Organization)
+	if err := r.GiteaClient.CreateOrganization(ctx, claim.Spec.Organization, "Platform organization"); err != nil {
+		logger.Error(err, "failed to create organization")
+		r.updateStatusFailed(ctx, claim, "Failed to create organization: "+err.Error())
+		return ctrl.Result{}, err
+	}
+
+	// Step 2: Create repositories
+	logger.Info("Creating repositories")
+	repoURLs := make(map[string]string)
+
+	chartsRepo := claim.Spec.Repositories.Charts
+	if chartsRepo == "" {
+		chartsRepo = "charts"
+	}
+	platformChartsRepo := claim.Spec.Repositories.PlatformCharts
+	if platformChartsRepo == "" {
+		platformChartsRepo = "platform-charts"
+	}
+	voltranRepo := claim.Spec.Repositories.Voltran
+	if voltranRepo == "" {
+		voltranRepo = "voltran"
+	}
+
+	branch := claim.Spec.GitOps.Branch
+	if branch == "" {
+		branch = "main"
+	}
+
+	repos := []string{chartsRepo, platformChartsRepo, voltranRepo}
+	for _, repoName := range repos {
+		repo, err := r.GiteaClient.CreateRepository(ctx, claim.Spec.Organization, gitea.CreateRepoOptions{
+			Name:          repoName,
+			Description:   fmt.Sprintf("Platform %s repository", repoName),
+			Private:       false,
+			AutoInit:      true,
+			DefaultBranch: branch,
+		})
+		if err != nil {
+			logger.Error(err, "failed to create repository", "repo", repoName)
+			r.updateStatusFailed(ctx, claim, fmt.Sprintf("Failed to create repository %s: %v", repoName, err))
+			return ctrl.Result{}, err
+		}
+		repoURLs[repoName] = repo.CloneURL
+		logger.Info("Repository created", "name", repoName, "url", repo.CloneURL)
+	}
+
+	claim.Status.RepositoriesCreated = true
+	claim.Status.RepositoryURLs = repoURLs
+	if err := r.Status().Update(ctx, claim); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Step 3: Upload charts to charts repository
+	logger.Info("Uploading application charts", "repo", chartsRepo)
+	chartFiles, err := r.loadChartsFromEmbedded(r.ChartsPath)
+	if err != nil {
+		logger.Error(err, "failed to load charts")
+		r.updateStatusFailed(ctx, claim, "Failed to load charts: "+err.Error())
+		return ctrl.Result{}, err
+	}
+
+	if err := r.GiteaClient.PushFiles(ctx, repoURLs[chartsRepo], branch, chartFiles,
+		"Initial charts upload by operator", "Platform Operator", "operator@platform.local"); err != nil {
+		logger.Error(err, "failed to push charts")
+		r.updateStatusFailed(ctx, claim, "Failed to push charts: "+err.Error())
+		return ctrl.Result{}, err
+	}
+
+	// Step 4: Upload platform-charts
+	logger.Info("Uploading platform charts", "repo", platformChartsRepo)
+	platformChartFiles, err := r.loadChartsFromEmbedded(r.PlatformChartsPath)
+	if err != nil {
+		logger.Error(err, "failed to load platform charts")
+		r.updateStatusFailed(ctx, claim, "Failed to load platform charts: "+err.Error())
+		return ctrl.Result{}, err
+	}
+
+	if err := r.GiteaClient.PushFiles(ctx, repoURLs[platformChartsRepo], branch, platformChartFiles,
+		"Initial platform charts upload by operator", "Platform Operator", "operator@platform.local"); err != nil {
+		logger.Error(err, "failed to push platform charts")
+		r.updateStatusFailed(ctx, claim, "Failed to push platform charts: "+err.Error())
+		return ctrl.Result{}, err
+	}
+
+	claim.Status.ChartsUploaded = true
+	if err := r.Status().Update(ctx, claim); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Step 5: Generate root application structure in voltran repository
+	logger.Info("Generating root application structure", "repo", voltranRepo)
+
+	clusterType := claim.Spec.GitOps.ClusterType
+	if clusterType == "" {
+		clusterType = "nonprod"
+	}
+
+	environments := claim.Spec.GitOps.Environments
+	if len(environments) == 0 {
+		environments = []string{"dev", "qa", "sandbox", "staging", "prod"}
+	}
+
+	voltranFiles := r.generateVoltranStructure(claim.Spec.Organization, chartsRepo, platformChartsRepo,
+		clusterType, environments, branch)
+
+	if err := r.GiteaClient.PushFiles(ctx, repoURLs[voltranRepo], branch, voltranFiles,
+		"Initial GitOps structure by operator", "Platform Operator", "operator@platform.local"); err != nil {
+		logger.Error(err, "failed to push voltran structure")
+		r.updateStatusFailed(ctx, claim, "Failed to push GitOps structure: "+err.Error())
+		return ctrl.Result{}, err
+	}
+
+	claim.Status.RootAppGenerated = true
+	if err := r.Status().Update(ctx, claim); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Mark as ready
+	claim.Status.Phase = "Ready"
+	claim.Status.Ready = true
+	claim.Status.Message = "Bootstrap completed successfully"
+	claim.Status.LastUpdated = metav1.Now()
+	if err := r.Status().Update(ctx, claim); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	logger.Info("BootstrapClaim reconciliation completed successfully")
+	return ctrl.Result{}, nil
+}
+
+// loadChartsFromEmbedded loads chart files from embedded directory
+func (r *BootstrapReconciler) loadChartsFromEmbedded(path string) (map[string]string, error) {
+	// TODO: Implement reading from embedded filesystem
+	// For now, return placeholder
+	files := make(map[string]string)
+
+	// Example structure - this should be implemented to read from actual embedded charts
+	files["README.md"] = "# Charts Repository\n\nThis repository contains application Helm charts managed by the platform operator."
+
+	return files, nil
+}
+
+// generateVoltranStructure generates the GitOps folder structure
+func (r *BootstrapReconciler) generateVoltranStructure(org, chartsRepo, platformChartsRepo, clusterType string, environments []string, branch string) map[string]string {
+	files := make(map[string]string)
+
+	// README
+	files["README.md"] = fmt.Sprintf(`# Voltran - GitOps Configuration Repository
+
+This repository contains the GitOps configuration managed by the platform operator.
+
+## Structure
+
+- root-apps/: ArgoCD root applications
+- appsets/: ApplicationSet definitions
+- environments/: Environment-specific values
+
+## Cluster Type: %s
+`, clusterType)
+
+	// Root application for the cluster type
+	rootAppPath := fmt.Sprintf("root-apps/%s-root.yaml", clusterType)
+	files[rootAppPath] = r.generateRootApp(clusterType, branch)
+
+	// Placeholder appsets and environments
+	files["appsets/.gitkeep"] = ""
+	files["environments/.gitkeep"] = ""
+
+	for _, env := range environments {
+		files[fmt.Sprintf("environments/%s/.gitkeep", env)] = ""
+	}
+
+	return files
+}
+
+// generateRootApp generates the root ArgoCD application
+func (r *BootstrapReconciler) generateRootApp(clusterType, branch string) string {
+	return fmt.Sprintf(`apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: %s-root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: http://gitea.gitea.svc.cluster.local:3000/platform/voltran
+    path: appsets
+    targetRevision: %s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+`, clusterType, branch)
+}
+
+// updateStatusFailed updates the status to Failed
+func (r *BootstrapReconciler) updateStatusFailed(ctx context.Context, claim *platformv1.BootstrapClaim, message string) {
+	claim.Status.Phase = "Failed"
+	claim.Status.Ready = false
+	claim.Status.Message = message
+	claim.Status.LastUpdated = metav1.Now()
+	r.Status().Update(ctx, claim)
+}
+
+// SetupWithManager sets up the controller with the Manager
+func (r *BootstrapReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&platformv1.BootstrapClaim{}).
+		Complete(r)
+}

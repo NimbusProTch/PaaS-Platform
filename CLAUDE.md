@@ -1,552 +1,558 @@
-# Platform Status - 2025-12-24
-
-## Architecture Overview
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                    Developer Workflow                         │
-└──────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-                   kubectl apply -f claim.yaml
-                              │
-┌─────────────────────────────┼─────────────────────────────────┐
-│                    ApplicationClaim (CRD)                      │
-│  apiVersion: platform.infraforge.io/v1                        │
-│  kind: ApplicationClaim                                        │
-│  spec:                                                         │
-│    environment: dev                                            │
-│    applications: [...]                                         │
-│    components: [postgresql, redis...]                         │
-└─────────────────────────────┬─────────────────────────────────┘
-                              │
-                              ▼
-┌────────────────────────────────────────────────────────────────┐
-│              Platform Operator (Reconciler)                    │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │ 1. Read Claim                                            │ │
-│  │ 2. Generate Helm Values (per app/component)             │ │
-│  │ 3. Diff Check: Changed?                                 │ │
-│  │    ├─ Yes → Update ConfigMap ✅                         │ │
-│  │    └─ No  → Skip ⏭️                                     │ │
-│  │ 4. If ANY changed → Update ApplicationSet               │ │
-│  │    └─ Else → Skip ApplicationSet update                 │ │
-│  └──────────────────────────────────────────────────────────┘ │
-└────────────────────────────┬───────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Kubernetes Resources                         │
-│  ┌───────────────────────┐  ┌──────────────────────────────┐   │
-│  │ ConfigMap (per app)   │  │ ArgoCD ApplicationSet       │   │
-│  │ - ecommerce-api-values│  │ - List Generator            │   │
-│  │ - payment-api-values  │  │ - helmValues from ConfigMap │   │
-│  │ - main-db-values      │  │ - One per Claim             │   │
-│  └───────────────────────┘  └──────────────────────────────┘   │
-└─────────────────────────────┬───────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│            ArgoCD ApplicationSet Controller                     │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │ Generates Applications (one per app/component)           │  │
-│  │  - ecommerce-demo-api                                    │  │
-│  │  - ecommerce-demo-payment                                │  │
-│  │  - ecommerce-demo-main-db                                │  │
-│  └──────────────────────────────────────────────────────────┘  │
-└─────────────────────────────┬───────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                  ArgoCD Sync (per Application)                  │
-│  1. Fetch: http://chartmuseum.chartmuseum.svc:8080              │
-│  2. Chart: common (v2.0.0)                                      │
-│  3. Values: From ApplicationSet helmValues                      │
-│  4. Render: Helm template                                       │
-│  5. Deploy: kubectl apply                                       │
-└─────────────────────────────┬───────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Kubernetes Cluster                           │
-│  Namespace: default                                             │
-│  ├─ Deployment: ecommerce-api (2 replicas)                      │
-│  ├─ Service: ecommerce-api                                      │
-│  ├─ Deployment: payment-service (1 replica)                     │
-│  ├─ Service: payment-service                                    │
-│  └─ StatefulSet: main-db (PostgreSQL)                           │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## Project Structure
-
-### Clean Organization (Updated 2025-12-24)
-
-```
-PaaS-Platform/
-├── charts/                                 # Helm charts (moved from operator)
-│   └── common/                            # Universal Helm chart v2.0.0
-│       ├── Chart.yaml
-│       ├── values.yaml
-│       └── templates/
-│
-├── deployments/                           # Environment-specific claims
-│   ├── dev/
-│   │   └── ecommerce-claim.yaml          # Development environment
-│   ├── staging/
-│   │   └── README.md                     # Staging (ready for claims)
-│   └── prod/
-│       └── README.md                     # Production (ready for claims)
-│
-├── infrastructure/
-│   ├── aws/                              # Terraform/OpenTofu
-│   │   ├── main.tf                      # Provider config
-│   │   ├── vpc.tf                       # Network (VPC, subnets, NAT)
-│   │   ├── eks.tf                       # EKS cluster
-│   │   ├── argocd.tf                    # ArgoCD installation
-│   │   ├── addons.tf                    # CloudNativePG, metrics, cert-manager
-│   │   └── chartmuseum.tf               # ChartMuseum (deprecated)
-│   │
-│   └── platform-operator/               # Kubernetes operator
-│       ├── api/v1/
-│       │   └── applicationclaim_types.go # CRD definition
-│       ├── internal/controller/
-│       │   ├── applicationclaim_controller.go  # Main reconciler
-│       │   ├── argocd_controller.go           # ArgoCD integration
-│       │   ├── values_generator.go            # Helm values generation
-│       │   └── configmap_values.go            # ConfigMap storage (diff-based)
-│       ├── Dockerfile                    # Production image
-│       └── Makefile                      # Build & deploy commands
-│
-└── microservices/
-    └── ecommerce-platform/              # Sample application
-```
-
-### Cleanup Summary
-
-**Removed** (unnecessary files):
-- ❌ `infrastructure/platform-operator/ecommerce-applicationset-dev.yaml` - Operator creates this
-- ❌ `infrastructure/platform-operator/ecommerce-applicationset-prod.yaml` - Operator creates this
-- ❌ `infrastructure/platform-operator/deploy-chartmuseum.yaml` - Terraform deploys this
-- ❌ `infrastructure/platform-operator/examples/` - Moved to deployments/
-- ❌ `infrastructure/platform-operator/config/samples/` - Redundant samples
-- ❌ `infrastructure/platform-operator/test-app/` - Test application
-- ❌ `infrastructure/platform-operator/Dockerfile.simple` - Unused simple Dockerfile
-
-**Moved**:
-- ✅ `infrastructure/platform-operator/charts/` → `charts/` (root level)
-- ✅ `infrastructure/platform-operator/examples/claims/` → `deployments/dev/`
-
-**Result**: Clean separation of infrastructure, operator code, charts, and deployment manifests.
-
-## Performance Optimization: Incremental Updates
-
-### Problem
-Original implementation updated all ConfigMaps and ApplicationSet on every reconciliation, even when nothing changed. This caused:
-- 20-minute wait times for small changes
-- Unnecessary ArgoCD sync cycles
-- Poor developer experience
-
-### Solution: Diff-Based Reconciliation
-
-**configmap_values.go** (`infrastructure/platform-operator/internal/controller/configmap_values.go:18-71`):
-```go
-func (r *ApplicationClaimReconciler) storeValuesInConfigMap(ctx context.Context, claim *platformv1.ApplicationClaim, appName, valuesYAML string) (bool, error) {
-    // Returns (changed bool, error)
-
-    // Check if ConfigMap exists
-    existing := &corev1.ConfigMap{}
-    err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: "argocd"}, existing)
-
-    if err != nil {
-        if errors.IsNotFound(err) {
-            // Create new ConfigMap
-            logger.Info("✅ Creating values ConfigMap", "name", cmName, "app", appName)
-            if err := r.Create(ctx, cm); err != nil {
-                return false, fmt.Errorf("failed to create ConfigMap: %w", err)
-            }
-            return true, nil // Changed!
-        }
-        return false, fmt.Errorf("failed to get ConfigMap: %w", err)
-    }
-
-    // DIFF CHECK: Only update if values actually changed
-    if existing.Data["values.yaml"] == valuesYAML {
-        logger.V(1).Info("⏭️  ConfigMap unchanged, skipping update", "name", cmName, "app", appName)
-        return false, nil // Not changed
-    }
-
-    // Update existing ConfigMap
-    logger.Info("🔄 Updating values ConfigMap", "name", cmName, "app", appName)
-    existing.Data = cm.Data
-    if err := r.Update(ctx, existing); err != nil {
-        return false, fmt.Errorf("failed to update ConfigMap: %w", err)
-    }
-
-    return true, nil // Changed!
-}
-```
-
-**argocd_controller.go** (`infrastructure/platform-operator/internal/controller/argocd_controller.go`):
-```go
-// Track if ANY ConfigMap changed
-anyChanged := false
-
-// Generate and store Helm values for each application
-for _, app := range claim.Spec.Applications {
-    valuesYAML, err := r.generateValuesForApp(claim, app)
-    if err != nil {
-        return fmt.Errorf("failed to generate values for app %s: %w", app.Name, err)
-    }
-
-    changed, err := r.storeValuesInConfigMap(ctx, claim, app.Name, valuesYAML)
-    if err != nil {
-        return fmt.Errorf("failed to store values for app %s: %w", app.Name, err)
-    }
-
-    if changed {
-        anyChanged = true
-    }
-}
-
-// Only update ApplicationSet if something actually changed
-if anyChanged {
-    logger.Info("Changes detected, updating ApplicationSet", "claim", claim.Name)
-    if err := r.createOrUpdateApplicationSet(ctx, claim); err != nil {
-        return fmt.Errorf("failed to create/update ApplicationSet: %w", err)
-    }
-} else {
-    logger.V(1).Info("⏭️  No changes detected, skipping ApplicationSet update", "claim", claim.Name)
-}
-```
-
-### Impact
-- ✅ Single app change: 5-10 seconds (was 20 minutes)
-- ✅ No-op reconciliation: <1 second (was 20 minutes)
-- ✅ Full claim update: Still takes time, but only when necessary
-- ✅ Smart ApplicationSet updates trigger ArgoCD sync only when needed
-
-## Current Architecture
-
-### Components Deployed via Terraform:
-- **EKS Cluster**: AWS managed Kubernetes
-- **ArgoCD**: GitOps deployment engine
-- **ChartMuseum**: Helm chart repository (http://chartmuseum.chartmuseum.svc.cluster.local:8080)
-- **CloudNativePG**: PostgreSQL operator
-- **AWS Load Balancer Controller**: NLB/ALB management
-- **Metrics Server**: Resource metrics
-- **Cert Manager**: TLS certificate automation
-
-## Infrastructure Status
-
-### Current State: **DESTROYED** (Cost Savings: ~$0.82/hour)
-
-All AWS resources deleted on 2025-12-23 to stop overnight costs:
-- ✅ EKS Cluster deleted
-- ✅ EC2 instances terminated
-- ✅ NAT Gateway deleted (~$0.045/hour saved)
-- ✅ Network Load Balancer deleted (~$0.0225/hour saved)
-- ✅ VPC Endpoints deleted
-- ✅ Security Groups cleaned and deleted
-- ✅ Subnets deleted
-- ✅ IAM roles deleted
-- ✅ CloudWatch logs deleted
-
-**To Resume Work**:
-```bash
-cd infrastructure/aws
-tofu apply
-```
-
-## Identified Issues
-
-### 1. Common Chart Not Uploaded to ChartMuseum ⚠️
-**Status**: Critical blocker
-**Impact**: ArgoCD ApplicationSets fail to deploy applications
-
-**Current State**:
-- ChartMuseum deployed and running
-- Common chart exists locally at `infrastructure/platform-operator/charts/common/`
-- Chart version: 2.0.0
-- Missing: Automated upload mechanism
-
-**Solution Required**:
-Add Terraform null_resource to upload chart:
-```hcl
-resource "null_resource" "upload_common_chart" {
-  provisioner "local-exec" {
-    command = <<-EOT
-      helm package infrastructure/platform-operator/charts/common
-      curl --data-binary "@common-2.0.0.tgz" http://chartmuseum.chartmuseum.svc.cluster.local:8080/api/charts
-    EOT
-  }
-  depends_on = [helm_release.chartmuseum]
-}
-```
-
-**Files Involved**:
-- `infrastructure/aws/chartmuseum.tf` - Deployment config
-- `infrastructure/platform-operator/charts/common/` - Chart source
-- `infrastructure/platform-operator/internal/controller/argocd_controller.go:652-795` - ArgoCD integration referencing chart
-
-### 2. Health Check Hardcoded ⚠️
-**Status**: Quality issue
-**Impact**: ApplicationClaim healthCheck spec ignored
-
-**Current Code** (`applicationclaim_controller.go:654-671`):
-```go
-LivenessProbe: &corev1.Probe{
-    ProbeHandler: corev1.ProbeHandler{
-        HTTPGet: &corev1.HTTPGetAction{
-            Path: "/health",
-            Port: intstr.FromInt(8080),
-        },
-    },
-    InitialDelaySeconds: 30,
-    PeriodSeconds:       10,
-}
-```
-
-**Should Use**:
-```go
-if app.HealthCheck != nil {
-    LivenessProbe: &corev1.Probe{
-        ProbeHandler: corev1.ProbeHandler{
-            HTTPGet: &corev1.HTTPGetAction{
-                Path: app.HealthCheck.Path,
-                Port: intstr.FromInt(int(app.HealthCheck.Port)),
-            },
-        },
-        InitialDelaySeconds: app.HealthCheck.InitialDelaySeconds,
-        PeriodSeconds:       app.HealthCheck.PeriodSeconds,
-    }
-}
-```
-
-### 3. GHCR Image Resolution Incomplete 🔧
-**Status**: Enhancement needed
-**Impact**: GitHub Container Registry images may not resolve correctly
-
-**Current Code** (`values_generator.go:16-19`):
-```go
-imageRepo := app.Image
-if imageRepo == "" && app.ServiceName != "" {
-    imageRepo = fmt.Sprintf("ghcr.io/nimbusprotch/%s", app.ServiceName)
-}
-```
-
-**Missing**: Actual GitHub API integration to verify image exists and resolve latest tag.
-
-### 4. Helm Client Dummy Implementation 🔧
-**Status**: Non-functional
-**Impact**: Direct Helm installations don't work (ArgoCD path works)
-
-**Current Code** (`pkg/helm/client.go:26-30`):
-```go
-func (c *Client) InstallOrUpgrade(ctx context.Context, release Release) error {
-    fmt.Printf("Installing/Upgrading Helm release: %s in namespace %s\n", release.Name, release.Namespace)
-    return nil  // Does nothing!
-}
-```
-
-**Note**: Not critical since ArgoCD handles actual deployments, but limits operator's standalone capabilities.
-
-## Architecture Decision
-
-### Options Evaluated:
-
-| Approach | Effort | Pros | Cons | Rating |
-|----------|--------|------|------|--------|
-| **Complete ChartMuseum** | 1 day | 80% done, quick completion | Extra dependency | ⭐⭐⭐ |
-| **GitOps Native (Kustomize)** | 2-3 days | Industry standard, Git-based audit | Complete rewrite | ⭐⭐⭐⭐⭐ |
-| **Hybrid (Bitnami + Custom)** | 2 days | Best of both worlds | Inconsistent | ⭐⭐⭐⭐ |
-
-### Decision: **Complete ChartMuseum First** ✅
-
-**Rationale**: "First make it work, then make it better"
-- Existing implementation is 80% complete
-- Faster path to working system (1 day vs 2-3 days)
-- Can migrate to GitOps later without breaking existing functionality
-- Pragmatic approach for immediate progress
-
-**Migration Path**:
-1. Complete ChartMuseum implementation (now)
-2. Validate with ecommerce-claim
-3. Optional: Migrate to Kustomize-based GitOps (future iteration)
-
-## Current Status (2025-12-24 17:00)
-
-**Last Updated**: 2025-12-24 17:00 (UTC+3)
-**Status**: ✅ Operator ready for deployment (Git-based, no ChartMuseum needed)
-
-### Completed Today
-- ✅ Operator build successful (66MB binary)
-- ✅ Switched from ChartMuseum to Git repo (simpler architecture)
-- ✅ ArgoCD ApplicationSet now pulls charts from GitHub
-- ✅ Diff-based ConfigMap reconciliation
-- ✅ ArgoCD Sync Waves (infrastructure wave 0 → apps wave 1)
-- ✅ Configurable IMAGE_REGISTRY environment variable
-- ✅ Two-claim architecture (platform-infrastructure + apps)
-- ✅ Project cleanup (removed disabled tests, cleaned structure)
-- ✅ Terraform validation passed
-
-### Architecture Change
-**Before**: Operator → ChartMuseum → ArgoCD
-**After**: Operator → GitHub (charts/common/) → ArgoCD
-
-Benefits:
-- No ChartMuseum deployment needed
-- Simpler infrastructure
-- Charts versioned in Git
-- Faster iteration
-
-### Chart Source
-```yaml
-source:
-  repoURL: "https://github.com/nimbusprotch/platform-operator"
-  targetRevision: "main"
-  path: "charts/common"
-  helm:
-    values: "{{helmValues}}"  # Inline from operator
-```
-
-## Next Steps
-
-### 1. Deploy Infrastructure (EKS + ArgoCD)
-```bash
-cd infrastructure/aws
-tofu apply
-# Wait ~15 minutes for EKS cluster ready
-```
-
-### 2. Deploy Platform Operator
-```bash
-kubectl apply -f infrastructure/platform-operator/config/crd/
-kubectl apply -f infrastructure/platform-operator/config/manager/
-```
-
-### 3. Deploy Two Claims
-```bash
-# Infrastructure first (PostgreSQL, Redis, RabbitMQ, Elasticsearch)
-kubectl apply -f deployments/dev/platform-infrastructure-claim.yaml
-
-# Applications second (product, user, order, payment, notification services)
-kubectl apply -f deployments/dev/apps-claim.yaml
-```
-
-### 4. Monitor Deployment
-```bash
-# Watch claims
-kubectl get applicationclaim -w
-
-# Watch ArgoCD ApplicationSets
-kubectl get applicationset -n argocd
-
-# Watch ArgoCD Applications
-kubectl get application -n argocd
-
-# Check sync waves (infrastructure deploys before apps)
-kubectl get application -n argocd -o custom-columns=\
-NAME:.metadata.name,\
-WAVE:.metadata.annotations.argocd\.argoproj\.io/sync-wave,\
-HEALTH:.status.health.status,\
-SYNC:.status.sync.status
-```
-
-### 5. Validate End-to-End Flow
-1. ✅ ApplicationClaim created
-2. ✅ Operator generates Helm values (inline in ApplicationSet)
-3. ✅ ArgoCD ApplicationSet created
-4. ⏳ ArgoCD pulls chart from GitHub
-5. ⏳ ArgoCD deploys with inline values
-6. ⏳ Infrastructure pods running (wave 0)
-7. ⏳ Application pods running (wave 1)
-8. ⏳ Services accessible
-
-## Test Coverage
-
-### Working:
-- ✅ ApplicationClaim CRD reconciliation
-- ✅ ArgoCD ApplicationSet generation
-- ✅ Helm values generation with environment-specific resources
-- ✅ GitHub image repository derivation
-- ✅ Retry logic for status updates
-
-### Needs Testing:
-- ⚠️ Common chart deployment via ChartMuseum
-- ⚠️ Health check customization
-- ⚠️ PostgreSQL operator integration
-- ⚠️ Multi-environment deployments (dev/staging/prod)
-
-## Key Files Reference
-
-### Operator Core:
-- `infrastructure/platform-operator/internal/controller/applicationclaim_controller.go` - Main reconciler
-- `infrastructure/platform-operator/internal/controller/argocd_controller.go:652-795` - ArgoCD integration
-- `infrastructure/platform-operator/internal/controller/values_generator.go` - Helm values generation
-- `infrastructure/platform-operator/internal/controller/configmap_values.go` - Values storage
-
-### Infrastructure:
-- `infrastructure/aws/eks.tf` - EKS cluster configuration
-- `infrastructure/aws/chartmuseum.tf` - ChartMuseum deployment
-- `infrastructure/aws/argocd.tf` - ArgoCD installation
-- `infrastructure/aws/addons.tf` - CloudNativePG, metrics-server, cert-manager
-
-### Charts:
-- `infrastructure/platform-operator/charts/common/` - Universal Helm chart (v2.0.0)
-- `infrastructure/platform-operator/charts/common/Chart.yaml` - Chart metadata
-- `infrastructure/platform-operator/charts/common/templates/` - Kubernetes manifests
-
-### Examples:
-- `infrastructure/platform-operator/examples/claims/ecommerce-claim-ghcr.yaml` - E-commerce test case
-
-## Cost Tracking
-
-### Projected Monthly Costs (when running):
-- EKS Cluster: ~$73/month ($0.10/hour)
-- NAT Gateway: ~$32.40/month ($0.045/hour)
-- Network Load Balancer: ~$16.20/month ($0.0225/hour)
-- EC2 (t3.medium × 2): ~$60/month
-- EBS Volumes: ~$20/month
-- **Total**: ~$200/month (~$0.82/hour)
-
-### Current Cost: **$0/hour** (all resources deleted)
-
-## Security Group Cleanup
-
-Security groups had dependency violations requiring manual cleanup. Script created at `/tmp/cleanup-sgs.sh`:
-
-**SG IDs Cleaned**:
-- `sg-0e17b08a59a63d7ce` - Cluster security group
-- `sg-0ee9184f0e6ea71cc` - Traffic security group
-- `sg-078f11041a7f147ee` - Node security group
-
-**Rules Removed**:
-- Cluster ↔ Node communication (443, 6443, 8443, 9443, 4443, 10250)
-- Node ↔ Node communication (1025-65535, DNS 53 TCP/UDP)
-- Load balancer ↔ Node (30152-31694)
-- All egress rules (0.0.0.0/0)
-
-All security groups successfully deleted after rule removal.
+# InfraForge Platform - Architecture Documentation
+
+**Last Updated**: 2025-12-24 19:00 UTC+3
+**Status**: 🔄 Redesigning to GitOps-Native with Gitea
+**Phase**: Architecture Finalization
 
 ---
 
-**Last Updated**: 2025-12-24 16:30 (UTC+3)
-**Status**: Operator ready for local testing with production-grade features
-**Completed Today**:
-- ✅ Diff-based ConfigMap reconciliation (5-10 second updates vs 20 minutes)
-- ✅ Smart ApplicationSet updates (only when values change)
-- ✅ ArgoCD Sync Waves (infrastructure wave 0 → apps wave 1, automatic ordering)
-- ✅ Configurable image registry (IMAGE_REGISTRY env var)
-- ✅ Two-claim architecture (platform-infrastructure + apps)
-- ✅ Project structure cleanup (charts/, deployments/, removed 10+ unnecessary files)
-- ✅ CreateOrUpdate pattern for idempotent ApplicationSet management
+## 🎯 Architecture Overview
 
-**Current Phase**: Local Operator Testing
-**Next Steps**:
-1. ⏳ Build operator locally (`make build`)
-2. ⏳ Dry-run test: Verify operator generates correct manifests from claims
-3. ⏳ Validate ArgoCD ApplicationSet structure
-4. ⏳ Check sync waves, ConfigMaps, Helm values
-5. 🔜 Deploy to EKS and test end-to-end
-6. 🔜 Monitor ArgoCD sync with real infrastructure
+### Platform Philosophy
+InfraForge is a **Kubernetes-native PaaS platform** that enables developers to deploy applications through simple YAML claims. The platform automatically provisions infrastructure, configures GitOps workflows, and manages deployments through ArgoCD.
+
+### Core Principles
+1. **Operator-First**: Platform Operator handles all complexity
+2. **Git as Source of Truth**: Every manifest stored in Gitea
+3. **Minimal Terraform**: Infrastructure only, no business logic
+4. **Developer-Friendly**: Single claim deploys entire environments
+5. **GitOps-Native**: ArgoCD syncs from Git, not in-memory configs
+
+---
+
+## 🏗️ System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         TERRAFORM (Infrastructure)                  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                 │
+│  │  EKS        │  │   Gitea     │  │   ArgoCD    │                 │
+│  │  Cluster    │  │  (empty)    │  │  (empty)    │                 │
+│  └─────────────┘  └─────────────┘  └─────────────┘                 │
+│                                                                      │
+│  ┌──────────────────────────────────────────────────┐               │
+│  │  Platform Operator (Helm OCI)                    │               │
+│  │  - Charts embedded in image                      │               │
+│  │  - Gitea client built-in                         │               │
+│  └──────────────────────────────────────────────────┘               │
+│                                                                      │
+│  kubectl apply -f bootstrap-claim.yaml  ← Trigger                   │
+└─────────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                     BOOTSTRAP PHASE (Operator)                      │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ BootstrapClaim Reconciler                                      │ │
+│  │  1. Create Gitea repos (charts, platform-charts, voltran)     │ │
+│  │  2. Push embedded charts → Gitea                              │ │
+│  │  3. Generate voltran folder structure                         │ │
+│  │  4. Generate & push ArgoCD root apps                          │ │
+│  │  5. Deploy root apps to ArgoCD                                │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+│                                                                      │
+│  Status: Bootstrapped ✅                                            │
+└─────────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                   APPLICATION DEPLOYMENT PHASE                      │
+│                                                                      │
+│  Developer: kubectl apply -f dev-claim.yaml                         │
+│             kubectl apply -f dev-platform-claim.yaml                │
+│                              ↓                                      │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ ApplicationClaim Reconciler                                    │ │
+│  │  1. Fetch GitHub package metadata (ghcr.io)                    │ │
+│  │  2. Generate values.yaml                                       │ │
+│  │  3. Push → Gitea: voltran/environments/.../values.yaml         │ │
+│  │  4. Generate ApplicationSet YAML                               │ │
+│  │  5. Push → Gitea: voltran/appsets/.../dev-appset.yaml          │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+│                              ↓                                      │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ PlatformClaim Reconciler (Postgres, RabbitMQ, Redis)          │ │
+│  │  1. Generate platform service values.yaml                      │ │
+│  │  2. Push → Gitea: voltran/environments/.../platform/           │ │
+│  │  3. Generate platform ApplicationSet YAML                      │ │
+│  │  4. Push → Gitea: voltran/appsets/.../platform-appset.yaml     │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                     ARGOCD SYNC (Automated)                         │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ Root App: nonprod-apps → appsets/nonprod/apps/                │ │
+│  │   ↓                                                            │ │
+│  │ ApplicationSet: dev-appset.yaml                                │ │
+│  │   ↓ (Git generator: environments/nonprod/dev/applications/*)  │ │
+│  │ Applications:                                                  │ │
+│  │   - dev-ecommerce-platform                                     │ │
+│  │   - dev-user-service                                           │ │
+│  │     ↓ (Pull chart from gitea/charts/, values from voltran/)   │ │
+│  │   Deployed to Kubernetes! ✅                                   │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+│                                                                      │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ Root App: nonprod-platform → appsets/nonprod/platform/        │ │
+│  │   ↓                                                            │ │
+│  │ ApplicationSet: dev-platform-appset.yaml                       │ │
+│  │   ↓ (Git generator: environments/nonprod/dev/platform/*)      │ │
+│  │ Applications:                                                  │ │
+│  │   - dev-platform-postgres                                      │ │
+│  │   - dev-platform-rabbitmq                                      │ │
+│  │     ↓ (Pull chart from gitea/platform-charts/)                │ │
+│  │   Deployed to platform-services namespace! ✅                  │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 📂 Gitea Repository Structure
+
+```
+Gitea Organization: platform
+│
+├── 📦 charts/                         (Application Helm Charts)
+│   ├── ecommerce-platform/
+│   │   ├── Chart.yaml
+│   │   ├── values.yaml                (base defaults)
+│   │   └── templates/
+│   │       ├── deployment.yaml
+│   │       ├── service.yaml
+│   │       └── ingress.yaml
+│   ├── user-service/
+│   ├── product-service/
+│   └── order-service/
+│
+├── 📦 platform-charts/                (Platform Services - Postgres, Redis, etc)
+│   ├── postgres/
+│   │   ├── Chart.yaml
+│   │   ├── values.yaml
+│   │   └── templates/
+│   ├── rabbitmq/
+│   ├── redis/
+│   └── kafka/
+│
+└── 📦 voltran/                        (GitOps Configuration Repository)
+    ├── root-apps/                     🔥 Terraform creates, Operator populates
+    │   ├── nonprod/
+    │   │   ├── apps-rootapp.yaml
+    │   │   └── platform-rootapp.yaml
+    │   └── prod/
+    │       ├── apps-rootapp.yaml
+    │       └── platform-rootapp.yaml
+    │
+    ├── appsets/                       🔥 Operator creates dynamically
+    │   ├── nonprod/
+    │   │   ├── apps/
+    │   │   │   ├── dev-appset.yaml       (generated by ApplicationClaim)
+    │   │   │   ├── qa-appset.yaml
+    │   │   │   └── sandbox-appset.yaml
+    │   │   └── platform/
+    │   │       ├── dev-platform-appset.yaml  (generated by PlatformClaim)
+    │   │       ├── qa-platform-appset.yaml
+    │   │       └── sandbox-platform-appset.yaml
+    │   └── prod/
+    │       ├── apps/
+    │       │   ├── prod-appset.yaml
+    │       │   └── stage-appset.yaml
+    │       └── platform/
+    │           ├── prod-platform-appset.yaml
+    │           └── stage-platform-appset.yaml
+    │
+    └── environments/                  🔥 Operator creates values.yaml per app
+        ├── nonprod/
+        │   ├── dev/
+        │   │   ├── applications/
+        │   │   │   ├── ecommerce-platform/
+        │   │   │   │   └── values.yaml      (ApplicationClaim → Operator generates)
+        │   │   │   ├── user-service/
+        │   │   │   │   └── values.yaml
+        │   │   │   └── order-service/
+        │   │   │       └── values.yaml
+        │   │   └── platform/
+        │   │       ├── postgres/
+        │   │       │   └── values.yaml      (PlatformClaim → Operator generates)
+        │   │       ├── rabbitmq/
+        │   │       │   └── values.yaml
+        │   │       └── redis/
+        │   │           └── values.yaml
+        │   ├── qa/
+        │   │   ├── applications/
+        │   │   └── platform/
+        │   └── sandbox/
+        │       ├── applications/
+        │       └── platform/
+        │
+        └── prod/
+            ├── prod/
+            │   ├── applications/
+            │   └── platform/
+            └── stage/
+                ├── applications/
+                └── platform/
+```
+
+**📌 Structure Rules (Enforced by Operator)**:
+- ✅ Fixed structure, no deviations allowed
+- ✅ Operator generates all paths dynamically based on claims
+- ✅ Git = Single Source of Truth (no ConfigMaps)
+- ✅ Multi-cluster ready (same Git, different clusters)
+
+---
+
+## 🔧 Component Responsibilities
+
+### 1. Terraform (Infrastructure Only)
+```hcl
+# Responsibilities:
+- Deploy EKS cluster
+- Deploy Gitea (empty)
+- Deploy ArgoCD (empty)
+- Deploy Platform Operator (from OCI Helm registry)
+- Deploy BootstrapClaim (trigger operator)
+- Deploy InfrastructureClaim (namespace setup)
+- DONE! No Git operations, no kubectl apply loops
+
+# Lines of Code: ~100 (previously 300+)
+```
+
+### 2. Platform Operator (All Intelligence)
+```go
+// Responsibilities:
+1. Bootstrap:
+   - Create Gitea repos
+   - Push embedded charts
+   - Generate folder structure
+   - Create & deploy ArgoCD root apps
+
+2. ApplicationClaim:
+   - Fetch GitHub package metadata (ghcr.io)
+   - Generate values.yaml
+   - Push to Git: voltran/environments/.../applications/*/values.yaml
+   - Generate ApplicationSet YAML
+   - Push to Git: voltran/appsets/.../apps/*-appset.yaml
+
+3. PlatformClaim:
+   - Generate platform service values.yaml
+   - Push to Git: voltran/environments/.../platform/*/values.yaml
+   - Generate platform ApplicationSet YAML
+   - Push to Git: voltran/appsets/.../platform/*-platform-appset.yaml
+
+// Key Features:
+- Git client built-in (go-git library)
+- GitHub OCI package integration
+- Idempotent reconciliation
+- No ConfigMaps (Git only)
+```
+
+### 3. ArgoCD (Deployment Engine)
+```yaml
+# Responsibilities:
+- Watch Gitea: voltran/appsets/*
+- Generate Applications from ApplicationSets
+- Pull Helm charts from Gitea
+- Apply to Kubernetes
+- Health checks & sync status
+
+# No manual configuration needed
+```
+
+---
+
+## 📋 Claim Specifications
+
+### BootstrapClaim (One-time, Per Cluster)
+```yaml
+apiVersion: platform.infraforge.io/v1alpha1
+kind: BootstrapClaim
+metadata:
+  name: platform-bootstrap
+  namespace: platform-system
+spec:
+  gitea:
+    url: http://gitea-http.gitea.svc:3000
+    organization: platform
+
+  clusters:
+    - type: nonprod
+      environments: [dev, qa, sandbox]
+    - type: prod
+      environments: [prod, stage]
+```
+
+**Operator Actions:**
+1. Create repos: `charts`, `platform-charts`, `voltran`
+2. Push embedded `/charts` → `platform/charts`
+3. Push embedded `/platform-charts` → `platform/platform-charts`
+4. Create folder structure in `voltran`
+5. Generate & push root apps
+6. Deploy root apps to ArgoCD
+
+---
+
+### ApplicationClaim (One Per Environment)
+```yaml
+apiVersion: platform.infraforge.io/v1alpha1
+kind: ApplicationClaim
+metadata:
+  name: dev-apps
+  namespace: dev
+spec:
+  clusterType: nonprod
+  environment: dev
+
+  applications:
+    - name: ecommerce-platform
+      chart:
+        name: ecommerce-platform
+        source: embedded  # Use gitea/platform/charts/
+      image:
+        repository: ghcr.io/infraforge/ecommerce-platform
+        tag: v1.2.3
+      values:
+        replicas: 2
+        ingress:
+          enabled: true
+          host: ecommerce-dev.example.com
+
+    - name: user-service
+      chart:
+        name: user-service
+        source: embedded
+      image:
+        repository: ghcr.io/infraforge/user-service
+        tag: latest
+      values:
+        replicas: 1
+```
+
+**Operator Actions (per app):**
+1. Fetch GitHub package metadata (digest, tags)
+2. Generate `values.yaml`:
+   ```yaml
+   # voltran/environments/nonprod/dev/applications/ecommerce-platform/values.yaml
+   image:
+     repository: ghcr.io/infraforge/ecommerce-platform
+     tag: v1.2.3
+     pullPolicy: IfNotPresent
+   replicas: 2
+   ingress:
+     enabled: true
+     host: ecommerce-dev.example.com
+   ```
+3. Git commit & push
+4. Generate `dev-appset.yaml`:
+   ```yaml
+   # voltran/appsets/nonprod/apps/dev-appset.yaml
+   apiVersion: argoproj.io/v1alpha1
+   kind: ApplicationSet
+   metadata:
+     name: dev-apps
+   spec:
+     generators:
+       - git:
+           repoURL: http://gitea.gitea.svc:3000/platform/voltran
+           revision: main
+           directories:
+             - path: environments/nonprod/dev/applications/*
+     template:
+       metadata:
+         name: 'dev-{{path.basename}}'
+       spec:
+         source:
+           repoURL: http://gitea.gitea.svc:3000/platform/charts
+           path: '{{path.basename}}'
+           helm:
+             valueFiles:
+               - http://gitea.gitea.svc:3000/platform/voltran/raw/branch/main/environments/nonprod/dev/applications/{{path.basename}}/values.yaml
+   ```
+5. Git commit & push
+
+---
+
+### PlatformClaim (One Per Environment)
+```yaml
+apiVersion: platform.infraforge.io/v1alpha1
+kind: PlatformClaim
+metadata:
+  name: dev-platform
+  namespace: platform-services
+spec:
+  clusterType: nonprod
+  environment: dev
+
+  services:
+    - name: postgres
+      type: internal  # Use Helm chart (not RDS)
+      values:
+        primary:
+          persistence:
+            size: 10Gi
+            storageClass: gp3
+        auth:
+          database: ecommerce
+          username: admin
+
+    - name: rabbitmq
+      type: internal
+      values:
+        replicaCount: 1
+        persistence:
+          size: 8Gi
+```
+
+**Operator Actions (per service):**
+1. Generate `values.yaml` for platform service
+2. Push to `voltran/environments/nonprod/dev/platform/postgres/values.yaml`
+3. Generate `dev-platform-appset.yaml`
+4. Push to `voltran/appsets/nonprod/platform/dev-platform-appset.yaml`
+
+---
+
+## 📊 Execution Timeline
+
+```
+T+0min:  terraform apply started
+T+5min:  EKS cluster ready ✅
+T+7min:  Gitea deployed (empty) ✅
+T+8min:  ArgoCD deployed (empty) ✅
+T+9min:  Platform Operator deployed (from OCI Helm) ✅
+
+T+10min: BootstrapClaim deployed
+         Operator detects:
+           → Create Gitea repos ✅
+           → Push charts ✅
+           → Create voltran structure ✅
+           → Generate & push root apps ✅
+           → Deploy root apps to ArgoCD ✅
+         Status: Bootstrapped ✅
+
+T+15min: InfrastructureClaim deployed
+         Operator: Namespace configs created
+
+T+16min: ApplicationClaim (dev-apps) deployed
+         Operator:
+           → Fetch GitHub packages ✅
+           → Generate values.yaml ✅
+           → Push to Git ✅
+           → Generate ApplicationSet ✅
+           → Push to Git ✅
+
+T+17min: ArgoCD sync starts
+         Root App → ApplicationSet → Applications
+         Applications deploy from:
+           - Chart: gitea/platform/charts/...
+           - Values: gitea/platform/voltran/...
+           - Image: ghcr.io/infraforge/...
+
+T+18min: DEPLOYED! 🚀
+
+terraform apply completed!
+```
+
+---
+
+## 🔬 Key Design Decisions
+
+### ❌ What We Removed
+- **ConfigMaps**: Git is source of truth
+- **Terraform Git Operations**: Operator handles all Git
+- **ChartMuseum**: Using Gitea for charts
+- **Manual kubectl loops**: One claim per environment
+
+### ✅ What We Gained
+- **Single Source of Truth**: All manifests in Git
+- **Audit Trail**: Git history tracks all changes
+- **Multi-Cluster Ready**: Share Git URL across clusters
+- **Operator-First**: Terraform just provisions infrastructure
+- **Clean Separation**: Infrastructure (Terraform) vs Logic (Operator)
+
+---
+
+## 📁 Project Structure
+
+```
+PaaS-Platform/
+├── charts/                        🔥 Embedded in operator image
+│   ├── ecommerce-platform/
+│   ├── user-service/
+│   └── product-service/
+│
+├── platform-charts/               🔥 Embedded in operator image
+│   ├── postgres/
+│   ├── rabbitmq/
+│   └── redis/
+│
+├── infrastructure/
+│   ├── aws/                       (Terraform - minimal)
+│   │   ├── main.tf
+│   │   ├── vpc.tf
+│   │   ├── eks.tf
+│   │   ├── gitea.tf               🔥 NEW
+│   │   ├── argocd.tf
+│   │   └── gitea-bootstrap.tf     🔥 NEW (minimal)
+│   │
+│   └── platform-operator/         (Operator code)
+│       ├── api/v1alpha1/
+│       │   ├── bootstrapclaim_types.go      🔥 NEW
+│       │   ├── applicationclaim_types.go
+│       │   └── platformclaim_types.go       🔥 NEW
+│       ├── internal/controller/
+│       │   ├── bootstrap_controller.go      🔥 NEW
+│       │   ├── applicationclaim_controller.go
+│       │   └── platformclaim_controller.go  🔥 NEW
+│       ├── pkg/
+│       │   ├── gitea/              🔥 NEW (Git client)
+│       │   └── github/             🔥 NEW (OCI package client)
+│       ├── Dockerfile              (Charts embedded)
+│       └── Makefile
+│
+└── deployments/                   (Example claims)
+    ├── bootstrap-claim.yaml       🔥 NEW
+    ├── dev/
+    │   ├── dev-apps-claim.yaml
+    │   └── dev-platform-claim.yaml
+    └── prod/
+        ├── prod-apps-claim.yaml
+        └── prod-platform-claim.yaml
+```
+
+---
+
+## 🚀 Next Steps
+
+### Phase 1: Operator Development
+1. ✅ Define CRDs (BootstrapClaim, ApplicationClaim, PlatformClaim)
+2. ✅ Implement Bootstrap Controller
+3. ✅ Implement ApplicationClaim Controller
+4. ✅ Implement PlatformClaim Controller
+5. ✅ Add Gitea client library
+6. ✅ Add GitHub OCI package client
+7. ✅ Build & test locally (Orbstack + Gitea)
+
+### Phase 2: Terraform Integration
+1. Deploy Gitea via Helm
+2. Deploy Operator via OCI Helm chart
+3. Deploy BootstrapClaim
+4. Validate end-to-end flow
+
+### Phase 3: Production Hardening
+1. Error handling & retries
+2. Status conditions & events
+3. Webhook validations
+4. RBAC policies
+5. Multi-cluster testing
+
+---
+
+## 📞 Support & Contributing
+
+**Repository**: https://github.com/infraforge/PaaS-Platform
+**Status**: Active Development
+**License**: MIT
+
+---
+
+**Last Updated**: 2025-12-24 19:00 UTC+3
+**Next Review**: After Bootstrap Controller implementation

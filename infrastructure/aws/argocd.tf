@@ -96,13 +96,3 @@ spec:
 
   depends_on = [helm_release.argocd]
 }
-
-# Output ArgoCD URL and credentials
-output "argocd_url" {
-  value = "https://argocd.${var.domain_name}"
-}
-
-output "argocd_admin_password" {
-  value     = random_password.argocd_admin.result
-  sensitive = true
-}

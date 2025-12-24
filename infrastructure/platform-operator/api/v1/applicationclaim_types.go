@@ -9,8 +9,11 @@ import (
 
 // ApplicationClaimSpec defines the desired state of ApplicationClaim
 type ApplicationClaimSpec struct {
-	// Environment deployment environment (dev, staging, prod)
+	// Environment deployment environment (dev, qa, sandbox, staging, prod)
 	Environment string `json:"environment"`
+
+	// ClusterType cluster type (nonprod, prod) for GitOps structure
+	ClusterType string `json:"clusterType"`
 
 	// Applications multi-application support
 	Applications []ApplicationSpec `json:"applications"`
@@ -30,18 +33,11 @@ type ApplicationSpec struct {
 	// Name application name
 	Name string `json:"name"`
 
-	// ServiceName microservice name in GitHub releases (e.g., "ecommerce-platform")
-	// If provided with Version, image will be resolved from GitHub release
-	ServiceName string `json:"serviceName,omitempty"`
+	// Chart Helm chart configuration
+	Chart ChartSpec `json:"chart"`
 
-	// Repository GitHub repository (org/repo) - deprecated, use ServiceName
-	Repository string `json:"repository,omitempty"`
-
-	// Version release version/tag (e.g., "v1.0.0")
-	Version string `json:"version"`
-
-	// Image container image (optional, falls back to GitHub release if ServiceName+Version provided)
-	Image string `json:"image,omitempty"`
+	// Image container image configuration
+	Image ImageSpec `json:"image"`
 
 	// Replicas number of replicas
 	Replicas int32 `json:"replicas,omitempty"`
@@ -60,6 +56,57 @@ type ApplicationSpec struct {
 
 	// Autoscaling autoscaling configuration
 	Autoscaling *AutoscalingSpec `json:"autoscaling,omitempty"`
+
+	// Ingress ingress configuration
+	Ingress *IngressSpec `json:"ingress,omitempty"`
+}
+
+// ChartSpec defines Helm chart source
+type ChartSpec struct {
+	// Name chart name
+	Name string `json:"name"`
+
+	// Source chart source (embedded, github, helm-repo)
+	Source string `json:"source,omitempty"`
+
+	// Repository Helm repository URL (if external)
+	Repository string `json:"repository,omitempty"`
+
+	// Version chart version
+	Version string `json:"version,omitempty"`
+}
+
+// ImageSpec defines container image configuration
+type ImageSpec struct {
+	// Repository image repository (e.g., "ghcr.io/infraforge/ecommerce-platform")
+	Repository string `json:"repository"`
+
+	// Tag image tag (e.g., "v1.2.3")
+	Tag string `json:"tag"`
+
+	// PullPolicy image pull policy (Always, IfNotPresent, Never)
+	PullPolicy string `json:"pullPolicy,omitempty"`
+
+	// PullSecrets image pull secrets
+	PullSecrets []string `json:"pullSecrets,omitempty"`
+}
+
+// IngressSpec defines ingress configuration
+type IngressSpec struct {
+	// Enabled enable ingress
+	Enabled bool `json:"enabled"`
+
+	// Host ingress hostname
+	Host string `json:"host,omitempty"`
+
+	// Path ingress path
+	Path string `json:"path,omitempty"`
+
+	// TLS enable TLS
+	TLS bool `json:"tls,omitempty"`
+
+	// Annotations ingress annotations
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // ComponentSpec platform component specification
@@ -240,7 +287,9 @@ type ComponentStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:printcolumn:name="Environment",type=string,JSONPath=`.spec.environment`
+// +kubebuilder:printcolumn:name="ClusterType",type=string,JSONPath=`.spec.clusterType`
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Ready",type=boolean,JSONPath=`.status.ready`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // ApplicationClaim is the Schema for the applicationclaims API

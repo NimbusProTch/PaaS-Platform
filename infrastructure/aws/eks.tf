@@ -304,37 +304,3 @@ module "velero_irsa" {
 
   tags = local.common_tags
 }
-
-# Post-deployment configuration for EBS CSI
-resource "null_resource" "configure_ebs_csi" {
-  count = var.enable_ebs_csi_driver ? 1 : 0
-
-  provisioner "local-exec" {
-    command = <<-EOT
-      aws eks update-kubeconfig --name ${module.eks.cluster_name} --region ${var.aws_region}
-
-      # Wait for EBS CSI driver to be ready
-      kubectl wait --for=condition=Ready pods -l app=ebs-csi-controller -n kube-system --timeout=300s || true
-
-      # Create default storage class if it doesn't exist
-      kubectl apply -f - <<EOF
-      apiVersion: storage.k8s.io/v1
-      kind: StorageClass
-      metadata:
-        name: gp3
-        annotations:
-          storageclass.kubernetes.io/is-default-class: "true"
-      provisioner: ebs.csi.aws.com
-      parameters:
-        type: gp3
-        fsType: ext4
-        encrypted: "true"
-      volumeBindingMode: WaitForFirstConsumer
-      allowVolumeExpansion: true
-      reclaimPolicy: Delete
-      EOF
-    EOT
-  }
-
-  depends_on = [module.eks]
-}

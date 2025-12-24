@@ -54,3 +54,38 @@ output "update_kubeconfig_command" {
   description = "Command to update kubeconfig"
   value       = "aws eks update-kubeconfig --name ${local.cluster_name} --region ${var.aws_region}"
 }
+
+# ArgoCD outputs
+output "argocd_url" {
+  description = "ArgoCD URL"
+  value       = "https://argocd.${var.domain_name}"
+}
+
+output "argocd_admin_password" {
+  description = "ArgoCD admin password"
+  value       = random_password.argocd_admin.result
+  sensitive   = true
+}
+
+output "argocd_projects" {
+  description = "List of created ArgoCD AppProjects"
+  value       = [for combo in local.team_env_combinations : combo.name]
+}
+
+# ECR outputs
+output "ecr_repositories" {
+  description = "ECR repository details for microservices"
+  value = {
+    for k, v in aws_ecr_repository.microservices :
+    k => {
+      repository_url = v.repository_url
+      registry_id    = v.registry_id
+      arn           = v.arn
+    }
+  }
+}
+
+output "ecr_login_command" {
+  description = "Command to authenticate Docker to ECR"
+  value       = "aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
+}
