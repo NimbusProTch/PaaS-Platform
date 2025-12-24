@@ -16,8 +16,8 @@ import (
 	"github.com/infraforge/platform-operator/pkg/gitea"
 )
 
-// PlatformClaimReconciler reconciles a PlatformClaim object
-type PlatformClaimReconciler struct {
+// PlatformApplicationClaimReconciler reconciles a PlatformApplicationClaim object
+type PlatformApplicationClaimReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 
@@ -28,22 +28,22 @@ type PlatformClaimReconciler struct {
 	Branch       string
 }
 
-//+kubebuilder:rbac:groups=platform.infraforge.io,resources=platformclaims,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=platform.infraforge.io,resources=platformclaims/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=platform.infraforge.io,resources=platformclaims/finalizers,verbs=update
+//+kubebuilder:rbac:groups=platform.infraforge.io,resources=platformapplicationclaims,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=platform.infraforge.io,resources=platformapplicationclaims/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=platform.infraforge.io,resources=platformapplicationclaims/finalizers,verbs=update
 
-// Reconcile handles PlatformClaim reconciliation
-func (r *PlatformClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// Reconcile handles PlatformApplicationClaim reconciliation
+func (r *PlatformApplicationClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	logger.Info("Reconciling PlatformClaim", "name", req.Name, "namespace", req.Namespace)
+	logger.Info("Reconciling PlatformApplicationClaim", "name", req.Name, "namespace", req.Namespace)
 
-	// Fetch the PlatformClaim
-	claim := &platformv1.PlatformClaim{}
+	// Fetch the PlatformApplicationClaim
+	claim := &platformv1.PlatformApplicationClaim{}
 	if err := r.Get(ctx, req.NamespacedName, claim); err != nil {
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		logger.Error(err, "unable to fetch PlatformClaim")
+		logger.Error(err, "unable to fetch PlatformApplicationClaim")
 		return ctrl.Result{}, err
 	}
 
@@ -104,12 +104,12 @@ func (r *PlatformClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("PlatformClaim reconciliation completed successfully")
+	logger.Info("PlatformApplicationClaim reconciliation completed successfully")
 	return ctrl.Result{}, nil
 }
 
 // generatePlatformApplicationSet generates ArgoCD ApplicationSet for platform services
-func (r *PlatformClaimReconciler) generatePlatformApplicationSet(claim *platformv1.PlatformClaim) string {
+func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(claim *platformv1.PlatformApplicationClaim) string {
 	appSet := map[string]interface{}{
 		"apiVersion": "argoproj.io/v1alpha1",
 		"kind":       "ApplicationSet",
@@ -172,7 +172,7 @@ func (r *PlatformClaimReconciler) generatePlatformApplicationSet(claim *platform
 }
 
 // generatePlatformElements generates list elements for platform ApplicationSet
-func (r *PlatformClaimReconciler) generatePlatformElements(claim *platformv1.PlatformClaim) []map[string]string {
+func (r *PlatformApplicationClaimReconciler) generatePlatformElements(claim *platformv1.PlatformApplicationClaim) []map[string]string {
 	elements := []map[string]string{}
 
 	for _, service := range claim.Spec.Services {
@@ -192,7 +192,7 @@ func (r *PlatformClaimReconciler) generatePlatformElements(claim *platformv1.Pla
 }
 
 // generatePlatformValuesYAML generates Helm values.yaml for a platform service
-func (r *PlatformClaimReconciler) generatePlatformValuesYAML(claim *platformv1.PlatformClaim, service platformv1.PlatformServiceSpec) string {
+func (r *PlatformApplicationClaimReconciler) generatePlatformValuesYAML(claim *platformv1.PlatformApplicationClaim, service platformv1.PlatformServiceSpec) string {
 	values := map[string]interface{}{}
 
 	// Environment-specific configuration based on size
@@ -284,8 +284,8 @@ func (r *PlatformClaimReconciler) generatePlatformValuesYAML(claim *platformv1.P
 }
 
 // SetupWithManager sets up the controller with the Manager
-func (r *PlatformClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *PlatformApplicationClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&platformv1.PlatformClaim{}).
+		For(&platformv1.PlatformApplicationClaim{}).
 		Complete(r)
 }

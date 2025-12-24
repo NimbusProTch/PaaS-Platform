@@ -261,9 +261,14 @@ spec:
                               type: string
                           type: object
                       type: object
+                    serviceName:
+                      description: ServiceName Kubernetes service name (optional,
+                        defaults to name)
+                      type: string
+                    version:
+                      description: Version application version
+                      type: string
                   required:
-                  - chart
-                  - image
                   - name
                   type: object
                 type: array
@@ -283,11 +288,43 @@ spec:
                     name:
                       description: Name instance name
                       type: string
+                    replicas:
+                      description: Replicas number of replicas
+                      format: int32
+                      type: integer
+                    resources:
+                      description: Resources CPU/memory requirements
+                      properties:
+                        limits:
+                          description: Limits resource limits
+                          properties:
+                            cpu:
+                              description: CPU in millicores (e.g., "100m")
+                              type: string
+                            memory:
+                              description: Memory in bytes (e.g., "128Mi")
+                              type: string
+                          type: object
+                        requests:
+                          description: Requests resource requests
+                          properties:
+                            cpu:
+                              description: CPU in millicores (e.g., "100m")
+                              type: string
+                            memory:
+                              description: Memory in bytes (e.g., "128Mi")
+                              type: string
+                          type: object
+                      type: object
                     size:
                       description: Size configuration size (small, medium, large)
                       type: string
+                    storage:
+                      description: Storage storage size (e.g., "20Gi")
+                      type: string
                     type:
-                      description: Type component type (postgresql, redis, rabbitmq)
+                      description: Type component type (postgresql, redis, rabbitmq,
+                        elasticsearch)
                       type: string
                     version:
                       description: Version component version

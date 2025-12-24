@@ -1,5 +1,5 @@
 apiVersion: platform.infraforge.io/v1
-kind: ApplicationClaim
+kind: PlatformApplicationClaim
 metadata:
   name: ecommerce-infrastructure
   namespace: default
@@ -10,6 +10,7 @@ metadata:
     type: infrastructure
 spec:
   environment: dev
+  clusterType: nonprod
 
   owner:
     team: platform-team
@@ -17,7 +18,7 @@ spec:
     slack: "#platform-dev"
 
   # Infrastructure Components - Shared platform services
-  components:
+  services:
     # PostgreSQL Databases (one per microservice)
     - type: postgresql
       name: product-db

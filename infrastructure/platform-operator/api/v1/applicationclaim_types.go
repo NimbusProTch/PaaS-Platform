@@ -33,11 +33,17 @@ type ApplicationSpec struct {
 	// Name application name
 	Name string `json:"name"`
 
+	// ServiceName Kubernetes service name (optional, defaults to name)
+	ServiceName string `json:"serviceName,omitempty"`
+
+	// Version application version
+	Version string `json:"version,omitempty"`
+
 	// Chart Helm chart configuration
-	Chart ChartSpec `json:"chart"`
+	Chart ChartSpec `json:"chart,omitempty"`
 
 	// Image container image configuration
-	Image ImageSpec `json:"image"`
+	Image ImageSpec `json:"image,omitempty"`
 
 	// Replicas number of replicas
 	Replicas int32 `json:"replicas,omitempty"`
@@ -111,7 +117,7 @@ type IngressSpec struct {
 
 // ComponentSpec platform component specification
 type ComponentSpec struct {
-	// Type component type (postgresql, redis, rabbitmq)
+	// Type component type (postgresql, redis, rabbitmq, elasticsearch)
 	Type string `json:"type"`
 
 	// Name instance name
@@ -119,6 +125,15 @@ type ComponentSpec struct {
 
 	// Version component version
 	Version string `json:"version,omitempty"`
+
+	// Storage storage size (e.g., "20Gi")
+	Storage string `json:"storage,omitempty"`
+
+	// Replicas number of replicas
+	Replicas int32 `json:"replicas,omitempty"`
+
+	// Resources CPU/memory requirements
+	Resources ResourceRequirements `json:"resources,omitempty"`
 
 	// Size configuration size (small, medium, large)
 	Size string `json:"size,omitempty"`

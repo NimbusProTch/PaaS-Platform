@@ -7,8 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// PlatformClaimSpec defines the desired state of PlatformClaim
-type PlatformClaimSpec struct {
+// PlatformApplicationClaimSpec defines the desired state of PlatformApplicationClaim
+type PlatformApplicationClaimSpec struct {
 	// Environment deployment environment (dev, qa, sandbox, staging, prod)
 	Environment string `json:"environment"`
 
@@ -71,8 +71,8 @@ type BackupSpec struct {
 	StorageClass string `json:"storageClass,omitempty"`
 }
 
-// PlatformClaimStatus defines the observed state of PlatformClaim
-type PlatformClaimStatus struct {
+// PlatformApplicationClaimStatus defines the observed state of PlatformApplicationClaim
+type PlatformApplicationClaimStatus struct {
 	// Phase current phase (Pending, Provisioning, Ready, Failed)
 	Phase string `json:"phase,omitempty"`
 
@@ -128,20 +128,20 @@ type PlatformServiceStatus struct {
 // +kubebuilder:printcolumn:name="Ready",type=boolean,JSONPath=`.status.ready`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
-// PlatformClaim is the Schema for the platformclaims API
-type PlatformClaim struct {
+// PlatformApplicationClaim is the Schema for the platformclaims API
+type PlatformApplicationClaim struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   PlatformClaimSpec   `json:"spec,omitempty"`
-	Status PlatformClaimStatus `json:"status,omitempty"`
+	Spec   PlatformApplicationClaimSpec   `json:"spec,omitempty"`
+	Status PlatformApplicationClaimStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// PlatformClaimList contains a list of PlatformClaim
-type PlatformClaimList struct {
+// PlatformApplicationClaimList contains a list of PlatformApplicationClaim
+type PlatformApplicationClaimList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []PlatformClaim `json:"items"`
+	Items           []PlatformApplicationClaim `json:"items"`
 }

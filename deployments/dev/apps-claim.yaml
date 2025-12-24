@@ -10,6 +10,7 @@ metadata:
     type: applications
 spec:
   environment: dev
+  clusterType: nonprod
 
   owner:
     team: platform-team

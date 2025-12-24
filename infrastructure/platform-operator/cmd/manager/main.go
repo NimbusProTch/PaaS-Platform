@@ -105,8 +105,8 @@ func main() {
 			os.Exit(1)
 		}
 
-		// Setup PlatformClaim controller
-		if err = (&controller.PlatformClaimReconciler{
+		// Setup PlatformApplicationClaim controller
+		if err = (&controller.PlatformApplicationClaimReconciler{
 			Client:       mgr.GetClient(),
 			Scheme:       mgr.GetScheme(),
 			GiteaClient:  giteaClient,
@@ -114,7 +114,7 @@ func main() {
 			VoltranRepo:  voltranRepo,
 			Branch:       gitBranch,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "PlatformClaim")
+			setupLog.Error(err, "unable to create controller", "controller", "PlatformApplicationClaim")
 			os.Exit(1)
 		}
 
