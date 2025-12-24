@@ -1,12 +1,13 @@
 apiVersion: platform.infraforge.io/v1
 kind: ApplicationClaim
 metadata:
-  name: ecommerce-platform
+  name: ecommerce-apps
   namespace: default
   labels:
     environment: dev
     team: platform-team
     project: ecommerce
+    type: applications
 spec:
   environment: dev
 
@@ -15,7 +16,7 @@ spec:
     email: platform@infraforge.io
     slack: "#platform-dev"
 
-  # All microservices
+  # E-commerce Microservices
   applications:
     # Product Service (Node.js)
     - name: product-service
@@ -247,117 +248,3 @@ spec:
           value: "587"
         - name: SMTP_FROM
           value: "noreply@infraforge.io"
-
-  # Infrastructure Components
-  components:
-    # PostgreSQL for Product Service
-    - type: postgresql
-      name: product-db
-      version: "15"
-      storage: 20Gi
-      replicas: 1
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "1Gi"
-        limits:
-          cpu: "1000m"
-          memory: "2Gi"
-
-    # PostgreSQL for User Service
-    - type: postgresql
-      name: user-db
-      version: "15"
-      storage: 10Gi
-      replicas: 1
-      resources:
-        requests:
-          cpu: "250m"
-          memory: "512Mi"
-        limits:
-          cpu: "500m"
-          memory: "1Gi"
-
-    # PostgreSQL for Order Service
-    - type: postgresql
-      name: order-db
-      version: "15"
-      storage: 20Gi
-      replicas: 1
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "1Gi"
-        limits:
-          cpu: "1000m"
-          memory: "2Gi"
-
-    # PostgreSQL for Payment Service
-    - type: postgresql
-      name: payment-db
-      version: "15"
-      storage: 10Gi
-      replicas: 1
-      resources:
-        requests:
-          cpu: "250m"
-          memory: "512Mi"
-        limits:
-          cpu: "500m"
-          memory: "1Gi"
-
-    # PostgreSQL for Notification Service
-    - type: postgresql
-      name: notification-db
-      version: "15"
-      storage: 5Gi
-      replicas: 1
-      resources:
-        requests:
-          cpu: "250m"
-          memory: "256Mi"
-        limits:
-          cpu: "500m"
-          memory: "512Mi"
-
-    # Redis for caching
-    - type: redis
-      name: redis
-      version: "7"
-      storage: 5Gi
-      replicas: 1
-      resources:
-        requests:
-          cpu: "100m"
-          memory: "256Mi"
-        limits:
-          cpu: "250m"
-          memory: "512Mi"
-
-    # RabbitMQ for messaging
-    - type: rabbitmq
-      name: rabbitmq
-      version: "3.12"
-      storage: 10Gi
-      replicas: 1
-      resources:
-        requests:
-          cpu: "250m"
-          memory: "512Mi"
-        limits:
-          cpu: "500m"
-          memory: "1Gi"
-
-    # Elasticsearch for search
-    - type: elasticsearch
-      name: elasticsearch
-      version: "8.11"
-      storage: 30Gi
-      replicas: 1
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "2Gi"
-        limits:
-          cpu: "1000m"
-          memory: "4Gi"

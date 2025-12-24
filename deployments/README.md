@@ -6,13 +6,49 @@ This directory contains ApplicationClaim manifests organized by environment.
 
 ```
 deployments/
-├── dev/                    # Development environment
-│   └── ecommerce-claim.yaml
-├── staging/                # Staging environment
+├── dev/                                      # Development environment
+│   ├── platform-infrastructure-claim.yaml   # Infrastructure services (PostgreSQL, Redis, etc.)
+│   └── apps-claim.yaml                      # Application microservices
+├── staging/                                  # Staging environment
 │   └── README.md
-└── prod/                   # Production environment
+└── prod/                                     # Production environment
     └── README.md
 ```
+
+## Two-Claim Architecture
+
+The platform is split into two ApplicationClaims for better modularity:
+
+### 1. Platform Infrastructure (`platform-infrastructure-claim.yaml`)
+**Purpose**: Foundational infrastructure services that applications depend on
+
+**Components (8 total)**:
+- PostgreSQL × 5 (product-db, user-db, order-db, payment-db, notification-db)
+- Redis × 1 (shared cache)
+- RabbitMQ × 1 (message broker)
+- Elasticsearch × 1 (product search)
+
+**Why separate?**:
+- ✅ Infrastructure is stable, rarely changes
+- ✅ Can be managed by platform/infra team
+- ✅ Deploy once, use by all apps
+- ✅ Smaller YAML files (~120 lines)
+
+### 2. Applications (`apps-claim.yaml`)
+**Purpose**: Business logic microservices
+
+**Services (5 total)**:
+- product-service (Node.js, Port 8080)
+- user-service (Go, Port 8081)
+- order-service (Go, Port 8082)
+- payment-service (Node.js, Port 8083)
+- notification-service (Go, Port 8084)
+
+**Why separate?**:
+- ✅ Apps change frequently (code updates, scaling, config)
+- ✅ Can be managed by app teams
+- ✅ Independent deployments
+- ✅ Smaller YAML files (~240 lines vs 460 lines combined)
 
 ## ApplicationClaim Overview
 
@@ -80,8 +116,28 @@ The ecommerce platform consists of:
 ## Deployment
 
 ### Deploy to Development
+
+**Step 1: Deploy Infrastructure** (required first)
 ```bash
-kubectl apply -f deployments/dev/ecommerce-claim.yaml
+kubectl apply -f deployments/dev/platform-infrastructure-claim.yaml
+```
+
+**Step 2: Wait for Infrastructure Ready** (~2-5 minutes)
+```bash
+kubectl get applicationclaim ecommerce-infrastructure -w
+kubectl get pods -l platform.infraforge.io/claim=ecommerce-infrastructure
+```
+
+**Step 3: Deploy Applications**
+```bash
+kubectl apply -f deployments/dev/apps-claim.yaml
+```
+
+**One-liner** (deploy both):
+```bash
+kubectl apply -f deployments/dev/platform-infrastructure-claim.yaml && \
+  sleep 30 && \
+  kubectl apply -f deployments/dev/apps-claim.yaml
 ```
 
 ### Watch Status

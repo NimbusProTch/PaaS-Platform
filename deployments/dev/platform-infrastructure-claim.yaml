@@ -1,0 +1,125 @@
+apiVersion: platform.infraforge.io/v1
+kind: ApplicationClaim
+metadata:
+  name: ecommerce-infrastructure
+  namespace: default
+  labels:
+    environment: dev
+    team: platform-team
+    project: ecommerce
+    type: infrastructure
+spec:
+  environment: dev
+
+  owner:
+    team: platform-team
+    email: platform@infraforge.io
+    slack: "#platform-dev"
+
+  # Infrastructure Components - Shared platform services
+  components:
+    # PostgreSQL Databases (one per microservice)
+    - type: postgresql
+      name: product-db
+      version: "15"
+      storage: 20Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "1000m"
+          memory: "2Gi"
+
+    - type: postgresql
+      name: user-db
+      version: "15"
+      storage: 10Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "250m"
+          memory: "512Mi"
+        limits:
+          cpu: "500m"
+          memory: "1Gi"
+
+    - type: postgresql
+      name: order-db
+      version: "15"
+      storage: 20Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "1000m"
+          memory: "2Gi"
+
+    - type: postgresql
+      name: payment-db
+      version: "15"
+      storage: 10Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "250m"
+          memory: "512Mi"
+        limits:
+          cpu: "500m"
+          memory: "1Gi"
+
+    - type: postgresql
+      name: notification-db
+      version: "15"
+      storage: 5Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "250m"
+          memory: "256Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+
+    # Shared Services
+    - type: redis
+      name: redis
+      version: "7"
+      storage: 5Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "256Mi"
+        limits:
+          cpu: "250m"
+          memory: "512Mi"
+
+    - type: rabbitmq
+      name: rabbitmq
+      version: "3.12"
+      storage: 10Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "250m"
+          memory: "512Mi"
+        limits:
+          cpu: "500m"
+          memory: "1Gi"
+
+    - type: elasticsearch
+      name: elasticsearch
+      version: "8.11"
+      storage: 30Gi
+      replicas: 1
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "2Gi"
+        limits:
+          cpu: "1000m"
+          memory: "4Gi"
