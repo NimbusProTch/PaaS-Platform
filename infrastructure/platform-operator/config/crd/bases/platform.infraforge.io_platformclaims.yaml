@@ -114,8 +114,7 @@ spec:
                           description: Repository Helm repository URL (if external)
                           type: string
                         source:
-                          description: Source chart source (embedded, bitnami, elastic,
-                            etc.)
+                          description: Source chart source (embedded, github, helm-repo)
                           type: string
                         version:
                           description: Version chart version

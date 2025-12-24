@@ -14,6 +14,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 )
@@ -48,11 +49,11 @@ type CreateRepoOptions struct {
 
 // CommitFileOptions options for committing a file
 type CommitFileOptions struct {
-	Message   string
-	Branch    string
-	Author    string
+	Message     string
+	Branch      string
+	Author      string
 	AuthorEmail string
-	Content   string
+	Content     string
 }
 
 // NewClient creates a new Gitea client
@@ -182,7 +183,7 @@ func (c *Client) PushFiles(ctx context.Context, repoURL, branch string, files ma
 			Username: c.username,
 			Password: c.token,
 		},
-		ReferenceName: "refs/heads/" + branch,
+		ReferenceName: plumbing.ReferenceName("refs/heads/" + branch),
 		SingleBranch:  true,
 	})
 	if err != nil {
@@ -243,6 +244,12 @@ func (c *Client) PushFiles(ctx context.Context, repoURL, branch string, files ma
 // GetBaseURL returns the base URL of the Gitea server
 func (c *Client) GetBaseURL() string {
 	return c.baseURL
+}
+
+// ConstructCloneURL constructs the internal clone URL for a repository
+// This ensures we use the cluster-internal URL instead of the external ROOT_URL from Gitea API
+func (c *Client) ConstructCloneURL(orgName, repoName string) string {
+	return fmt.Sprintf("%s/%s/%s.git", c.baseURL, orgName, repoName)
 }
 
 // Helper functions

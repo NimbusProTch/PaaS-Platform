@@ -38,6 +38,7 @@ func main() {
 	var giteaOrg string
 	var voltranRepo string
 	var gitBranch string
+	var chartsPath string
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -48,6 +49,7 @@ func main() {
 	flag.StringVar(&giteaOrg, "gitea-org", "platform", "Gitea organization")
 	flag.StringVar(&voltranRepo, "voltran-repo", "voltran", "GitOps voltran repository name")
 	flag.StringVar(&gitBranch, "git-branch", "main", "Git branch to use")
+	flag.StringVar(&chartsPath, "charts-path", "", "Path to charts directory for bootstrap")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -81,11 +83,10 @@ func main() {
 	// Setup Bootstrap controller
 	if giteaClient != nil {
 		if err = (&controller.BootstrapReconciler{
-			Client:             mgr.GetClient(),
-			Scheme:             mgr.GetScheme(),
-			GiteaClient:        giteaClient,
-			ChartsPath:         "/charts",
-			PlatformChartsPath: "/platform-charts",
+			Client:      mgr.GetClient(),
+			Scheme:      mgr.GetScheme(),
+			GiteaClient: giteaClient,
+			ChartsPath:  chartsPath,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "Bootstrap")
 			os.Exit(1)
@@ -118,16 +119,6 @@ func main() {
 		}
 
 		setupLog.Info("All controllers registered successfully with GitOps enabled")
-	} else {
-		// Fallback to old ApplicationClaim controller if no Gitea
-		if err = (&controller.ApplicationClaimReconciler{
-			Client: mgr.GetClient(),
-			Scheme: mgr.GetScheme(),
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ApplicationClaim")
-			os.Exit(1)
-		}
-		setupLog.Info("Fallback controller registered (GitOps disabled)")
 	}
 
 	// Add health and readiness checks

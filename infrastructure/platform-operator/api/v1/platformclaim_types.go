@@ -56,21 +56,6 @@ type PlatformServiceSpec struct {
 	Monitoring bool `json:"monitoring,omitempty"`
 }
 
-// ChartSpec defines Helm chart source
-type ChartSpec struct {
-	// Name chart name
-	Name string `json:"name"`
-
-	// Source chart source (embedded, bitnami, elastic, etc.)
-	Source string `json:"source,omitempty"`
-
-	// Repository Helm repository URL (if external)
-	Repository string `json:"repository,omitempty"`
-
-	// Version chart version
-	Version string `json:"version,omitempty"`
-}
-
 // BackupSpec defines backup configuration
 type BackupSpec struct {
 	// Enabled enable backups

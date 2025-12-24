@@ -6,8 +6,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -81,8 +81,8 @@ func (r *PlatformClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		files[valuesPath] = valuesContent
 	}
 
-	// Push to Gitea
-	voltranURL := fmt.Sprintf("%s/api/v1/repos/%s/%s", r.GiteaClient.GetBaseURL(), r.Organization, r.VoltranRepo)
+	// Push to Gitea - use internal clone URL
+	voltranURL := r.GiteaClient.ConstructCloneURL(r.Organization, r.VoltranRepo)
 	commitMsg := fmt.Sprintf("Update %s environment platform services by operator", claim.Spec.Environment)
 
 	if err := r.GiteaClient.PushFiles(ctx, voltranURL, r.Branch, files, commitMsg,

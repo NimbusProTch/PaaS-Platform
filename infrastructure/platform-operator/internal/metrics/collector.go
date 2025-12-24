@@ -236,7 +236,7 @@ func (c *MetricsCollector) CollectApplicationClaimMetrics(ctx context.Context) e
 			applicationsDeployed.WithLabelValues(
 				claim.Spec.Namespace,
 				app.Name,
-				app.Version,
+				app.Image.Tag,
 			).Inc()
 
 			if app.Replicas > 0 {

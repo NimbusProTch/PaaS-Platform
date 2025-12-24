@@ -25,9 +25,8 @@ WORKDIR /
 COPY --from=builder /workspace/manager .
 
 # Copy charts from project root (build context is project root)
-# These will be embedded and available at /charts and /platform-charts
+# Charts contain both microservice and platform templates
 COPY charts/ /charts/
-COPY platform-charts/ /platform-charts/
 
 USER 65532:65532
 

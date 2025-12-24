@@ -75,10 +75,8 @@ spec:
                 description: Repositories to create and initialize
                 properties:
                   charts:
-                    description: 'Charts repository name (default: "charts")'
-                    type: string
-                  platformCharts:
-                    description: 'PlatformCharts repository name (default: "platform-charts")'
+                    description: 'Charts repository name - contains both microservice
+                      and platform templates (default: "charts")'
                     type: string
                   voltran:
                     description: 'Voltran GitOps config repository name (default:

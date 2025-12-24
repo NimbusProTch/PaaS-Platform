@@ -23,11 +23,8 @@ type BootstrapClaimSpec struct {
 
 // RepositoriesSpec defines the repositories to create
 type RepositoriesSpec struct {
-	// Charts repository name (default: "charts")
+	// Charts repository name - contains both microservice and platform templates (default: "charts")
 	Charts string `json:"charts,omitempty"`
-
-	// PlatformCharts repository name (default: "platform-charts")
-	PlatformCharts string `json:"platformCharts,omitempty"`
 
 	// Voltran GitOps config repository name (default: "voltran")
 	Voltran string `json:"voltran,omitempty"`

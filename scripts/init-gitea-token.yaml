@@ -1,0 +1,107 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gitea-token-init
+  namespace: gitea
+spec:
+  ttlSecondsAfterFinished: 300  # Clean up after 5 minutes
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: token-generator
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+
+          echo "⏳ Waiting for Gitea to be ready..."
+          until kubectl get pod -n gitea -l app.kubernetes.io/name=gitea -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q "Running"; do
+            echo "Waiting for Gitea pod..."
+            sleep 5
+          done
+
+          # Wait for Gitea to be fully initialized (check health endpoint)
+          echo "⏳ Waiting for Gitea API to be ready..."
+          GITEA_POD=$(kubectl get pod -n gitea -l app.kubernetes.io/name=gitea -o jsonpath='{.items[0].metadata.name}')
+          until kubectl exec -n gitea $GITEA_POD -c gitea -- wget --spider -q http://localhost:3000/api/healthz 2>/dev/null; do
+            echo "Waiting for Gitea API..."
+            sleep 3
+          done
+
+          echo "✅ Gitea is ready!"
+
+          # Check if token already exists
+          if kubectl get secret -n platform-operator-system gitea-token 2>/dev/null; then
+            echo "⚠️  Token secret already exists. Skipping token generation."
+            exit 0
+          fi
+
+          echo "🔑 Generating Gitea access token..."
+          OUTPUT=$(kubectl exec -n gitea $GITEA_POD -c gitea -- \
+            gitea admin user generate-access-token \
+              --username gitea_admin \
+              --token-name platform-operator \
+              --scopes write:organization,write:repository,write:user 2>&1)
+
+          echo "DEBUG: Full output: $OUTPUT"
+
+          TOKEN=$(echo "$OUTPUT" | grep "Access token was successfully created:" | cut -d: -f2 | tr -d ' ')
+
+          if [ -z "$TOKEN" ]; then
+            echo "❌ Failed to generate token"
+            echo "DEBUG: Extracted token is empty"
+            exit 1
+          fi
+
+          echo "✅ Token generated successfully (length: ${#TOKEN})"
+
+          # Create namespace if it doesn't exist
+          kubectl create namespace platform-operator-system --dry-run=client -o yaml | kubectl apply -f -
+
+          # Create secret with token
+          kubectl create secret generic gitea-token \
+            --namespace platform-operator-system \
+            --from-literal=token=$TOKEN \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          echo "✅ Secret created: gitea-token in platform-operator-system namespace"
+          echo "🎉 Gitea token initialization complete!"
+      serviceAccountName: gitea-token-init
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gitea-token-init
+  namespace: gitea
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gitea-token-init
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/exec"]
+  verbs: ["get", "list", "create"]
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "create"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gitea-token-init
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gitea-token-init
+subjects:
+- kind: ServiceAccount
+  name: gitea-token-init
+  namespace: gitea

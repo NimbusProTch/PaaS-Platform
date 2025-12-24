@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -25,11 +25,8 @@ type BootstrapReconciler struct {
 	// GiteaClient for Git operations
 	GiteaClient *gitea.Client
 
-	// ChartsPath embedded charts directory path
+	// ChartsPath embedded charts directory path (contains both microservice and platform templates)
 	ChartsPath string
-
-	// PlatformChartsPath embedded platform-charts directory path
-	PlatformChartsPath string
 }
 
 //+kubebuilder:rbac:groups=platform.infraforge.io,resources=bootstrapclaims,verbs=get;list;watch;create;update;patch;delete
@@ -90,10 +87,6 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if chartsRepo == "" {
 		chartsRepo = "charts"
 	}
-	platformChartsRepo := claim.Spec.Repositories.PlatformCharts
-	if platformChartsRepo == "" {
-		platformChartsRepo = "platform-charts"
-	}
 	voltranRepo := claim.Spec.Repositories.Voltran
 	if voltranRepo == "" {
 		voltranRepo = "voltran"
@@ -104,9 +97,9 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		branch = "main"
 	}
 
-	repos := []string{chartsRepo, platformChartsRepo, voltranRepo}
+	repos := []string{chartsRepo, voltranRepo}
 	for _, repoName := range repos {
-		repo, err := r.GiteaClient.CreateRepository(ctx, claim.Spec.Organization, gitea.CreateRepoOptions{
+		_, err := r.GiteaClient.CreateRepository(ctx, claim.Spec.Organization, gitea.CreateRepoOptions{
 			Name:          repoName,
 			Description:   fmt.Sprintf("Platform %s repository", repoName),
 			Private:       false,
@@ -118,8 +111,10 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			r.updateStatusFailed(ctx, claim, fmt.Sprintf("Failed to create repository %s: %v", repoName, err))
 			return ctrl.Result{}, err
 		}
-		repoURLs[repoName] = repo.CloneURL
-		logger.Info("Repository created", "name", repoName, "url", repo.CloneURL)
+		// Use internal cluster URL instead of API's external clone_url
+		cloneURL := r.GiteaClient.ConstructCloneURL(claim.Spec.Organization, repoName)
+		repoURLs[repoName] = cloneURL
+		logger.Info("Repository created", "name", repoName, "url", cloneURL)
 	}
 
 	claim.Status.RepositoriesCreated = true
@@ -128,8 +123,8 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	// Step 3: Upload charts to charts repository
-	logger.Info("Uploading application charts", "repo", chartsRepo)
+	// Step 3: Upload charts to charts repository (contains both app and platform templates)
+	logger.Info("Uploading charts (microservice & platform templates)", "repo", chartsRepo)
 	chartFiles, err := r.loadChartsFromEmbedded(r.ChartsPath)
 	if err != nil {
 		logger.Error(err, "failed to load charts")
@@ -141,22 +136,6 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		"Initial charts upload by operator", "Platform Operator", "operator@platform.local"); err != nil {
 		logger.Error(err, "failed to push charts")
 		r.updateStatusFailed(ctx, claim, "Failed to push charts: "+err.Error())
-		return ctrl.Result{}, err
-	}
-
-	// Step 4: Upload platform-charts
-	logger.Info("Uploading platform charts", "repo", platformChartsRepo)
-	platformChartFiles, err := r.loadChartsFromEmbedded(r.PlatformChartsPath)
-	if err != nil {
-		logger.Error(err, "failed to load platform charts")
-		r.updateStatusFailed(ctx, claim, "Failed to load platform charts: "+err.Error())
-		return ctrl.Result{}, err
-	}
-
-	if err := r.GiteaClient.PushFiles(ctx, repoURLs[platformChartsRepo], branch, platformChartFiles,
-		"Initial platform charts upload by operator", "Platform Operator", "operator@platform.local"); err != nil {
-		logger.Error(err, "failed to push platform charts")
-		r.updateStatusFailed(ctx, claim, "Failed to push platform charts: "+err.Error())
 		return ctrl.Result{}, err
 	}
 
@@ -178,7 +157,7 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		environments = []string{"dev", "qa", "sandbox", "staging", "prod"}
 	}
 
-	voltranFiles := r.generateVoltranStructure(claim.Spec.Organization, chartsRepo, platformChartsRepo,
+	voltranFiles := r.generateVoltranStructure(claim.Spec.Organization, chartsRepo,
 		clusterType, environments, branch)
 
 	if err := r.GiteaClient.PushFiles(ctx, repoURLs[voltranRepo], branch, voltranFiles,
@@ -250,7 +229,7 @@ func (r *BootstrapReconciler) loadChartsFromEmbedded(path string) (map[string]st
 }
 
 // generateVoltranStructure generates the GitOps folder structure
-func (r *BootstrapReconciler) generateVoltranStructure(org, chartsRepo, platformChartsRepo, clusterType string, environments []string, branch string) map[string]string {
+func (r *BootstrapReconciler) generateVoltranStructure(org, chartsRepo, clusterType string, environments []string, branch string) map[string]string {
 	files := make(map[string]string)
 
 	// README

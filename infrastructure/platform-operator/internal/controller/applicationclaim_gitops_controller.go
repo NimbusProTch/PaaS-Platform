@@ -6,8 +6,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -74,15 +74,21 @@ func (r *ApplicationClaimGitOpsReconciler) Reconcile(ctx context.Context, req ct
 	appSetContent := r.generateApplicationSet(claim)
 	files[appSetPath] = appSetContent
 
-	// Generate values.yaml for each application
+	// Generate directory structure for each application
 	for _, app := range claim.Spec.Applications {
-		valuesPath := fmt.Sprintf("environments/%s/%s-values.yaml", claim.Spec.Environment, app.Name)
+		// values.yaml
+		valuesPath := fmt.Sprintf("environments/%s/%s/values.yaml", claim.Spec.Environment, app.Name)
 		valuesContent := r.generateValuesYAML(claim, app)
 		files[valuesPath] = valuesContent
+
+		// config.yaml (metadata)
+		configPath := fmt.Sprintf("environments/%s/%s/config.yaml", claim.Spec.Environment, app.Name)
+		configContent := r.generateConfigYAML(app)
+		files[configPath] = configContent
 	}
 
-	// Push to Gitea
-	voltranURL := fmt.Sprintf("%s/api/v1/repos/%s/%s", r.GiteaClient.GetBaseURL(), r.Organization, r.VoltranRepo)
+	// Push to Gitea - use internal clone URL
+	voltranURL := r.GiteaClient.ConstructCloneURL(r.Organization, r.VoltranRepo)
 	commitMsg := fmt.Sprintf("Update %s environment applications by operator", claim.Spec.Environment)
 
 	if err := r.GiteaClient.PushFiles(ctx, voltranURL, r.Branch, files, commitMsg,
@@ -123,28 +129,39 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 		"spec": map[string]interface{}{
 			"generators": []map[string]interface{}{
 				{
-					"list": map[string]interface{}{
-						"elements": r.generateAppElements(claim),
+					"git": map[string]interface{}{
+						"repoURL":  fmt.Sprintf("http://gitea.gitea.svc.cluster.local:3000/%s/%s", r.Organization, r.VoltranRepo),
+						"revision": r.Branch,
+						"directories": []map[string]interface{}{
+							{
+								"path": fmt.Sprintf("environments/%s/*", claim.Spec.Environment),
+							},
+						},
+						"files": []map[string]interface{}{
+							{
+								"path": fmt.Sprintf("environments/%s/*/config.yaml", claim.Spec.Environment),
+							},
+						},
 					},
 				},
 			},
 			"template": map[string]interface{}{
 				"metadata": map[string]interface{}{
-					"name": "{{app}}-{{environment}}",
+					"name": "{{path.basename}}-" + claim.Spec.Environment,
 					"labels": map[string]string{
-						"platform.infraforge.io/app": "{{app}}",
-						"platform.infraforge.io/env": "{{environment}}",
+						"platform.infraforge.io/app": "{{path.basename}}",
+						"platform.infraforge.io/env": claim.Spec.Environment,
 					},
 				},
 				"spec": map[string]interface{}{
 					"project": "default",
 					"source": map[string]interface{}{
 						"repoURL":        fmt.Sprintf("http://gitea.gitea.svc.cluster.local:3000/%s/charts", r.Organization),
-						"path":           "{{chart}}",
+						"path":           "{{config.chart}}",
 						"targetRevision": r.Branch,
 						"helm": map[string]interface{}{
 							"valueFiles": []string{
-								fmt.Sprintf("../../voltran/environments/%s/{{app}}-values.yaml", claim.Spec.Environment),
+								fmt.Sprintf("../../%s/{{path}}/values.yaml", r.VoltranRepo),
 							},
 						},
 					},
@@ -168,19 +185,19 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 	return string(data)
 }
 
-// generateAppElements generates list elements for ApplicationSet
-func (r *ApplicationClaimGitOpsReconciler) generateAppElements(claim *platformv1.ApplicationClaim) []map[string]string {
-	elements := []map[string]string{}
-
-	for _, app := range claim.Spec.Applications {
-		elements = append(elements, map[string]string{
-			"app":         app.Name,
-			"chart":       app.Chart.Name,
-			"environment": claim.Spec.Environment,
-		})
+// generateConfigYAML generates config.yaml with chart metadata
+func (r *ApplicationClaimGitOpsReconciler) generateConfigYAML(app platformv1.ApplicationSpec) string {
+	config := map[string]interface{}{
+		"chart":   app.Chart.Name,
+		"version": app.Chart.Version,
 	}
 
-	return elements
+	if app.Chart.Version == "" {
+		config["version"] = "1.0.0"
+	}
+
+	yamlBytes, _ := yaml.Marshal(config)
+	return string(yamlBytes)
 }
 
 // generateValuesYAML generates Helm values.yaml for an application
