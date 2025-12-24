@@ -1,14 +1,17 @@
 # Build stage
 FROM golang:1.21-alpine AS builder
 
-WORKDIR /app
+# Install git for go modules
+RUN apk add --no-cache git
+
+WORKDIR /workspace
 
 # Copy go mod files
-COPY go.mod go.sum ./
+COPY infrastructure/platform-operator/go.mod infrastructure/platform-operator/go.sum ./
 RUN go mod download
 
-# Copy source code
-COPY . .
+# Copy operator source code
+COPY infrastructure/platform-operator/ ./
 
 # Build the operator
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o manager cmd/manager/main.go
@@ -19,12 +22,12 @@ FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 
 # Copy the operator binary
-COPY --from=builder /app/manager .
+COPY --from=builder /workspace/manager .
 
-# Copy embedded charts from project root
-# These charts will be available at /charts and /platform-charts in the container
-COPY --from=builder /app/../../charts /charts
-COPY --from=builder /app/../../platform-charts /platform-charts
+# Copy charts from project root (build context is project root)
+# These will be embedded and available at /charts and /platform-charts
+COPY charts/ /charts/
+COPY platform-charts/ /platform-charts/
 
 USER 65532:65532
 

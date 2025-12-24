@@ -54,8 +54,14 @@ run: manifests generate fmt vet ## Run a controller from your host.
 	go run cmd/manager/main.go
 
 .PHONY: docker-build
-docker-build: ## Build docker image with the manager.
-	docker build -t ${IMG} .
+docker-build: ## Build docker image with the manager (must run from project root).
+	@echo "Building operator image from project root..."
+	@if [ ! -f "../../charts" ]; then \
+		echo "Error: Must run 'make docker-build' from project root"; \
+		echo "Usage: cd ../.. && make -C infrastructure/platform-operator docker-build"; \
+		exit 1; \
+	fi
+	cd ../.. && docker build -f infrastructure/platform-operator/Dockerfile -t ${IMG} .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.

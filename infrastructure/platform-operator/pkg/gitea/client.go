@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -245,13 +247,10 @@ func (c *Client) GetBaseURL() string {
 
 // Helper functions
 func ensureDir(filePath string) error {
-	// Implementation to ensure directory exists
-	// This is a placeholder - actual implementation would use os.MkdirAll
-	return nil
+	dir := filepath.Dir(filePath)
+	return os.MkdirAll(dir, 0755)
 }
 
 func writeFile(path, content string) error {
-	// Implementation to write file
-	// This is a placeholder - actual implementation would use os.WriteFile
-	return nil
+	return os.WriteFile(path, []byte(content), 0644)
 }

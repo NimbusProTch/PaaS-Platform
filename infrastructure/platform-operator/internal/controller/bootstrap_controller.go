@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -207,12 +208,43 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 // loadChartsFromEmbedded loads chart files from embedded directory
 func (r *BootstrapReconciler) loadChartsFromEmbedded(path string) (map[string]string, error) {
-	// TODO: Implement reading from embedded filesystem
-	// For now, return placeholder
 	files := make(map[string]string)
 
-	// Example structure - this should be implemented to read from actual embedded charts
-	files["README.md"] = "# Charts Repository\n\nThis repository contains application Helm charts managed by the platform operator."
+	// Walk through the embedded charts directory
+	err := filepath.Walk(path, func(filePath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip directories
+		if info.IsDir() {
+			return nil
+		}
+
+		// Read file content
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			return fmt.Errorf("failed to read file %s: %w", filePath, err)
+		}
+
+		// Store with relative path
+		relPath, err := filepath.Rel(path, filePath)
+		if err != nil {
+			return err
+		}
+
+		files[relPath] = string(content)
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to walk charts directory: %w", err)
+	}
+
+	// Add README if no files found
+	if len(files) == 0 {
+		files["README.md"] = "# Charts Repository\n\nThis repository contains application Helm charts managed by the platform operator."
+	}
 
 	return files, nil
 }
