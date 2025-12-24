@@ -1,3 +1,27 @@
+# ArgoCD locals for configuration
+locals {
+  argocd_config = {
+    argocd_version           = "v2.9.3"
+    domain_name              = var.domain_name
+    aws_region               = var.aws_region
+    oidc_issuer_url          = module.eks.cluster_oidc_issuer_url
+    controller_replicas      = 2
+    controller_cpu_request   = "250m"
+    controller_memory_request = "512Mi"
+    controller_cpu_limit     = "500m"
+    controller_memory_limit  = "1Gi"
+    repo_server_replicas     = 2
+    repo_server_cpu_request  = "250m"
+    repo_server_memory_request = "256Mi"
+    repo_server_cpu_limit    = "500m"
+    repo_server_memory_limit = "512Mi"
+    redis_cpu_request        = "100m"
+    redis_memory_request     = "128Mi"
+    redis_cpu_limit          = "200m"
+    redis_memory_limit       = "256Mi"
+  }
+}
+
 # ArgoCD Installation
 resource "helm_release" "argocd" {
   name             = "argocd"
@@ -8,65 +32,7 @@ resource "helm_release" "argocd" {
   create_namespace = true
 
   values = [
-    <<-EOT
-    global:
-      image:
-        tag: "v2.9.3"
-
-    server:
-      service:
-        type: LoadBalancer
-        annotations:
-          service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
-
-      config:
-        url: "https://argocd.${var.domain_name}"
-
-        # OIDC Configuration (optional)
-        oidc.config: |
-          name: AWS SSO
-          issuer: https://oidc.eks.${var.aws_region}.amazonaws.com/id/${module.eks.cluster_oidc_issuer_url}
-          clientId: argocd
-          requestedScopes: ["openid", "profile", "email"]
-          requestedIdTokenClaims: {"groups": {"essential": true}}
-
-      rbacConfig:
-        policy.default: role:readonly
-        policy.csv: |
-          p, role:admin, applications, *, */*, allow
-          p, role:admin, clusters, *, *, allow
-          p, role:admin, repositories, *, *, allow
-          g, argocd-admins, role:admin
-
-    controller:
-      replicas: 2
-      resources:
-        requests:
-          cpu: 250m
-          memory: 512Mi
-        limits:
-          cpu: 500m
-          memory: 1Gi
-
-    repoServer:
-      replicas: 2
-      resources:
-        requests:
-          cpu: 250m
-          memory: 256Mi
-        limits:
-          cpu: 500m
-          memory: 512Mi
-
-    redis:
-      resources:
-        requests:
-          cpu: 100m
-          memory: 128Mi
-        limits:
-          cpu: 200m
-          memory: 256Mi
-    EOT
+    templatefile("${path.module}/templates/argocd-values.yaml.tftpl", local.argocd_config)
   ]
 
   depends_on = [

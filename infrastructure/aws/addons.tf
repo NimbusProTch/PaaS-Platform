@@ -1,5 +1,46 @@
 # EKS Add-ons and Essential Components
 
+# Locals for addon configurations
+locals {
+  metrics_server_config = {
+    cpu_request    = "100m"
+    memory_request = "200Mi"
+    cpu_limit      = "200m"
+    memory_limit   = "400Mi"
+  }
+
+  cluster_autoscaler_config = {
+    cluster_name   = local.cluster_name
+    aws_region     = var.aws_region
+    irsa_role_arn  = module.cluster_autoscaler_irsa[0].iam_role_arn
+    cpu_request    = "100m"
+    memory_request = "300Mi"
+    cpu_limit      = "200m"
+    memory_limit   = "500Mi"
+  }
+
+  aws_lb_controller_config = {
+    cluster_name   = local.cluster_name
+    aws_region     = var.aws_region
+    vpc_id         = module.vpc.vpc_id
+    irsa_role_arn  = module.aws_load_balancer_controller_irsa[0].iam_role_arn
+    cpu_request    = "100m"
+    memory_request = "128Mi"
+    cpu_limit      = "200m"
+    memory_limit   = "256Mi"
+  }
+
+  external_dns_config = {
+    aws_region     = var.aws_region
+    domain_name    = var.domain_name
+    irsa_role_arn  = module.external_dns_irsa[0].iam_role_arn
+    cpu_request    = "50m"
+    memory_request = "100Mi"
+    cpu_limit      = "100m"
+    memory_limit   = "200Mi"
+  }
+}
+
 # Metrics Server
 resource "helm_release" "metrics_server" {
   name             = "metrics-server"
@@ -9,19 +50,7 @@ resource "helm_release" "metrics_server" {
   namespace        = "kube-system"
 
   values = [
-    <<-EOT
-    args:
-      - --kubelet-insecure-tls
-      - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
-
-    resources:
-      requests:
-        cpu: 100m
-        memory: 200Mi
-      limits:
-        cpu: 200m
-        memory: 400Mi
-    EOT
+    templatefile("${path.module}/templates/metrics-server-values.yaml.tftpl", local.metrics_server_config)
   ]
 
   depends_on = [module.eks]
@@ -36,34 +65,7 @@ resource "helm_release" "cluster_autoscaler" {
   namespace        = "kube-system"
 
   values = [
-    <<-EOT
-    autoDiscovery:
-      clusterName: ${local.cluster_name}
-      enabled: true
-
-    awsRegion: ${var.aws_region}
-
-    rbac:
-      serviceAccount:
-        annotations:
-          eks.amazonaws.com/role-arn: ${module.cluster_autoscaler_irsa[0].iam_role_arn}
-        name: cluster-autoscaler
-        create: true
-
-    extraArgs:
-      skip-nodes-with-local-storage: false
-      skip-nodes-with-system-pods: false
-      balance-similar-node-groups: true
-      expander: least-waste
-
-    resources:
-      requests:
-        cpu: 100m
-        memory: 300Mi
-      limits:
-        cpu: 200m
-        memory: 500Mi
-    EOT
+    templatefile("${path.module}/templates/cluster-autoscaler-values.yaml.tftpl", local.cluster_autoscaler_config)
   ]
 
   depends_on = [
@@ -81,25 +83,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   namespace        = "kube-system"
 
   values = [
-    <<-EOT
-    clusterName: ${local.cluster_name}
-    region: ${var.aws_region}
-    vpcId: ${module.vpc.vpc_id}
-
-    serviceAccount:
-      create: true
-      name: aws-load-balancer-controller
-      annotations:
-        eks.amazonaws.com/role-arn: ${module.aws_load_balancer_controller_irsa[0].iam_role_arn}
-
-    resources:
-      requests:
-        cpu: 100m
-        memory: 128Mi
-      limits:
-        cpu: 200m
-        memory: 256Mi
-    EOT
+    templatefile("${path.module}/templates/aws-load-balancer-controller-values.yaml.tftpl", local.aws_lb_controller_config)
   ]
 
   depends_on = [
@@ -118,32 +102,7 @@ resource "helm_release" "external_dns" {
   namespace        = "kube-system"
 
   values = [
-    <<-EOT
-    provider: aws
-
-    aws:
-      region: ${var.aws_region}
-      zoneType: public
-
-    domainFilters:
-      - ${var.domain_name}
-
-    policy: sync
-
-    serviceAccount:
-      create: true
-      name: external-dns
-      annotations:
-        eks.amazonaws.com/role-arn: ${module.external_dns_irsa[0].iam_role_arn}
-
-    resources:
-      requests:
-        cpu: 50m
-        memory: 100Mi
-      limits:
-        cpu: 100m
-        memory: 200Mi
-    EOT
+    templatefile("${path.module}/templates/external-dns-values.yaml.tftpl", local.external_dns_config)
   ]
 
   depends_on = [module.eks]

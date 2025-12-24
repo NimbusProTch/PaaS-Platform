@@ -71,14 +71,6 @@ resource "aws_ecr_lifecycle_policy" "microservices" {
   })
 }
 
-# ECR Pull Through Cache for Docker Hub (optional - commented out for now)
-# resource "aws_ecr_pull_through_cache_rule" "dockerhub" {
-#   count                    = var.enable_ecr_pull_through_cache ? 1 : 0
-#   ecr_repository_prefix    = "dockerhub"
-#   upstream_registry_url    = "registry-1.docker.io"
-#   credential_arn           = var.dockerhub_credentials_arn
-# }
-
 # Outputs
 output "ecr_repositories" {
   value = {

@@ -1,0 +1,26 @@
+autoDiscovery:
+  clusterName: ${cluster_name}
+  enabled: true
+
+awsRegion: ${aws_region}
+
+rbac:
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: ${irsa_role_arn}
+    name: cluster-autoscaler
+    create: true
+
+extraArgs:
+  skip-nodes-with-local-storage: false
+  skip-nodes-with-system-pods: false
+  balance-similar-node-groups: true
+  expander: least-waste
+
+resources:
+  requests:
+    cpu: ${cpu_request}
+    memory: ${memory_request}
+  limits:
+    cpu: ${cpu_limit}
+    memory: ${memory_limit}

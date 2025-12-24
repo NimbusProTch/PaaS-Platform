@@ -1,0 +1,57 @@
+global:
+  image:
+    tag: "${argocd_version}"
+
+server:
+  service:
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+
+  config:
+    url: "https://argocd.${domain_name}"
+
+    # OIDC Configuration (optional)
+    oidc.config: |
+      name: AWS SSO
+      issuer: https://oidc.eks.${aws_region}.amazonaws.com/id/${oidc_issuer_url}
+      clientId: argocd
+      requestedScopes: ["openid", "profile", "email"]
+      requestedIdTokenClaims: {"groups": {"essential": true}}
+
+  rbacConfig:
+    policy.default: role:readonly
+    policy.csv: |
+      p, role:admin, applications, *, */*, allow
+      p, role:admin, clusters, *, *, allow
+      p, role:admin, repositories, *, *, allow
+      g, argocd-admins, role:admin
+
+controller:
+  replicas: ${controller_replicas}
+  resources:
+    requests:
+      cpu: ${controller_cpu_request}
+      memory: ${controller_memory_request}
+    limits:
+      cpu: ${controller_cpu_limit}
+      memory: ${controller_memory_limit}
+
+repoServer:
+  replicas: ${repo_server_replicas}
+  resources:
+    requests:
+      cpu: ${repo_server_cpu_request}
+      memory: ${repo_server_memory_request}
+    limits:
+      cpu: ${repo_server_cpu_limit}
+      memory: ${repo_server_memory_limit}
+
+redis:
+  resources:
+    requests:
+      cpu: ${redis_cpu_request}
+      memory: ${redis_memory_request}
+    limits:
+      cpu: ${redis_cpu_limit}
+      memory: ${redis_memory_limit}

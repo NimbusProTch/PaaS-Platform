@@ -1,24 +1,31 @@
-environment = "dev"
-aws_region = "eu-west-1"
-owner_email = "platform@infraforge.io"
-tenant = "platform"
+# AWS Infrastructure Configuration
 
-# VPC Configuration
-vpc_cidr = "10.0.0.0/16"
-enable_nat_gateway = true
-single_nat_gateway = true # Cost optimization for dev
+# Basic Configuration
+project_name = "infraforge"
+environment  = "dev"
+tenant       = "platform"
+owner_email  = "gokhan@infraforge.io"
+
+# AWS Configuration
+aws_region = "eu-west-1"
 
 # EKS Configuration
-cluster_version = "1.28"
+cluster_version = "1.29"
 
+# VPC Configuration
+vpc_cidr           = "10.0.0.0/16"
+enable_nat_gateway = true
+single_nat_gateway = true # Set to false for production
+
+# Node Groups Configuration
 node_groups = {
   general = {
-    desired_size   = 2
-    min_size      = 1
-    max_size      = 3
     instance_types = ["t3.medium"]
-    capacity_type  = "SPOT" # Use SPOT instances for dev
-    disk_size     = 50
+    capacity_type  = "SPOT"
+    min_size       = 2
+    max_size       = 5
+    desired_size   = 2
+    disk_size      = 50
     labels = {
       workload = "general"
     }
@@ -26,30 +33,60 @@ node_groups = {
   }
 }
 
-# No dedicated database nodes in dev
-enable_database_nodes = false
+# Database Node Group (for production)
+# node_groups = {
+#   general = {
+#     instance_types = ["t3.xlarge"]
+#     capacity_type  = "ON_DEMAND"
+#     min_size       = 3
+#     max_size       = 10
+#     desired_size   = 3
+#     disk_size      = 100
+#     labels = {
+#       workload = "general"
+#     }
+#     taints = []
+#   }
+#   database = {
+#     instance_types = ["r6i.xlarge"]
+#     capacity_type  = "ON_DEMAND"
+#     min_size       = 2
+#     max_size       = 4
+#     desired_size   = 2
+#     disk_size      = 200
+#     labels = {
+#       workload = "database"
+#     }
+#     taints = [
+#       {
+#         key    = "workload"
+#         value  = "database"
+#         effect = "NoSchedule"
+#       }
+#     ]
+#   }
+# }
 
-# Addons
+# Feature Flags
+enable_cluster_autoscaler           = true
 enable_aws_load_balancer_controller = true
-enable_external_dns = false # Not needed in dev
-enable_cert_manager = false # Not needed in dev
-enable_metrics_server = true
-enable_cluster_autoscaler = true
-enable_ebs_csi_driver = true
+enable_external_dns                 = false
+enable_cert_manager                 = true
+enable_ebs_csi_driver              = true
+enable_velero                      = false
+enable_karpenter                   = false
+enable_vpa                         = false
 
-# Storage
-storage_class_parameters = {
-  type      = "gp3"
-  iops      = 3000
-  encrypted = "true"
+# Monitoring
+enable_monitoring = true
+monitoring_config = {
+  prometheus_retention_days = 30
+  prometheus_storage_size   = "50Gi"
+  grafana_admin_password   = "" # Will be auto-generated if empty
 }
 
-# Monitoring (basic in dev)
-enable_prometheus = true
-enable_grafana = false
+# DNS Configuration (for external-dns)
+domain_name = "infraforge.io"
 
-# Backup disabled in dev
-enable_velero = false
-
-# Platform Operator
-enable_argocd = true
+# Backup Configuration (for Velero)
+backup_bucket_name = "infraforge-dev-backups"

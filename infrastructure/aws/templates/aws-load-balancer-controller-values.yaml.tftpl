@@ -1,0 +1,17 @@
+clusterName: ${cluster_name}
+region: ${aws_region}
+vpcId: ${vpc_id}
+
+serviceAccount:
+  create: true
+  name: aws-load-balancer-controller
+  annotations:
+    eks.amazonaws.com/role-arn: ${irsa_role_arn}
+
+resources:
+  requests:
+    cpu: ${cpu_request}
+    memory: ${memory_request}
+  limits:
+    cpu: ${cpu_limit}
+    memory: ${memory_limit}
