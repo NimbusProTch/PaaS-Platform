@@ -133,12 +133,15 @@ kubectl get pods -l platform.infraforge.io/claim=ecommerce-infrastructure
 kubectl apply -f deployments/dev/apps-claim.yaml
 ```
 
-**One-liner** (deploy both):
+**One-liner** (deploy both with sync waves):
 ```bash
-kubectl apply -f deployments/dev/platform-infrastructure-claim.yaml && \
-  sleep 30 && \
-  kubectl apply -f deployments/dev/apps-claim.yaml
+# With sync waves enabled, ArgoCD automatically waits for infrastructure
+# No manual sleep needed - just apply both!
+kubectl apply -f deployments/dev/platform-infrastructure-claim.yaml
+kubectl apply -f deployments/dev/apps-claim.yaml
 ```
+
+**Note**: ArgoCD Sync Waves ensure infrastructure (wave 0) deploys before apps (wave 1)
 
 ### Watch Status
 ```bash
@@ -183,10 +186,41 @@ All microservices depend on:
 Product service additionally depends on:
 - Elasticsearch
 
+## Configuration
+
+### Image Registry Override
+
+By default, the operator pulls images from `ghcr.io/nimbusprotch`. To use a different registry:
+
+**Option 1: Environment Variable** (Recommended)
+```yaml
+# infrastructure/platform-operator/config/manager/deployment.yaml
+env:
+  - name: IMAGE_REGISTRY
+    value: "ghcr.io/YOUR-ORG"  # Your GitHub Container Registry org
+    # OR
+    value: "715841344657.dkr.ecr.eu-west-1.amazonaws.com/YOUR-REPO"  # AWS ECR
+    # OR
+    value: "docker.io/YOUR-ORG"  # Docker Hub
+```
+
+**Option 2: Per-Application Override**
+```yaml
+# deployments/dev/apps-claim.yaml
+applications:
+  - name: product-service
+    image: ghcr.io/CUSTOM-ORG/product-service  # Full image URL
+    version: v1.0.0
+```
+
 ## Next Steps
 
 1. Deploy infrastructure: `cd infrastructure/aws && tofu apply`
 2. Deploy operator: `kubectl apply -f infrastructure/platform-operator/config/`
-3. Deploy claim: `kubectl apply -f deployments/dev/ecommerce-claim.yaml`
+3. Deploy claims:
+   ```bash
+   kubectl apply -f deployments/dev/platform-infrastructure-claim.yaml
+   kubectl apply -f deployments/dev/apps-claim.yaml
+   ```
 4. Wait for ArgoCD sync: `kubectl get app -n argocd -w`
 5. Verify all pods running: `kubectl get pods`

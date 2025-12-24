@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	platformv1 "github.com/infraforge/platform-operator/api/v1"
@@ -20,8 +21,13 @@ func (r *ApplicationClaimReconciler) generateValuesForApp(claim *platformv1.Appl
 	// If app.Image is provided, use it; otherwise derive from serviceName
 	imageRepo := app.Image
 	if imageRepo == "" && app.ServiceName != "" {
-		// Derive image repository from serviceName for GHCR
-		imageRepo = fmt.Sprintf("ghcr.io/nimbusprotch/%s", app.ServiceName)
+		// Derive image repository from serviceName
+		// Default: GHCR with configurable organization
+		imageRegistry := os.Getenv("IMAGE_REGISTRY")
+		if imageRegistry == "" {
+			imageRegistry = "ghcr.io/nimbusprotch"  // Default GHCR org
+		}
+		imageRepo = fmt.Sprintf("%s/%s", imageRegistry, app.ServiceName)
 	}
 
 	// Remove any existing tag from image

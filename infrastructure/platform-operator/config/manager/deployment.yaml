@@ -32,6 +32,8 @@ spec:
         env:
         - name: GITHUB_TOKEN
           value: "dummy-token"  # Will be replaced with secret later
+        - name: IMAGE_REGISTRY
+          value: "ghcr.io/nimbusprotch"  # Default: GHCR with org name (change to your own)
         resources:
           limits:
             cpu: 500m

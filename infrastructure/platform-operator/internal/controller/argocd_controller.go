@@ -736,6 +736,11 @@ func (r *ApplicationClaimReconciler) createOrUpdateApplicationSet(ctx context.Co
 							"platform.infraforge.io/team":        teamName,
 							"platform.infraforge.io/environment": claim.Spec.Environment,
 						},
+						"annotations": map[string]interface{}{
+							// Sync waves: infrastructure (component) deploys before apps
+							// Components get wave 0, applications get wave 1
+							"argocd.argoproj.io/sync-wave": "{{#if (eq type \"component\")}}0{{else}}1{{/if}}",
+						},
 					},
 					"spec": map[string]interface{}{
 						"project": projectName,
