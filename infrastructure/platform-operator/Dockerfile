@@ -6,12 +6,12 @@ RUN apk add --no-cache git
 
 WORKDIR /workspace
 
-# Copy go mod files from operator directory
-COPY infrastructure/platform-operator/go.mod infrastructure/platform-operator/go.sum ./
+# Copy go mod files (context is already infrastructure/platform-operator)
+COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy operator source code
-COPY infrastructure/platform-operator/ ./
+COPY . ./
 
 # Build the operator
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o manager cmd/manager/main.go
