@@ -1,0 +1,10 @@
+apiVersion: v2
+name: rabbitmq
+description: RabbitMQ Cluster Operator
+type: application
+version: 1.0.0
+appVersion: "3.12"
+keywords:
+  - rabbitmq
+  - messaging
+  - queue

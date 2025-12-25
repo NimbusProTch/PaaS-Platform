@@ -1,0 +1,35 @@
+apiVersion: mongodbcommunity.mongodb.com/v1
+kind: MongoDBCommunity
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  members: {{ .Values.mongodb.members }}
+  type: ReplicaSet
+  version: {{ .Values.mongodb.version | quote }}
+  
+  security:
+    authentication:
+      modes: ["SCRAM"]
+  
+  statefulSet:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: mongod
+              resources:
+                requests:
+                  cpu: {{ .Values.mongodb.resources.requests.cpu }}
+                  memory: {{ .Values.mongodb.resources.requests.memory }}
+                limits:
+                  cpu: {{ .Values.mongodb.resources.limits.cpu }}
+                  memory: {{ .Values.mongodb.resources.limits.memory }}
+      volumeClaimTemplates:
+        - metadata:
+            name: data-volume
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: {{ .Values.mongodb.storage.size }}
+            storageClassName: {{ .Values.mongodb.storage.storageClassName }}

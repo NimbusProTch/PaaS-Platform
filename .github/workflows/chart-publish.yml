@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   publish:
-    name: Package & Publish to GitHub Packages
+    name: Package & Publish Charts to GitHub Packages
     runs-on: ubuntu-latest
 
     steps:
@@ -32,60 +32,46 @@ jobs:
             --username ${{ github.actor }} \
             --password-stdin
 
-      - name: Extract chart metadata
+      - name: Extract repository metadata
         id: meta
         run: |
           # Get repository owner (lowercase for OCI compatibility)
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           echo "owner=$OWNER" >> $GITHUB_OUTPUT
 
-          # Extract version from Chart.yaml
-          VERSION=$(grep '^version:' charts/common/Chart.yaml | awk '{print $2}')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-          # Generate timestamp-based build number
+          # Generate timestamp
           BUILD_DATE=$(date +%Y%m%d%H%M%S)
           echo "build_date=$BUILD_DATE" >> $GITHUB_OUTPUT
 
-          echo "📦 Chart version: $VERSION"
           echo "🏷️  Owner: $OWNER"
 
-      - name: Package Helm Charts
+      - name: Package & Publish Charts
         run: |
+          OWNER="${{ steps.meta.outputs.owner }}"
           mkdir -p .helm-packages
 
           for chart_dir in charts/*/; do
             chart_name=$(basename "$chart_dir")
-            echo "📦 Packaging chart: $chart_name"
+
+            # Extract version from individual chart
+            VERSION=$(grep '^version:' "${chart_dir}/Chart.yaml" | awk '{print $2}')
+
+            echo "📦 Packaging chart: $chart_name (version: $VERSION)"
 
             # Package the chart
-            helm package "$chart_dir" \
-              --destination .helm-packages \
-              --version "${{ steps.meta.outputs.version }}"
+            helm package "$chart_dir" --destination .helm-packages
 
-            echo "✅ Packaged: $chart_name-${{ steps.meta.outputs.version }}.tgz"
-          done
+            echo "🚀 Pushing $chart_name:$VERSION to OCI registry..."
 
-          ls -lh .helm-packages/
-
-      - name: Push to GitHub Packages (OCI)
-        run: |
-          OWNER="${{ steps.meta.outputs.owner }}"
-          VERSION="${{ steps.meta.outputs.version }}"
-
-          for package in .helm-packages/*.tgz; do
-            chart_name=$(basename "$package" | sed "s/-${VERSION}.tgz//")
-
-            echo "🚀 Pushing $chart_name to OCI registry..."
-
-            # Push with semantic version
-            helm push "$package" "oci://ghcr.io/${OWNER}"
+            # Push to GitHub Container Registry
+            helm push ".helm-packages/${chart_name}-${VERSION}.tgz" "oci://ghcr.io/${OWNER}"
 
             echo "✅ Published: oci://ghcr.io/${OWNER}/${chart_name}:${VERSION}"
+            echo ""
           done
 
-      # Note: Helm OCI doesn't support "latest" as a version tag
-      # Users should reference the specific version or use the highest version
+      # Note: Each chart has its own version in Chart.yaml
+      # Helm OCI doesn't support "latest" as a version tag
 
       - name: Generate Release Notes
         id: release_notes
@@ -93,17 +79,16 @@ jobs:
           cat > release-notes.md << EOF
           ## Helm Charts Published 📦
 
-          **Version:** ${{ steps.meta.outputs.version }}
           **Build Date:** ${{ steps.meta.outputs.build_date }}
 
           ### Published Charts
 
           EOF
 
-          for package in .helm-packages/*.tgz; do
-            chart_name=$(basename "$package" | sed "s/-${{ steps.meta.outputs.version }}.tgz//")
-            echo "- \`oci://ghcr.io/${{ steps.meta.outputs.owner }}/${chart_name}:${{ steps.meta.outputs.version }}\`" >> release-notes.md
-            echo "- \`oci://ghcr.io/${{ steps.meta.outputs.owner }}/${chart_name}:latest\`" >> release-notes.md
+          for chart_dir in charts/*/; do
+            chart_name=$(basename "$chart_dir")
+            VERSION=$(grep '^version:' "${chart_dir}/Chart.yaml" | awk '{print $2}')
+            echo "- \`oci://ghcr.io/${{ steps.meta.outputs.owner }}/${chart_name}:${VERSION}\`" >> release-notes.md
           done
 
           cat >> release-notes.md << EOF
@@ -111,17 +96,14 @@ jobs:
           ### Usage
 
           \`\`\`bash
-          # Pull specific version
-          helm pull oci://ghcr.io/${{ steps.meta.outputs.owner }}/common --version ${{ steps.meta.outputs.version }}
-
-          # Pull latest
-          helm pull oci://ghcr.io/${{ steps.meta.outputs.owner }}/common --version latest
+          # Pull specific chart
+          helm pull oci://ghcr.io/${{ steps.meta.outputs.owner }}/microservice --version 1.0.0
 
           # Install
-          helm install my-app oci://ghcr.io/${{ steps.meta.outputs.owner }}/common --version latest
+          helm install my-app oci://ghcr.io/${{ steps.meta.outputs.owner }}/microservice --version 1.0.0
           \`\`\`
 
-          ### Bootstrap Usage
+          ### Platform Operator Usage
 
           \`\`\`yaml
           apiVersion: platform.infraforge.io/v1
@@ -129,8 +111,8 @@ jobs:
           spec:
             chartsRepository:
               type: oci
-              url: oci://ghcr.io/${{ steps.meta.outputs.owner }}/common
-              version: latest
+              url: oci://ghcr.io/${{ steps.meta.outputs.owner }}/microservice
+              version: "1.0.0"
           \`\`\`
 
           ---
@@ -138,9 +120,6 @@ jobs:
           EOF
 
           cat release-notes.md
-
-      # Note: Commit comments require contents: write permission
-      # Release notes are visible in workflow logs above
 
       - name: Cleanup
         if: always()

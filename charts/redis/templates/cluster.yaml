@@ -1,0 +1,25 @@
+apiVersion: redis.redis.opstreelabs.in/v1beta1
+kind: RedisCluster
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  clusterSize: {{ .Values.redis.clusterSize }}
+  kubernetesConfig:
+    image: {{ .Values.redis.image }}
+  
+  resources:
+    requests:
+      cpu: {{ .Values.redis.resources.requests.cpu }}
+      memory: {{ .Values.redis.resources.requests.memory }}
+    limits:
+      cpu: {{ .Values.redis.resources.limits.cpu }}
+      memory: {{ .Values.redis.resources.limits.memory }}
+  
+  storage:
+    volumeClaimTemplate:
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.redis.storage.size }}
+        storageClassName: {{ .Values.redis.storage.storageClassName }}

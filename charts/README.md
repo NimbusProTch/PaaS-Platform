@@ -1,215 +1,119 @@
-# Platform Helm Charts
+# Helm Charts
 
-Bu repository platform ve mikroservisler için Helm chart templatelerini içerir.
+Production-ready Helm charts for platform operator.
 
-## 📦 Publish Edilen Packages
+## Published Charts
 
-Her main branch'e push otomatik olarak GitHub Packages (OCI Registry) üzerine publish edilir.
+All charts are published to GitHub Container Registry (OCI):
 
-**Published Chart:**
+- `oci://ghcr.io/nimbusprotch/microservice` - Generic microservice application chart
+- `oci://ghcr.io/nimbusprotch/postgresql` - CloudNative-PG PostgreSQL Cluster
+- `oci://ghcr.io/nimbusprotch/mongodb` - MongoDB Community Operator
+- `oci://ghcr.io/nimbusprotch/rabbitmq` - RabbitMQ Cluster Operator
+- `oci://ghcr.io/nimbusprotch/redis` - Redis Cluster (OT-CONTAINER-KIT)
+- `oci://ghcr.io/nimbusprotch/kafka` - Strimzi Kafka Operator
+
+## Chart Structure
+
+Each chart follows production-ready patterns:
+
 ```
-oci://ghcr.io/nimbusprotch/common:latest
-oci://ghcr.io/nimbusprotch/common:<version>
+charts/<chart-name>/
+├── Chart.yaml                 # Chart metadata & version
+├── values.yaml                # Base values (dev defaults)
+├── values-production.yaml     # Production overrides
+└── templates/                 # Kubernetes manifests
 ```
 
-## 🚀 Kullanım
+## Usage
 
-### Manuel Helm Install
+### Pull & Install
 
 ```bash
-# Latest version pull
-helm pull oci://ghcr.io/nimbusprotch/common --version latest
+# Pull chart
+helm pull oci://ghcr.io/nimbusprotch/postgresql --version 1.0.0
 
-# Specific version pull
-helm pull oci://ghcr.io/nimbusprotch/common --version 1.0.0
+# Install with dev defaults
+helm install mydb oci://ghcr.io/nimbusprotch/postgresql --version 1.0.0
 
-# Install
-helm install my-app oci://ghcr.io/nimbusprotch/common --version latest \
-  --set type=microservice \
-  --set image.repository=myapp \
-  --set image.tag=latest
+# Install with production values
+helm install mydb oci://ghcr.io/nimbusprotch/postgresql \
+  --version 1.0.0 \
+  -f values-production.yaml
 ```
 
-### Platform Operator Bootstrap
+### Platform Operator Usage
+
+The platform operator automatically pulls these charts based on CRD definitions:
 
 ```yaml
 apiVersion: platform.infraforge.io/v1
-kind: BootstrapClaim
-metadata:
-  name: bootstrap-platform
+kind: PlatformApplicationClaim
 spec:
-  organization: infraforge
-
-  # OCI Registry (ÖNERİLEN - Her push'ta latest güncellenir)
-  chartsRepository:
-    type: oci
-    url: oci://ghcr.io/nimbusprotch/common
-    version: "2.0.0"  # veya "1.0.0" gibi spesifik version
-
-  repositories:
-    charts: charts
-    voltran: voltran
-
-  gitOps:
-    branch: main
-    clusterType: nonprod
-    environments:
-      - dev
-      - qa
-      - sandbox
+  environment: prod
+  services:
+    - type: postgresql
+      name: orders-db
+      production: true  # Uses values-production.yaml
+      storage:
+        size: 200Gi
 ```
 
-## 📝 Chart Types
+## Operators Required
 
-### Mikroservis (type: microservice)
-Standart microservice deployment için.
+Platform charts require these Kubernetes operators to be installed:
 
-**Değerler:**
-```yaml
-type: microservice
-image:
-  repository: myapp
-  tag: latest
-replicaCount: 2
-resources:
-  requests:
-    cpu: 100m
-    memory: 128Mi
-env:
-  - name: NODE_ENV
-    value: production
-```
+- **CloudNative-PG:** PostgreSQL clusters
+- **MongoDB Community Operator:** MongoDB replica sets
+- **RabbitMQ Cluster Operator:** RabbitMQ clusters
+- **Redis Operator (OT-CONTAINER-KIT):** Redis clusters
+- **Strimzi:** Kafka clusters
 
-### Platform Services
+See `infrastructure/operators/` for installation manifests.
 
-#### PostgreSQL (type: postgresql)
-CloudNativePG operator ile HA PostgreSQL.
+## Development
 
-```yaml
-type: postgresql
-postgresql:
-  instances: 3
-  storage:
-    size: 20Gi
-```
+### Local Testing
 
-#### Redis (type: redis)
-Redis Sentinel/Cluster.
-
-```yaml
-type: redis
-redis:
-  mode: sentinel
-  sentinel:
-    replicas: 3
-  redis:
-    replicas: 3
-```
-
-#### RabbitMQ (type: rabbitmq)
-```yaml
-type: rabbitmq
-rabbitmq:
-  replicas: 3
-  storage:
-    size: 10Gi
-```
-
-#### MongoDB (type: mongodb)
-```yaml
-type: mongodb
-mongodb:
-  type: ReplicaSet
-  members: 3
-```
-
-#### Elasticsearch (type: elasticsearch)
-```yaml
-type: elasticsearch
-elasticsearch:
-  nodeSets:
-    master:
-      count: 3
-```
-
-## 🔄 Development Workflow
-
-### 1. Chart Değiştir
 ```bash
-# Template güncelle
-vi charts/common/templates/microservice/deployment.yaml
+# Lint chart
+helm lint charts/postgresql
 
-# Values güncelle
-vi charts/common/values.yaml
+# Template chart
+helm template test charts/postgresql
+
+# Template with production values
+helm template test charts/postgresql -f charts/postgresql/values-production.yaml
+
+# Dry-run install
+helm install --dry-run test charts/postgresql
 ```
 
-### 2. Test Et
-```bash
-# Lint
-helm lint charts/common/
+### Versioning
 
-# Template test
-helm template test charts/common/ \
-  --set type=microservice \
-  --set image.repository=test
-```
-
-### 3. PR Aç
-```bash
-git checkout -b feat/update-deployment
-git add charts/
-git commit -m "feat: Add resource limits"
-git push
-```
-
-**GitHub Actions otomatik:**
-- ✅ Helm lint çalışır
-- ✅ Template validation
-- ✅ YAML validation
-
-### 4. Merge → Otomatik Publish
-Main branch'e merge olunca:
-- ✅ Chart package edilir
-- ✅ GitHub Packages'a push edilir
-- ✅ `latest` tag güncellenir
-- ✅ Semantic version tag eklenir
-
-## 📊 Versioning
-
-`charts/common/Chart.yaml` içindeki version semantic versioning kullanır:
+Each chart has independent semantic versioning in `Chart.yaml`:
 
 ```yaml
-version: 1.2.3  # MAJOR.MINOR.PATCH
+version: 1.0.0  # Chart version
+appVersion: "16"  # Application version
 ```
 
-- **MAJOR**: Breaking changes
-- **MINOR**: Yeni feature (backwards compatible)
-- **PATCH**: Bug fix
+Update version when making changes, then push to main - GitHub Actions will automatically publish.
 
-## 🎯 CI/CD
+## Architecture
 
-### PR Workflow (`.github/workflows/chart-lint.yml`)
-- Helm lint
-- Template validation
-- YAML validation
-- Version check
+Platform Operator workflow:
 
-### Publish Workflow (`.github/workflows/chart-publish.yml`)
-- Chart package
-- OCI push (versioned)
-- OCI push (latest)
-- Release notes
+1. **Developer** creates ApplicationClaim or PlatformApplicationClaim
+2. **Operator** determines chart name & version from claim spec
+3. **Operator** merges base values + production values + user overrides
+4. **Operator** writes final values to Gitea voltran repository
+5. **ArgoCD** syncs from Gitea and installs using OCI chart reference
 
-## 🔐 Permissions
+```
+User Claim → Operator → Values Merge → Gitea → ArgoCD → OCI Chart Pull → K8s
+```
 
-GitHub Packages publish etmek için:
-1. Repo Settings → Actions → Workflow permissions
-2. "Read and write permissions" seç
-3. Save
+## Support
 
-## 📚 Daha Fazla Bilgi
-
-- [Helm OCI Support](https://helm.sh/docs/topics/registries/)
-- [GitHub Packages](https://docs.github.com/en/packages)
-- [CloudNativePG](https://cloudnative-pg.io/)
-- [Platform Operator Docs](../infrastructure/platform-operator/README.md)
+For issues or questions, open an issue on GitHub.

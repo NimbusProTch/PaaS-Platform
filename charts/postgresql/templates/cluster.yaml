@@ -1,0 +1,55 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  instances: {{ .Values.postgresql.instances }}
+  imageName: {{ .Values.postgresql.imageName }}
+  
+  postgresql:
+    parameters:
+      {{- range $key, $value := .Values.postgresql.postgresql.parameters }}
+      {{ $key }}: {{ $value | quote }}
+      {{- end }}
+  
+  {{- if .Values.postgresql.highAvailability.enabled }}
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+  
+  podDisruptionBudget:
+    minAvailable: {{ .Values.postgresql.highAvailability.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  
+  resources:
+    requests:
+      cpu: {{ .Values.postgresql.resources.requests.cpu }}
+      memory: {{ .Values.postgresql.resources.requests.memory }}
+    limits:
+      cpu: {{ .Values.postgresql.resources.limits.cpu }}
+      memory: {{ .Values.postgresql.resources.limits.memory }}
+  
+  storage:
+    size: {{ .Values.postgresql.storage.size }}
+    {{- if .Values.postgresql.storage.storageClass }}
+    storageClass: {{ .Values.postgresql.storage.storageClass }}
+    {{- end }}
+  
+  {{- if .Values.postgresql.backup.enabled }}
+  backup:
+    retentionPolicy: {{ .Values.postgresql.backup.retentionPolicy }}
+    barmanObjectStore:
+      destinationPath: {{ .Values.postgresql.backup.barmanObjectStore.destinationPath }}
+      {{- with .Values.postgresql.backup.barmanObjectStore.s3Credentials }}
+      s3Credentials:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      wal:
+        compression: {{ .Values.postgresql.backup.barmanObjectStore.wal.compression }}
+        encryption: {{ .Values.postgresql.backup.barmanObjectStore.wal.encryption }}
+  {{- end }}
+  
+  {{- if .Values.postgresql.monitoring.enabled }}
+  monitoring:
+    enablePodMonitor: {{ .Values.postgresql.monitoring.enablePodMonitor }}
+  {{- end }}

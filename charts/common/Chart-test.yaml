@@ -1,4 +1,0 @@
-# Test chart for new microservice
-apiVersion: v2
-name: new-service
-version: 1.0.0

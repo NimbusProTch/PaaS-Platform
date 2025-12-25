@@ -1,0 +1,12 @@
+apiVersion: v2
+name: postgresql
+description: CloudNative-PG PostgreSQL Cluster
+type: application
+version: 1.0.0
+appVersion: "16"
+keywords:
+  - postgresql
+  - database
+  - cloudnative-pg
+maintainers:
+  - name: Platform Team
