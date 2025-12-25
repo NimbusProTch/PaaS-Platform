@@ -55,7 +55,7 @@ Yeni field'lar:
 chartsRepository:
   type: oci              # "oci" veya "git"
   url: oci://ghcr.io/org/chart
-  version: latest        # "latest" veya "1.0.0"
+  version: "2.0.0"        # "latest" veya "1.0.0"
 ```
 
 ### 4. **Bootstrap Controller Güncellendi**
@@ -131,7 +131,7 @@ spec:
   chartsRepository:
     type: oci
     url: oci://ghcr.io/nimbusprotch/common
-    version: latest
+    version: "2.0.0"
 
   repositories:
     charts: charts

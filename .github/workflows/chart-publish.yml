@@ -84,34 +84,8 @@ jobs:
             echo "✅ Published: oci://ghcr.io/${OWNER}/${chart_name}:${VERSION}"
           done
 
-      - name: Tag as latest
-        run: |
-          OWNER="${{ steps.meta.outputs.owner }}"
-          VERSION="${{ steps.meta.outputs.version }}"
-
-          for package in .helm-packages/*.tgz; do
-            chart_name=$(basename "$package" | sed "s/-${VERSION}.tgz//")
-
-            echo "🏷️  Tagging $chart_name:$VERSION as latest..."
-
-            # Pull the versioned chart
-            helm pull "oci://ghcr.io/${OWNER}/${chart_name" \
-              --version "$VERSION" \
-              --destination /tmp
-
-            # Re-package as latest
-            chart_dir=$(mktemp -d)
-            tar -xzf "/tmp/${chart_name}-${VERSION}.tgz" -C "$chart_dir"
-
-            # Update version to latest in Chart.yaml
-            sed -i "s/^version:.*/version: latest/" "$chart_dir/${chart_name}/Chart.yaml"
-
-            # Package and push as latest
-            helm package "$chart_dir/${chart_name}" --destination /tmp
-            helm push "/tmp/${chart_name}-latest.tgz" "oci://ghcr.io/${OWNER}"
-
-            echo "✅ Tagged as latest: oci://ghcr.io/${OWNER}/${chart_name}:latest"
-          done
+      # Note: Helm OCI doesn't support "latest" as a version tag
+      # Users should reference the specific version or use the highest version
 
       - name: Generate Release Notes
         id: release_notes

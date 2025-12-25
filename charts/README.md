@@ -44,7 +44,7 @@ spec:
   chartsRepository:
     type: oci
     url: oci://ghcr.io/nimbusprotch/common
-    version: latest  # veya "1.0.0" gibi spesifik version
+    version: "2.0.0"  # veya "1.0.0" gibi spesifik version
 
   repositories:
     charts: charts

@@ -10,7 +10,7 @@ spec:
   chartsRepository:
     type: oci
     url: oci://ghcr.io/nimbusprotch/common
-    version: latest  # Her push'ta otomatik güncellenir
+    version: "2.0.0"  # Spesifik version kullan (Helm OCI "latest" desteklemiyor)
 
   repositories:
     charts: charts
