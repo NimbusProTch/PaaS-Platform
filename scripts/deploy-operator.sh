@@ -7,11 +7,11 @@ IMG=${2:-platform-operator:latest}
 echo "🔨 Building platform operator..."
 cd "$(dirname "$0")/.."
 
-# Build the operator image from project root
+# Build the operator image with correct context
 docker build \
   -f infrastructure/platform-operator/Dockerfile \
   -t ${IMG} \
-  .
+  infrastructure/platform-operator
 
 echo "📦 Loading image into Kind cluster: ${CLUSTER_NAME}..."
 kind load docker-image ${IMG} --name ${CLUSTER_NAME}

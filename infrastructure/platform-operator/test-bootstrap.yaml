@@ -1,0 +1,26 @@
+apiVersion: platform.infraforge.io/v1
+kind: BootstrapClaim
+metadata:
+  name: platform-bootstrap-test
+spec:
+  giteaURL: http://gitea-http.gitea.svc.cluster.local:3000
+  organization: platform
+
+  # Use Git repository for charts (public GitHub repo)
+  chartsRepository:
+    type: git
+    url: https://github.com/NimbusProTch/PaaS-Platform.git
+    branch: main
+    path: charts
+
+  repositories:
+    charts: charts
+    voltran: voltran
+
+  gitOps:
+    branch: main
+    clusterType: nonprod
+    environments:
+      - dev
+      - qa
+      - staging

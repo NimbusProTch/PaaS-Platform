@@ -6,4 +6,4 @@ resources:
 images:
 - name: controller
   newName: platform-operator
-  newTag: latest
+  newTag: dev

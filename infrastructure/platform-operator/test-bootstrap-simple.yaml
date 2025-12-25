@@ -1,0 +1,19 @@
+apiVersion: platform.infraforge.io/v1
+kind: BootstrapClaim
+metadata:
+  name: platform-bootstrap-simple
+spec:
+  giteaURL: http://gitea-http.gitea.svc.cluster.local:3000
+  organization: platform
+
+  repositories:
+    charts: charts
+    voltran: voltran
+
+  gitOps:
+    branch: main
+    clusterType: nonprod
+    environments:
+      - dev
+      - qa  
+      - staging
