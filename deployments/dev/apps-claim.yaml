@@ -21,6 +21,12 @@ spec:
   applications:
     # Product Service (Node.js)
     - name: product-service
+      chart:
+        name: microservice
+        version: "1.0.0"
+      image:
+        repository: ghcr.io/nimbusprotch/product-service
+        tag: v1.0.0
       serviceName: product-service
       version: v1.0.0
       replicas: 2
@@ -63,6 +69,12 @@ spec:
 
     # User Service (Go)
     - name: user-service
+      chart:
+        name: microservice
+        version: "1.0.0"
+      image:
+        repository: ghcr.io/nimbusprotch/user-service
+        tag: v1.0.0
       serviceName: user-service
       version: v1.0.0
       replicas: 2
@@ -110,6 +122,12 @@ spec:
 
     # Order Service (Go)
     - name: order-service
+      chart:
+        name: microservice
+        version: "1.0.0"
+      image:
+        repository: ghcr.io/nimbusprotch/order-service
+        tag: v1.0.0
       serviceName: order-service
       version: v1.0.0
       replicas: 2
@@ -157,6 +175,12 @@ spec:
 
     # Payment Service (Node.js)
     - name: payment-service
+      chart:
+        name: microservice
+        version: "1.0.0"
+      image:
+        repository: ghcr.io/nimbusprotch/payment-service
+        tag: v1.0.0
       serviceName: payment-service
       version: v1.0.0
       replicas: 2
@@ -199,6 +223,12 @@ spec:
 
     # Notification Service (Go)
     - name: notification-service
+      chart:
+        name: microservice
+        version: "1.0.0"
+      image:
+        repository: ghcr.io/nimbusprotch/notification-service
+        tag: v1.0.0
       serviceName: notification-service
       version: v1.0.0
       replicas: 1
