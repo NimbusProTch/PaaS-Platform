@@ -4,7 +4,7 @@ metadata:
   name: platform-bootstrap
 spec:
   giteaURL: http://gitea-http.gitea.svc.cluster.local:3000
-  organization: platform
+  organization: infraforge
 
   # OCI Charts Repository - GitHub Packages
   chartsRepository:
@@ -13,7 +13,6 @@ spec:
     version: "1.0.0"
 
   repositories:
-    charts: charts
     voltran: voltran
 
   gitOps:
