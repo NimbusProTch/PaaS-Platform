@@ -124,7 +124,8 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// Step 3: Upload charts to charts repository (contains both app and platform templates)
-	logger.Info("Uploading charts (microservice & platform templates)", "repo", chartsRepo)
+	// Note: In OCI mode, charts are NOT uploaded to Gitea - they live in OCI registry only
+	// Bootstrap only creates the GitOps structure in voltran repo
 
 	var chartFiles map[string]string
 	var err error
@@ -136,49 +137,14 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			repoType = "git" // Default to git for backwards compatibility
 		}
 
-		logger.Info("Loading charts from external repository", "url", claim.Spec.ChartsRepository.URL, "type", repoType)
+		logger.Info("Chart repository mode", "url", claim.Spec.ChartsRepository.URL, "type", repoType)
 
 		if repoType == "oci" {
-			// Pull multiple charts from OCI registry
-			// Extract base URL and default version
-			baseURL := claim.Spec.ChartsRepository.URL
-			defaultVersion := claim.Spec.ChartsRepository.Version
-			if defaultVersion == "" {
-				defaultVersion = "1.0.0"
-			}
-
-			// Define all charts to pull
-			chartsToPull := []struct {
-				name    string
-				version string
-			}{
-				{"microservice", defaultVersion},
-				{"postgresql", defaultVersion},
-				{"mongodb", defaultVersion},
-				{"rabbitmq", defaultVersion},
-				{"redis", defaultVersion},
-				{"kafka", defaultVersion},
-			}
-
-			chartFiles = make(map[string]string)
-
-			// Pull each chart and merge files
-			for _, chart := range chartsToPull {
-				chartURL := fmt.Sprintf("%s/%s", baseURL, chart.name)
-				logger.Info("Pulling chart from OCI registry", "chart", chart.name, "version", chart.version)
-
-				files, err := r.GiteaClient.PullOCIChartAndExtract(ctx, chartURL, chart.version)
-				if err != nil {
-					logger.Error(err, "failed to pull chart from OCI registry", "chart", chart.name)
-					r.updateStatusFailed(ctx, claim, fmt.Sprintf("Failed to pull OCI chart %s: %v", chart.name, err))
-					return ctrl.Result{}, err
-				}
-
-				// Prefix files with chart name to avoid conflicts
-				for filePath, content := range files {
-					chartFiles[fmt.Sprintf("%s/%s", chart.name, filePath)] = content
-				}
-			}
+			// In OCI mode, skip chart upload to Gitea
+			// Charts are pulled directly from OCI registry by ArgoCD
+			logger.Info("OCI mode: Skipping chart upload to Gitea (charts live in OCI registry)")
+			chartFiles = make(map[string]string) // Empty files - we'll only create GitOps structure
+			claim.Status.ChartsUploaded = true // Mark as uploaded (skipped)
 		} else {
 			// Clone from Git repository
 			chartsBranch := claim.Spec.ChartsRepository.Branch

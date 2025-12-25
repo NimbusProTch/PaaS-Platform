@@ -58,6 +58,17 @@ func (c *Client) PullOCIChart(ctx context.Context, chartURL, version string) (st
 		return chartDir, nil
 	}
 
+	// Login to GitHub Container Registry if token is available
+	githubToken := os.Getenv("GITHUB_TOKEN")
+	if githubToken != "" {
+		loginCmd := exec.CommandContext(ctx, "helm", "registry", "login", "ghcr.io", "--username", "token", "--password", githubToken)
+		loginCmd.Stdout = os.Stdout
+		loginCmd.Stderr = os.Stderr
+		if err := loginCmd.Run(); err != nil {
+			fmt.Printf("Warning: Failed to login to GHCR (continuing anyway): %v\n", err)
+		}
+	}
+
 	// Pull chart using helm pull
 	fullChartRef := fmt.Sprintf("%s:%s", chartURL, version)
 	cmd := exec.CommandContext(ctx, "helm", "pull", fullChartRef, "--untar", "--destination", c.cacheDir)

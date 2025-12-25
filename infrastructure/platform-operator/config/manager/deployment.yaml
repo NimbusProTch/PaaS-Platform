@@ -19,7 +19,7 @@ spec:
       containers:
       - name: manager
         image: platform-operator:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         args:
         - --leader-elect
         - --gitea-url=http://gitea-http.gitea.svc.cluster.local:3000
@@ -30,6 +30,12 @@ spec:
           valueFrom:
             secretKeyRef:
               name: gitea-token
+              key: token
+              optional: false
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-token
               key: token
               optional: false
         resources:
