@@ -8,8 +8,8 @@ Her main branch'e push otomatik olarak GitHub Packages (OCI Registry) üzerine p
 
 **Published Chart:**
 ```
-oci://ghcr.io/muratbekirgaskin/common:latest
-oci://ghcr.io/muratbekirgaskin/common:<version>
+oci://ghcr.io/nimbusprotch/common:latest
+oci://ghcr.io/nimbusprotch/common:<version>
 ```
 
 ## 🚀 Kullanım
@@ -18,13 +18,13 @@ oci://ghcr.io/muratbekirgaskin/common:<version>
 
 ```bash
 # Latest version pull
-helm pull oci://ghcr.io/<YOUR-GITHUB-ORG>/common --version latest
+helm pull oci://ghcr.io/nimbusprotch/common --version latest
 
 # Specific version pull
-helm pull oci://ghcr.io/<YOUR-GITHUB-ORG>/common --version 1.0.0
+helm pull oci://ghcr.io/nimbusprotch/common --version 1.0.0
 
 # Install
-helm install my-app oci://ghcr.io/<YOUR-GITHUB-ORG>/common --version latest \
+helm install my-app oci://ghcr.io/nimbusprotch/common --version latest \
   --set type=microservice \
   --set image.repository=myapp \
   --set image.tag=latest
@@ -43,7 +43,7 @@ spec:
   # OCI Registry (ÖNERİLEN - Her push'ta latest güncellenir)
   chartsRepository:
     type: oci
-    url: oci://ghcr.io/<YOUR-GITHUB-ORG>/common
+    url: oci://ghcr.io/nimbusprotch/common
     version: latest  # veya "1.0.0" gibi spesifik version
 
   repositories:

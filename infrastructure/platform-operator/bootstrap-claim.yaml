@@ -9,7 +9,7 @@ spec:
   # OCI Charts Repository - GitHub Packages
   chartsRepository:
     type: oci
-    url: oci://ghcr.io/muratbekirgaskin/common
+    url: oci://ghcr.io/nimbusprotch/common
     version: latest  # Her push'ta otomatik güncellenir
 
   repositories:

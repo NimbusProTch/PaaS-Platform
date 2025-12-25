@@ -99,7 +99,7 @@ git commit -m "feat: Add OCI chart management with GitHub Packages
 - Remove charts from Docker image (faster builds)
 
 Charts are now published to:
-oci://ghcr.io/<YOUR-ORG>/common:latest
+oci://ghcr.io/nimbusprotch/common:latest
 "
 
 # Push
@@ -110,7 +110,7 @@ git push origin main
 
 ```bash
 # GitHub Actions'a git
-# https://github.com/<YOUR-ORG>/PaaS-Platform/actions
+# https://github.com/nimbusprotch/PaaS-Platform/actions
 
 # "Publish Helm Charts to OCI" workflow'u çalışacak
 # ~30 saniye içinde chart publish olacak
@@ -130,7 +130,7 @@ spec:
   # OCI Registry kullan! 🚀
   chartsRepository:
     type: oci
-    url: oci://ghcr.io/<YOUR-GITHUB-ORG>/common
+    url: oci://ghcr.io/nimbusprotch/common
     version: latest
 
   repositories:
@@ -195,9 +195,9 @@ kubectl apply -f config/samples/bootstrap-claim.yaml
 Her main push sonrası:
 
 ```
-ghcr.io/<YOUR-ORG>/common:latest
-ghcr.io/<YOUR-ORG>/common:1.0.0
-ghcr.io/<YOUR-ORG>/common:1.1.0
+ghcr.io/nimbusprotch/common:latest
+ghcr.io/nimbusprotch/common:1.0.0
+ghcr.io/nimbusprotch/common:1.1.0
 ...
 ```
 
@@ -205,7 +205,7 @@ ghcr.io/<YOUR-ORG>/common:1.1.0
 
 ### Manuel Helm Install
 ```bash
-helm install my-app oci://ghcr.io/<YOUR-ORG>/common --version latest \
+helm install my-app oci://ghcr.io/nimbusprotch/common --version latest \
   --set type=microservice \
   --set image.repository=myapp
 ```
@@ -214,7 +214,7 @@ helm install my-app oci://ghcr.io/<YOUR-ORG>/common --version latest \
 ```yaml
 chartsRepository:
   type: git
-  url: https://github.com/<YOUR-ORG>/PaaS-Platform.git
+  url: https://github.com/nimbusprotch/PaaS-Platform.git
   branch: main
   path: charts
 ```
@@ -240,7 +240,7 @@ chartsRepository:
 helm version
 
 # Chart gerçekten publish olmuş mu?
-helm pull oci://ghcr.io/<YOUR-ORG>/common --version latest
+helm pull oci://ghcr.io/nimbusprotch/common --version latest
 ```
 
 ### Bootstrap hata veriyor
