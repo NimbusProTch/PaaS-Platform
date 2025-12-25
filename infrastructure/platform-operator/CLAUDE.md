@@ -2,11 +2,30 @@
 
 ## Overview
 
-Production-ready Kubernetes operator for managing platform infrastructure and applications through GitOps.
+Production-ready Kubernetes operator for managing platform infrastructure and applications through GitOps with OCI-based Helm charts.
 
-## Architecture
+## Architecture Flow
 
 ```
+┌──────────────────────────────────────────────────────────────┐
+│          GitHub Packages (OCI Registry)                       │
+├──────────────────────────────────────────────────────────────┤
+│  📦 Helm Charts (Templates - Stable, 6 charts):              │
+│     • microservice:1.0.0    (Generic app deployment)         │
+│     • postgresql:1.0.0      (CloudNative-PG)                 │
+│     • mongodb:1.0.0         (MongoDB Operator)               │
+│     • redis:1.0.0           (Redis Operator)                 │
+│     • rabbitmq:1.0.0        (RabbitMQ Operator)              │
+│     • kafka:1.0.0           (Strimzi Operator)               │
+│                                                              │
+│  📦 Docker Images (Apps - Dynamic, 100+ images):             │
+│     • notification-service:v1.2.3                            │
+│     • payment-service:v2.0.1                                 │
+│     • user-service:v1.5.0                                    │
+│     • ecommerce-platform:v1.0.0                              │
+│     • ... (all microservices)                                │
+└──────────────────────────────────────────────────────────────┘
+                              ↓
 ┌──────────────────────────────────────────────────────────────┐
 │                    Platform Operator CRDs                     │
 ├──────────────────────────────────────────────────────────────┤
@@ -15,37 +34,32 @@ Production-ready Kubernetes operator for managing platform infrastructure and ap
 └──────────────────────────────────────────────────────────────┘
                               ↓
 ┌──────────────────────────────────────────────────────────────┐
-│              Controllers (Values Generation)                  │
+│              Controllers (Smart Values Merging)               │
 ├──────────────────────────────────────────────────────────────┤
-│  • Chart-aware values merging                                │
-│  • Production/Dev profile selection                          │
-│  • Custom overrides from CRD spec                            │
+│  1. Pull chart from OCI (temp, cached)                       │
+│  2. Read base values.yaml                                    │
+│  3. Merge values-production.yaml (if prod env)               │
+│  4. Apply CRD custom overrides (image, replicas, etc)        │
+│  5. Push ONLY final values.yaml to Gitea                     │
+│  6. Generate ApplicationSet with OCI chart reference         │
 └──────────────────────────────────────────────────────────────┘
                               ↓
 ┌──────────────────────────────────────────────────────────────┐
-│                      Gitea (voltran repo)                     │
+│              Gitea (voltran repo - VALUES ONLY)               │
 ├──────────────────────────────────────────────────────────────┤
 │  appsets/{clusterType}/{apps|platform}/*.yaml                │
-│  environments/{clusterType}/{env}/{applications|platform}/   │
-│    ├── values.yaml                                           │
-│    └── config.yaml                                           │
+│  environments/{clusterType}/{env}/applications/              │
+│    notification-service/                                     │
+│      ├── values.yaml (FINAL merged values)                   │
+│      └── config.yaml (chart: microservice:1.0.0)             │
 └──────────────────────────────────────────────────────────────┘
                               ↓
 ┌──────────────────────────────────────────────────────────────┐
 │                  ArgoCD (GitOps Sync)                         │
 ├──────────────────────────────────────────────────────────────┤
-│  Root Apps → ApplicationSets → Applications                  │
-└──────────────────────────────────────────────────────────────┘
-                              ↓
-┌──────────────────────────────────────────────────────────────┐
-│               OCI Registry (GitHub Packages)                  │
-├──────────────────────────────────────────────────────────────┤
-│  ghcr.io/nimbusprotch/microservice:1.0.0                     │
-│  ghcr.io/nimbusprotch/postgresql:1.0.0                       │
-│  ghcr.io/nimbusprotch/mongodb:1.0.0                          │
-│  ghcr.io/nimbusprotch/rabbitmq:1.0.0                         │
-│  ghcr.io/nimbusprotch/redis:1.0.0                            │
-│  ghcr.io/nimbusprotch/kafka:1.0.0                            │
+│  Chart:  oci://ghcr.io/nimbusprotch/microservice:1.0.0      │
+│  Values: voltran/environments/.../values.yaml                │
+│  → Deploys: notification-service:v1.2.3                      │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -69,13 +83,44 @@ charts/<name>/
 ├── Chart.yaml                 # Metadata & version
 ├── values.yaml                # Base (dev defaults)
 ├── values-production.yaml     # Production overrides
-└── templates/                 # Operator CRDs
+└── templates/                 # K8s manifests / Operator CRDs
 ```
+
+## Package Strategy
+
+### Two Package Types
+
+**1. Helm Chart Packages (6 charts - Stable, OCI)**
+- Published to: `ghcr.io/nimbusprotch/<chart-name>:<version>`
+- Changed: Rarely (when template logic changes)
+- Versioning: SemVer (1.0.0, 1.0.1, 1.1.0...)
+- Examples:
+  - `ghcr.io/nimbusprotch/microservice:1.0.0`
+  - `ghcr.io/nimbusprotch/postgresql:1.0.0`
+
+**2. Docker Image Packages (100+ apps - Dynamic, OCI)**
+- Published to: `ghcr.io/nimbusprotch/<service-name>:<version>`
+- Changed: Frequently (every deployment)
+- Versioning: SemVer with 'v' prefix (v1.0.0, v1.2.3, v2.0.0...)
+- Examples:
+  - `ghcr.io/nimbusprotch/notification-service:v1.2.3`
+  - `ghcr.io/nimbusprotch/payment-service:v2.0.1`
+
+### Key Principle
+- **Charts** = Templates (reusable across 100s of apps)
+- **Images** = Application code (unique per microservice)
+- **Values** = Configuration (environment-specific, stored in Gitea)
 
 ## Custom Resource Definitions
 
 ### BootstrapClaim
 Initializes GitOps repository structure in Gitea.
+
+**Behavior:**
+- Creates Gitea organization and repositories (voltran, charts - optional)
+- Creates GitOps folder structure (appsets, environments)
+- **DOES NOT** push charts to Gitea (charts live in OCI registry only)
+- Generates ArgoCD root applications and ApplicationSet scaffolding
 
 ```yaml
 apiVersion: platform.infraforge.io/v1
@@ -86,15 +131,15 @@ spec:
   giteaURL: http://gitea-http.gitea.svc.cluster.local:3000
   organization: platform
 
-  # OCI Registry for charts
+  # Optional: OCI Registry reference (for documentation only)
+  # Operator does NOT pull/push charts during bootstrap
   chartsRepository:
     type: oci
-    url: oci://ghcr.io/nimbusprotch/microservice
+    url: oci://ghcr.io/nimbusprotch
     version: "1.0.0"
 
   repositories:
-    charts: charts
-    voltran: voltran
+    voltran: voltran  # GitOps manifests repo (REQUIRED)
 
   gitOps:
     branch: main
@@ -103,29 +148,49 @@ spec:
 ```
 
 ### ApplicationClaim
-Deploys microservices.
+Deploys microservices with smart values merging.
+
+**Behavior:**
+1. Pulls Helm chart from OCI registry (`microservice:1.0.0`)
+2. Reads `values.yaml` (dev defaults)
+3. If `environment: prod` → merges `values-production.yaml`
+4. Merges CRD spec overrides (image, replicas, resources, etc.)
+5. Pushes **ONLY** final `values.yaml` to Gitea voltran repo
+6. Generates ApplicationSet with OCI chart reference
 
 ```yaml
 apiVersion: platform.infraforge.io/v1
 kind: ApplicationClaim
 metadata:
-  name: my-apps
+  name: my-services
 spec:
-  environment: dev
-  clusterType: nonprod
+  environment: prod
+  clusterType: prod
   applications:
-    - name: api-gateway
+    - name: notification-service
+      chart:
+        name: microservice        # Common chart for all apps
+        version: "1.0.0"
       image:
-        repository: myapp/api
-        tag: v1.0.0
-      replicas: 3
+        repository: ghcr.io/nimbusprotch/notification-service
+        tag: v1.2.3              # App-specific version
+      replicas: 5
       resources:
         requests:
           cpu: 500m
-          memory: 1Gi
+          memory: 512Mi
       ingress:
         enabled: true
-        host: api.example.com
+        host: notifications.example.com
+
+    - name: payment-service
+      chart:
+        name: microservice        # Same chart, different app
+        version: "1.0.0"
+      image:
+        repository: ghcr.io/nimbusprotch/payment-service
+        tag: v2.0.1
+      replicas: 10
 ```
 
 ### PlatformApplicationClaim
@@ -157,33 +222,47 @@ spec:
 
 ## Controller Logic
 
-### Values Merging (Helm Best Practice)
+### Values Merging (Smart, OCI-based)
 
 ```go
-func generateValues(claim, service) {
-    chartName := service.Type  // postgresql, redis, etc.
+func generateValues(claim, app) {
+    chartName := app.Chart.Name     // e.g., "microservice"
+    chartVersion := app.Chart.Version // e.g., "1.0.0"
 
-    // 1. Fetch base values
-    baseValues := fetchChartValues(chartName, "values.yaml")
+    // 1. Pull chart from OCI registry (temp, cached)
+    chartPath := pullOCIChart("oci://ghcr.io/nimbusprotch/"+chartName, chartVersion)
 
-    // 2. Determine profile
+    // 2. Read base values.yaml
+    baseValues := readFile(chartPath + "/values.yaml")
+
+    // 3. Determine profile
     profile := "dev"
-    if service.Production || claim.Environment == "prod" {
+    if claim.Environment == "prod" || claim.ClusterType == "prod" {
         profile = "production"
     }
 
-    // 3. Merge production values (if applicable)
+    // 4. Merge production values (if applicable)
+    finalValues := baseValues
     if profile == "production" {
-        prodValues := fetchChartValues(chartName, "values-production.yaml")
-        finalValues = mergeValues(baseValues, prodValues)
+        prodFile := chartPath + "/values-production.yaml"
+        if fileExists(prodFile) {
+            prodValues := readFile(prodFile)
+            finalValues = mergeValues(baseValues, prodValues)  // Deep merge
+        }
     }
 
-    // 4. Apply user overrides from CRD spec
-    finalValues = applyUserOverrides(finalValues, service)
+    // 5. Apply CRD custom overrides (image, replicas, resources, env, etc.)
+    finalValues = applyUserOverrides(finalValues, app)
 
     return finalValues
 }
 ```
+
+**Key Points:**
+- Charts are **pulled from OCI**, NOT from Gitea
+- Charts are **cached locally**, not re-downloaded every reconcile
+- Only **final values.yaml** is pushed to Gitea
+- ArgoCD references **OCI chart** directly
 
 ### GitOps Directory Structure
 

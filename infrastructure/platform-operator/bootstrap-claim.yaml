@@ -9,8 +9,8 @@ spec:
   # OCI Charts Repository - GitHub Packages
   chartsRepository:
     type: oci
-    url: oci://ghcr.io/nimbusprotch/common
-    version: "2.0.0"  # Spesifik version kullan (Helm OCI "latest" desteklemiyor)
+    url: oci://ghcr.io/nimbusprotch  # Base URL, her chart ayrı package
+    version: "1.0.0"
 
   repositories:
     charts: charts

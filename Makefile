@@ -1,236 +1,109 @@
-# InfraForge Platform - Local Development Makefile
+.PHONY: help dev cluster gitea operator token bootstrap clean logs status
 
-CLUSTER_NAME ?= platform-test
-OPERATOR_IMG ?= platform-operator:latest
+CLUSTER_NAME = platform-dev
+GITEA_ADMIN_USER = gitea_admin
+GITEA_ADMIN_PASS = r8sA8CPHD9!bt6d
+OPERATOR_IMAGE = platform-operator:dev
 
-.PHONY: help
-help: ## Display this help
-	@echo "InfraForge Platform - Local Development Commands"
+help: ## Yardım göster
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
+
+dev: clean cluster gitea operator token bootstrap ## Tam development ortamı kur
 	@echo ""
-	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n\nTargets:\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@echo "✅ Development ortamı hazır!"
+	@echo "🌐 Gitea: http://localhost:30300 ($(GITEA_ADMIN_USER)/$(GITEA_ADMIN_PASS))"
+	@echo "📊 Status: make status"
+	@echo "📋 Logs: make logs"
 
-##@ Development Environment
+cluster: ## Kind cluster oluştur
+	@echo "🔨 Kind cluster oluşturuluyor..."
+	@kind create cluster --name $(CLUSTER_NAME) --config kind-config.yaml
+	@echo "✅ Cluster hazır"
 
-.PHONY: dev-up
-dev-up: cluster-up gitea-deploy argocd-deploy operator-deploy ## 🚀 Complete local setup (cluster + gitea + argocd + operator)
-	@echo ""
-	@echo "✅ Development environment ready!"
-	@echo ""
-	@echo "Access:"
-	@echo "  Gitea:  http://localhost:3000 (admin: gitea_admin / r8sA8CPHD9!bt6d)"
-	@echo "  ArgoCD: kubectl port-forward svc/argocd-server -n argocd 8081:443"
-	@echo ""
-	@echo "Next steps:"
-	@echo "  1. Create a BootstrapClaim: kubectl apply -f infrastructure/platform-operator/ecommerce-claim.yaml"
-	@echo "  2. Watch operator logs: make logs"
-	@echo "  3. Check Gitea repos: open http://localhost:3000"
+gitea: ## Gitea kur (minimal, TEK pod)
+	@echo "📦 Gitea kuruluyor..."
+	@kubectl create namespace gitea --dry-run=client -o yaml | kubectl apply -f -
+	@helm repo add gitea-charts https://dl.gitea.com/charts/ 2>/dev/null || true
+	@helm repo update gitea-charts 2>/dev/null
+	@helm upgrade --install gitea gitea-charts/gitea -n gitea \
+	  --set service.http.type=NodePort \
+	  --set service.http.nodePort=30300 \
+	  --set gitea.admin.username=$(GITEA_ADMIN_USER) \
+	  --set gitea.admin.password=$(GITEA_ADMIN_PASS) \
+	  --set gitea.admin.email=gitea@local.domain \
+	  --set persistence.enabled=false \
+	  --set postgresql-ha.enabled=false \
+	  --set postgresql.enabled=false \
+	  --set redis-cluster.enabled=false \
+	  --set redis.enabled=false \
+	  --set gitea.config.database.DB_TYPE=sqlite3 \
+	  --set gitea.config.cache.ENABLED=false \
+	  --set gitea.config.server.ROOT_URL=http://gitea-http.gitea.svc.cluster.local:3000 \
+	  --wait --timeout 5m 2>/dev/null
+	@echo "⏳ Valkey temizleniyor..."
+	@sleep 3
+	@kubectl delete statefulset -n gitea gitea-valkey-cluster 2>/dev/null || true
+	@kubectl delete service -n gitea gitea-valkey-cluster gitea-valkey-cluster-headless 2>/dev/null || true
+	@kubectl delete pvc -n gitea -l app.kubernetes.io/name=valkey 2>/dev/null || true
+	@echo "✅ Gitea hazır (TEK pod)"
 
-.PHONY: dev-down
-dev-down: cluster-down ## 🗑️  Delete local environment completely
-	@echo "✅ Development environment deleted"
+operator: ## Operator build ve deploy
+	@echo "🔨 Operator build ediliyor..."
+	@cd infrastructure/platform-operator && docker build -t $(OPERATOR_IMAGE) -f Dockerfile . -q
+	@echo "📦 Kind'a yükleniyor..."
+	@kind load docker-image $(OPERATOR_IMAGE) --name $(CLUSTER_NAME)
+	@echo "📋 CRD kuruluyor..."
+	@kubectl apply -f infrastructure/platform-operator/config/crd/bases
+	@echo "🚀 Operator deploy ediliyor..."
+	@kubectl create namespace platform-operator-system --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl apply -f infrastructure/platform-operator/config/default/rbac.yaml -n platform-operator-system
+	@cd infrastructure/platform-operator/config/manager && \
+	  kustomize edit set image controller=$(OPERATOR_IMAGE) && \
+	  kubectl apply -k . -n platform-operator-system
+	@echo "⏳ Operator bekleniyor..."
+	@sleep 10
+	@echo "✅ Operator hazır"
 
-.PHONY: dev-restart
-dev-restart: dev-down dev-up ## 🔄 Restart entire development environment
-
-##@ Cluster Management
-
-.PHONY: cluster-up
-cluster-up: ## Create Kind cluster
-	@./scripts/kind-cluster-up.sh $(CLUSTER_NAME)
-
-.PHONY: cluster-down
-cluster-down: ## Delete Kind cluster
-	@./scripts/kind-cluster-down.sh $(CLUSTER_NAME)
-
-.PHONY: cluster-info
-cluster-info: ## Show cluster information
-	@kubectl cluster-info --context kind-$(CLUSTER_NAME)
-	@echo ""
-	@kubectl get nodes
-
-##@ Component Deployment
-
-.PHONY: gitea-deploy
-gitea-deploy: ## Deploy Gitea
-	@./scripts/deploy-gitea.sh
-
-.PHONY: argocd-deploy
-argocd-deploy: ## Deploy ArgoCD
-	@./scripts/deploy-argocd.sh
-
-.PHONY: operator-deploy
-operator-deploy: ## Build and deploy platform operator
-	@./scripts/deploy-operator.sh $(CLUSTER_NAME) $(OPERATOR_IMG)
-
-.PHONY: operator-redeploy
-operator-redeploy: ## Rebuild and redeploy operator only
-	@echo "🔄 Redeploying operator..."
-	@./scripts/deploy-operator.sh $(CLUSTER_NAME) $(OPERATOR_IMG)
-
-##@ Testing
-
-.PHONY: test-bootstrap
-test-bootstrap: ## Create BootstrapClaim for testing
-	@echo "📝 Creating BootstrapClaim..."
-	@kubectl apply -f infrastructure/platform-operator/ecommerce-claim.yaml
-	@echo "✅ BootstrapClaim created"
-	@echo ""
-	@echo "Watch progress:"
-	@echo "  kubectl get bootstrapclaim -A -w"
-
-.PHONY: test-app
-test-app: ## Create ApplicationClaim for testing
-	@echo "📝 Creating ApplicationClaim..."
-	@cat <<EOF | kubectl apply -f -
-	apiVersion: platform.infraforge.dev/v1
-	kind: ApplicationClaim
-	metadata:
-	  name: ecommerce-dev
-	  namespace: default
-	spec:
-	  environment: development
-	  clusterType: dev
-	  applications:
-	    - name: api
-	      chart:
-	        name: ecommerce-api
-	        source: git
-	      image:
-	        repository: ecommerce-api
-	        tag: latest
-	      replicas: 2
-	  owner:
-	    team: ecommerce
-	    email: ecommerce@infraforge.dev
-	EOF
-	@echo "✅ ApplicationClaim created"
-
-.PHONY: test-platform
-test-platform: ## Create PlatformClaim for testing
-	@echo "📝 Creating PlatformClaim..."
-	@cat <<EOF | kubectl apply -f -
-	apiVersion: platform.infraforge.dev/v1
-	kind: PlatformClaim
-	metadata:
-	  name: ecommerce-dev-platform
-	  namespace: default
-	spec:
-	  environment: development
-	  clusterType: dev
-	  services:
-	    - name: postgresql
-	      type: database
-	      chart:
-	        name: postgresql
-	        source: platform
-	      size: small
-	  owner:
-	    team: ecommerce
-	    email: ecommerce@infraforge.dev
-	EOF
-	@echo "✅ PlatformClaim created"
-
-##@ Monitoring & Logs
-
-.PHONY: logs
-logs: ## Tail operator logs
-	@echo "📋 Tailing operator logs (Ctrl+C to exit)..."
-	@kubectl logs -n platform-operator-system -l control-plane=controller-manager -f --tail=50
-
-.PHONY: status
-status: ## Show status of all components
-	@echo "=== Cluster Status ==="
-	@kubectl get nodes
-	@echo ""
-	@echo "=== Gitea ==="
-	@kubectl get pods -n gitea
-	@echo ""
-	@echo "=== ArgoCD ==="
-	@kubectl get pods -n argocd
-	@echo ""
-	@echo "=== Platform Operator ==="
-	@kubectl get pods -n platform-operator-system
-	@echo ""
-	@echo "=== Custom Resources ==="
-	@kubectl get bootstrapclaim -A
-	@kubectl get applicationclaim -A
-	@kubectl get platformclaim -A
-
-.PHONY: watch-claims
-watch-claims: ## Watch all custom resource claims
-	@echo "👀 Watching all claims (Ctrl+C to exit)..."
-	@watch -n 2 'kubectl get bootstrapclaim,applicationclaim,platformclaim -A'
-
-##@ Port Forwarding
-
-.PHONY: gitea-port-forward
-gitea-port-forward: ## Port-forward Gitea (localhost:3000)
-	@echo "🌐 Port-forwarding Gitea to localhost:3000..."
-	@kubectl port-forward -n gitea svc/gitea-http 3000:3000
-
-.PHONY: argocd-port-forward
-argocd-port-forward: ## Port-forward ArgoCD (localhost:8081)
-	@echo "🌐 Port-forwarding ArgoCD to localhost:8081..."
-	@echo "Get admin password:"
-	@echo "  kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
-	@echo ""
-	@kubectl port-forward -n argocd svc/argocd-server 8081:443
-
-##@ Cleanup
-
-.PHONY: clean-claims
-clean-claims: ## Delete all custom resource claims
-	@echo "🗑️  Deleting all claims..."
-	@kubectl delete bootstrapclaim --all -A
-	@kubectl delete applicationclaim --all -A
-	@kubectl delete platformclaim --all -A
-	@echo "✅ All claims deleted"
-
-.PHONY: clean-operator
-clean-operator: ## Uninstall operator and CRDs
-	@echo "🗑️  Uninstalling operator..."
-	@cd infrastructure/platform-operator && make undeploy || true
-	@cd infrastructure/platform-operator && make uninstall || true
-	@echo "✅ Operator uninstalled"
-
-##@ Operator Development
-
-.PHONY: operator-build
-operator-build: ## Build operator image
-	@echo "🔨 Building operator..."
-	@docker build -f infrastructure/platform-operator/Dockerfile -t $(OPERATOR_IMG) .
-
-.PHONY: operator-load
-operator-load: operator-build ## Load operator image into Kind cluster
-	@echo "📦 Loading operator image into Kind..."
-	@kind load docker-image $(OPERATOR_IMG) --name $(CLUSTER_NAME)
-
-.PHONY: operator-run-local
-operator-run-local: ## Run operator locally (outside cluster)
-	@echo "🏃 Running operator locally..."
-	@cd infrastructure/platform-operator && make run
-
-.PHONY: operator-test
-operator-test: ## Run operator tests
-	@echo "🧪 Running operator tests..."
-	@cd infrastructure/platform-operator && make test
-
-.PHONY: operator-manifests
-operator-manifests: ## Generate operator manifests
-	@echo "📋 Generating manifests..."
-	@cd infrastructure/platform-operator && make manifests
-
-##@ Quick Actions
-
-.PHONY: quick-test
-quick-test: test-bootstrap ## Quick test: Create BootstrapClaim and watch logs
-	@echo ""
-	@echo "Waiting 5 seconds for reconciliation to start..."
+token: ## Gitea token oluştur
+	@echo "🔑 Token oluşturuluyor..."
 	@sleep 5
-	@make logs
+	@POD=$$(kubectl get pod -n gitea -l app.kubernetes.io/name=gitea -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && \
+	TOKEN=$$(kubectl exec -n gitea $$POD -- gitea admin user generate-access-token \
+	  --username $(GITEA_ADMIN_USER) \
+	  --token-name platform-operator \
+	  --scopes write:organization,write:repository,write:user \
+	  --raw 2>/dev/null) && \
+	kubectl create secret generic gitea-token -n platform-operator-system \
+	  --from-literal=token=$$TOKEN \
+	  --from-literal=username=$(GITEA_ADMIN_USER) \
+	  --from-literal=url=http://gitea-http.gitea.svc.cluster.local:3000 \
+	  --dry-run=client -o yaml | kubectl apply -f - && \
+	kubectl delete pod -n platform-operator-system -l control-plane=controller-manager 2>/dev/null || true
+	@echo "✅ Token hazır, operator yeniden başlatıldı"
 
-.PHONY: full-test
-full-test: dev-up test-bootstrap ## Full test: Setup everything and create BootstrapClaim
+bootstrap: ## Bootstrap deploy et
+	@echo "🚀 Bootstrap deploy ediliyor..."
+	@kubectl apply -f infrastructure/platform-operator/bootstrap-claim.yaml
+	@echo "⏳ Bootstrap bekleniyor..."
+	@sleep 10
+	@echo "✅ Bootstrap tamamlandı"
+
+status: ## Status göster
+	@echo "📊 === CLUSTER STATUS ==="
 	@echo ""
-	@echo "✅ Full test environment ready!"
-	@echo "Watch logs with: make logs"
+	@echo "Gitea Pods:"
+	@kubectl get pods -n gitea 2>/dev/null || echo "Yok"
+	@echo ""
+	@echo "Operator Pods:"
+	@kubectl get pods -n platform-operator-system 2>/dev/null || echo "Yok"
+	@echo ""
+	@echo "Bootstrap:"
+	@kubectl get bootstrapclaim 2>/dev/null || echo "Yok"
+
+logs: ## Operator logları göster
+	@kubectl logs -n platform-operator-system -l control-plane=controller-manager --tail=100 -f
+
+clean: ## Her şeyi sil
+	@echo "🧹 Temizleniyor..."
+	@kind delete cluster --name $(CLUSTER_NAME) 2>/dev/null || true
+	@echo "✅ Temizlendi"
