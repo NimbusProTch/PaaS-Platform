@@ -32,10 +32,8 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
-	var giteaURL string
 	var giteaUsername string
 	var giteaToken string
-	var giteaOrg string
 	var voltranRepo string
 	var gitBranch string
 	var chartsPath string
@@ -44,24 +42,18 @@ func main() {
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false, "Enable leader election")
-	flag.StringVar(&giteaURL, "gitea-url", "http://gitea.gitea.svc.cluster.local:3000", "Gitea server URL")
-	flag.StringVar(&giteaUsername, "gitea-username", "platform", "Gitea username")
+	flag.StringVar(&giteaUsername, "gitea-username", "gitea_admin", "Gitea username")
 	flag.StringVar(&giteaToken, "gitea-token", os.Getenv("GITEA_TOKEN"), "Gitea access token")
-	flag.StringVar(&giteaOrg, "gitea-org", "platform", "Gitea organization")
 	flag.StringVar(&voltranRepo, "voltran-repo", "voltran", "GitOps voltran repository name")
 	flag.StringVar(&gitBranch, "git-branch", "main", "Git branch to use")
 	flag.StringVar(&chartsPath, "charts-path", "", "Path to charts directory for bootstrap")
-	flag.StringVar(&ociBaseURL, "oci-base-url", "oci://ghcr.io/nimbusprotch", "Base URL for OCI chart registry")
+	flag.StringVar(&ociBaseURL, "oci-base-url", "oci://ghcr.io/infraforge", "Base URL for OCI chart registry")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
-	// Initialize Gitea client
-	var giteaClient *gitea.Client
-	if giteaToken != "" {
-		giteaClient = gitea.NewClient(giteaURL, giteaUsername, giteaToken)
-		setupLog.Info("Gitea client initialized", "url", giteaURL, "org", giteaOrg)
-	} else {
+	// Gitea credentials for controllers to use
+	if giteaToken == "" {
 		setupLog.Info("Gitea token not provided, GitOps features will be disabled")
 	}
 
@@ -82,40 +74,43 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup Bootstrap controller
-	if giteaClient != nil {
+	// Setup controllers with credentials from environment
+	if giteaToken != "" {
+		// Bootstrap controller - creates GiteaClient from claim
 		if err = (&controller.BootstrapReconciler{
-			Client:      mgr.GetClient(),
-			Scheme:      mgr.GetScheme(),
-			GiteaClient: giteaClient,
-			ChartsPath:  chartsPath,
+			Client:        mgr.GetClient(),
+			Scheme:        mgr.GetScheme(),
+			GiteaUsername: giteaUsername,
+			GiteaToken:    giteaToken,
+			ChartsPath:    chartsPath,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "Bootstrap")
 			os.Exit(1)
 		}
 
-		// Setup ApplicationClaim GitOps controller
+		// ApplicationClaim GitOps controller - uses claim values
 		if err = (&controller.ApplicationClaimGitOpsReconciler{
-			Client:       mgr.GetClient(),
-			Scheme:       mgr.GetScheme(),
-			GiteaClient:  giteaClient,
-			Organization: giteaOrg,
-			VoltranRepo:  voltranRepo,
-			Branch:       gitBranch,
-			OCIBaseURL:   ociBaseURL,
+			Client:        mgr.GetClient(),
+			Scheme:        mgr.GetScheme(),
+			GiteaUsername: giteaUsername,
+			GiteaToken:    giteaToken,
+			VoltranRepo:   voltranRepo,
+			Branch:        gitBranch,
+			OCIBaseURL:    ociBaseURL,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ApplicationClaimGitOps")
 			os.Exit(1)
 		}
 
-		// Setup PlatformApplicationClaim controller
+		// PlatformApplicationClaim controller - uses claim values
 		if err = (&controller.PlatformApplicationClaimReconciler{
-			Client:       mgr.GetClient(),
-			Scheme:       mgr.GetScheme(),
-			GiteaClient:  giteaClient,
-			Organization: giteaOrg,
-			VoltranRepo:  voltranRepo,
-			Branch:       gitBranch,
+			Client:        mgr.GetClient(),
+			Scheme:        mgr.GetScheme(),
+			GiteaUsername: giteaUsername,
+			GiteaToken:    giteaToken,
+			VoltranRepo:   voltranRepo,
+			Branch:        gitBranch,
+			OCIBaseURL:    ociBaseURL,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "PlatformApplicationClaim")
 			os.Exit(1)

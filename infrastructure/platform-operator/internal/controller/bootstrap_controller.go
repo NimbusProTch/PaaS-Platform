@@ -22,8 +22,9 @@ type BootstrapReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 
-	// GiteaClient for Git operations
-	GiteaClient *gitea.Client
+	// Gitea credentials - client created dynamically from claim
+	GiteaUsername string
+	GiteaToken    string
 
 	// ChartsPath embedded charts directory path (contains both microservice and platform templates)
 	ChartsPath string
@@ -64,6 +65,14 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
+	// Create GiteaClient dynamically from claim
+	giteaClient, err := gitea.NewClient(claim.Spec.GiteaURL, r.GiteaUsername, r.GiteaToken)
+	if err != nil {
+		logger.Error(err, "failed to create Gitea client")
+		r.updateStatusFailed(ctx, claim, "Failed to create Gitea client: "+err.Error())
+		return ctrl.Result{}, err
+	}
+
 	// Update status to Bootstrapping
 	claim.Status.Phase = "Bootstrapping"
 	claim.Status.LastUpdated = metav1.Now()
@@ -73,7 +82,7 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Step 1: Create organization
 	logger.Info("Creating Gitea organization", "org", claim.Spec.Organization)
-	if err := r.GiteaClient.CreateOrganization(ctx, claim.Spec.Organization, "Platform organization"); err != nil {
+	if err := giteaClient.CreateOrganization(ctx, claim.Spec.Organization, "Platform organization"); err != nil {
 		logger.Error(err, "failed to create organization")
 		r.updateStatusFailed(ctx, claim, "Failed to create organization: "+err.Error())
 		return ctrl.Result{}, err
@@ -99,7 +108,7 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	repos := []string{chartsRepo, voltranRepo}
 	for _, repoName := range repos {
-		_, err := r.GiteaClient.CreateRepository(ctx, claim.Spec.Organization, gitea.CreateRepoOptions{
+		_, err := giteaClient.CreateRepository(ctx, claim.Spec.Organization, gitea.CreateRepoOptions{
 			Name:          repoName,
 			Description:   fmt.Sprintf("Platform %s repository", repoName),
 			Private:       false,
@@ -112,7 +121,7 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, err
 		}
 		// Use internal cluster URL instead of API's external clone_url
-		cloneURL := r.GiteaClient.ConstructCloneURL(claim.Spec.Organization, repoName)
+		cloneURL := giteaClient.ConstructCloneURL(claim.Spec.Organization, repoName)
 		repoURLs[repoName] = cloneURL
 		logger.Info("Repository created", "name", repoName, "url", cloneURL)
 	}
@@ -154,7 +163,7 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			chartsPath := claim.Spec.ChartsRepository.Path
 
 			logger.Info("Cloning charts from Git repository", "branch", chartsBranch, "path", chartsPath)
-			chartFiles, err = r.GiteaClient.CloneAndExtractFiles(ctx, claim.Spec.ChartsRepository.URL, chartsBranch, chartsPath)
+			chartFiles, err = giteaClient.CloneAndExtractFiles(ctx, claim.Spec.ChartsRepository.URL, chartsBranch, chartsPath)
 			if err != nil {
 				logger.Error(err, "failed to clone charts from Git repository")
 				r.updateStatusFailed(ctx, claim, "Failed to clone charts: "+err.Error())
@@ -172,7 +181,7 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	if err := r.GiteaClient.PushFiles(ctx, repoURLs[chartsRepo], branch, chartFiles,
+	if err := giteaClient.PushFiles(ctx, repoURLs[chartsRepo], branch, chartFiles,
 		"Initial charts upload by operator", "Platform Operator", "operator@platform.local"); err != nil {
 		logger.Error(err, "failed to push charts")
 		r.updateStatusFailed(ctx, claim, "Failed to push charts: "+err.Error())
@@ -198,9 +207,9 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	voltranFiles := r.generateVoltranStructure(claim.Spec.Organization, chartsRepo,
-		clusterType, environments, branch)
+		clusterType, environments, branch, voltranRepo, claim.Spec.GiteaURL)
 
-	if err := r.GiteaClient.PushFiles(ctx, repoURLs[voltranRepo], branch, voltranFiles,
+	if err := giteaClient.PushFiles(ctx, repoURLs[voltranRepo], branch, voltranFiles,
 		"Initial GitOps structure by operator", "Platform Operator", "operator@platform.local"); err != nil {
 		logger.Error(err, "failed to push voltran structure")
 		r.updateStatusFailed(ctx, claim, "Failed to push GitOps structure: "+err.Error())
@@ -269,7 +278,7 @@ func (r *BootstrapReconciler) loadChartsFromEmbedded(path string) (map[string]st
 }
 
 // generateVoltranStructure generates the GitOps folder structure
-func (r *BootstrapReconciler) generateVoltranStructure(org, chartsRepo, clusterType string, environments []string, branch string) map[string]string {
+func (r *BootstrapReconciler) generateVoltranStructure(org, chartsRepo, clusterType string, environments []string, branch, voltranRepo, giteaURL string) map[string]string {
 	files := make(map[string]string)
 
 	// README
@@ -288,10 +297,10 @@ This repository contains the GitOps configuration managed by the platform operat
 
 	// Root applications for the cluster type (separate for apps and platform)
 	appsRootAppPath := fmt.Sprintf("root-apps/%s/%s-apps-rootapp.yaml", clusterType, clusterType)
-	files[appsRootAppPath] = r.generateAppsRootApp(clusterType, branch)
+	files[appsRootAppPath] = r.generateAppsRootApp(org, voltranRepo, clusterType, branch, giteaURL)
 
 	platformRootAppPath := fmt.Sprintf("root-apps/%s/%s-platform-rootapp.yaml", clusterType, clusterType)
-	files[platformRootAppPath] = r.generatePlatformRootApp(clusterType, branch)
+	files[platformRootAppPath] = r.generatePlatformRootApp(org, voltranRepo, clusterType, branch, giteaURL)
 
 	// Create directory structure for appsets
 	files[fmt.Sprintf("appsets/%s/apps/.gitkeep", clusterType)] = ""
@@ -307,7 +316,7 @@ This repository contains the GitOps configuration managed by the platform operat
 }
 
 // generateAppsRootApp generates the root ArgoCD application for business applications
-func (r *BootstrapReconciler) generateAppsRootApp(clusterType, branch string) string {
+func (r *BootstrapReconciler) generateAppsRootApp(org, voltranRepo, clusterType, branch, giteaURL string) string {
 	return fmt.Sprintf(`apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -318,7 +327,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: http://gitea.gitea.svc.cluster.local:3000/platform/voltran
+    repoURL: %s/%s/%s
     path: appsets/%s/apps
     targetRevision: %s
   destination:
@@ -337,11 +346,11 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
-`, clusterType, clusterType, branch)
+`, clusterType, giteaURL, org, voltranRepo, clusterType, branch)
 }
 
 // generatePlatformRootApp generates the root ArgoCD application for platform services
-func (r *BootstrapReconciler) generatePlatformRootApp(clusterType, branch string) string {
+func (r *BootstrapReconciler) generatePlatformRootApp(org, voltranRepo, clusterType, branch, giteaURL string) string {
 	return fmt.Sprintf(`apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -352,7 +361,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: http://gitea.gitea.svc.cluster.local:3000/platform/voltran
+    repoURL: %s/%s/%s
     path: appsets/%s/platform
     targetRevision: %s
   destination:
@@ -371,7 +380,7 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
-`, clusterType, clusterType, branch)
+`, clusterType, giteaURL, org, voltranRepo, clusterType, branch)
 }
 
 // updateStatusFailed updates the status to Failed

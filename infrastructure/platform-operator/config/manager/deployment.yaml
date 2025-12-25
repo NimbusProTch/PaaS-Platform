@@ -19,11 +19,12 @@ spec:
       containers:
       - name: manager
         image: platform-operator:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         args:
         - --leader-elect
         - --gitea-url=http://gitea-http.gitea.svc.cluster.local:3000
         - --gitea-username=gitea_admin
+        - --gitea-org=nimbusprotch
         - --charts-path=/charts
         env:
         - name: GITEA_TOKEN

@@ -9,7 +9,7 @@ spec:
   # OCI Charts Repository - GitHub Packages
   chartsRepository:
     type: oci
-    url: oci://ghcr.io/nimbusprotch  # Base URL, her chart ayrı package
+    url: oci://ghcr.io/infraforge  # Base URL, her chart ayrı package
     version: "1.0.0"
 
   repositories:

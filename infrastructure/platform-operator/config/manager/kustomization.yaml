@@ -5,5 +5,5 @@ resources:
 - deployment.yaml
 images:
 - name: controller
-  newName: ghcr.io/nimbusprotch/platform-operator
-  newTag: latest
+  newName: platform-operator
+  newTag: dev

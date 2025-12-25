@@ -9,6 +9,12 @@ import (
 
 // ApplicationClaimSpec defines the desired state of ApplicationClaim
 type ApplicationClaimSpec struct {
+	// GiteaURL Gitea server URL (e.g., http://gitea-http.gitea.svc.cluster.local:3000)
+	GiteaURL string `json:"giteaURL"`
+
+	// Organization Gitea organization name
+	Organization string `json:"organization"`
+
 	// Environment deployment environment (dev, qa, sandbox, staging, prod)
 	Environment string `json:"environment"`
 

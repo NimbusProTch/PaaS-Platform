@@ -21,11 +21,12 @@ type PlatformApplicationClaimReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 
-	// GiteaClient for Git operations
-	GiteaClient  *gitea.Client
-	Organization string
-	VoltranRepo  string
-	Branch       string
+	// Gitea credentials - client created dynamically from claim
+	GiteaUsername string
+	GiteaToken    string
+	VoltranRepo   string
+	Branch        string
+	OCIBaseURL    string // Base URL for OCI registry (e.g., "oci://ghcr.io/nimbusprotch")
 }
 
 //+kubebuilder:rbac:groups=platform.infraforge.io,resources=platformapplicationclaims,verbs=get;list;watch;create;update;patch;delete
@@ -57,6 +58,17 @@ func (r *PlatformApplicationClaimReconciler) Reconcile(ctx context.Context, req 
 		return ctrl.Result{}, nil
 	}
 
+	// Create GiteaClient dynamically from claim
+	giteaClient, err := gitea.NewClient(claim.Spec.GiteaURL, r.GiteaUsername, r.GiteaToken)
+	if err != nil {
+		logger.Error(err, "failed to create Gitea client")
+		claim.Status.Phase = "Failed"
+		claim.Status.Message = fmt.Sprintf("Failed to create Gitea client: %v", err)
+		claim.Status.LastUpdated = metav1.Now()
+		r.Status().Update(ctx, claim)
+		return ctrl.Result{}, err
+	}
+
 	// Update status to Provisioning
 	claim.Status.Phase = "Provisioning"
 	claim.Status.LastUpdated = metav1.Now()
@@ -77,15 +89,15 @@ func (r *PlatformApplicationClaimReconciler) Reconcile(ctx context.Context, req 
 	// Generate values.yaml for each service
 	for _, service := range claim.Spec.Services {
 		valuesPath := fmt.Sprintf("environments/%s/%s/platform/%s/values.yaml", claim.Spec.ClusterType, claim.Spec.Environment, service.Name)
-		valuesContent := r.generatePlatformValuesYAML(claim, service)
+		valuesContent := r.generatePlatformValuesYAML(claim, service, giteaClient)
 		files[valuesPath] = valuesContent
 	}
 
 	// Push to Gitea - use internal clone URL
-	voltranURL := r.GiteaClient.ConstructCloneURL(r.Organization, r.VoltranRepo)
+	voltranURL := giteaClient.ConstructCloneURL(claim.Spec.Organization, r.VoltranRepo)
 	commitMsg := fmt.Sprintf("Update %s environment platform services by operator", claim.Spec.Environment)
 
-	if err := r.GiteaClient.PushFiles(ctx, voltranURL, r.Branch, files, commitMsg,
+	if err := giteaClient.PushFiles(ctx, voltranURL, r.Branch, files, commitMsg,
 		"Platform Operator", "operator@platform.local"); err != nil {
 		logger.Error(err, "failed to push to Git")
 		claim.Status.Phase = "Failed"
@@ -142,7 +154,7 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 				"spec": map[string]interface{}{
 					"project": "default",
 					"source": map[string]interface{}{
-						"repoURL":        fmt.Sprintf("http://gitea.gitea.svc.cluster.local:3000/%s/charts", r.Organization),
+						"repoURL":        fmt.Sprintf("%s/%s/%s", claim.Spec.GiteaURL, claim.Spec.Organization, "charts"),
 						"path":           "{{chart}}",
 						"targetRevision": r.Branch,
 						"helm": map[string]interface{}{
@@ -195,7 +207,7 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformElements(claim *pla
 // 1. Determines chart name from service type
 // 2. Determines production mode from environment
 // 3. Pulls and merges: base values + production values (if applicable) + custom values from CRD
-func (r *PlatformApplicationClaimReconciler) generatePlatformValuesYAML(claim *platformv1.PlatformApplicationClaim, service platformv1.PlatformServiceSpec) string {
+func (r *PlatformApplicationClaimReconciler) generatePlatformValuesYAML(claim *platformv1.PlatformApplicationClaim, service platformv1.PlatformServiceSpec, giteaClient *gitea.Client) string {
 	logger := log.Log.WithName("generatePlatformValuesYAML")
 
 	// Determine chart name
@@ -224,8 +236,8 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformValuesYAML(claim *p
 
 	// Pull and merge chart values from OCI registry
 	// This is where the magic happens: base + production + custom
-	chartURL := fmt.Sprintf("oci://ghcr.io/%s/%s", r.Organization, chartName)
-	mergedValues, err := r.GiteaClient.PullAndMergeOCIChartValues(
+	chartURL := fmt.Sprintf("%s/%s", r.OCIBaseURL, chartName)
+	mergedValues, err := giteaClient.PullAndMergeOCIChartValues(
 		context.Background(),
 		chartURL,
 		chartVersion,

@@ -23,11 +23,11 @@ type ApplicationClaimGitOpsReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 
-	// GiteaClient for Git operations
-	GiteaClient  *gitea.Client
-	Organization string
-	VoltranRepo  string
-	Branch       string
+	// Gitea credentials - client created dynamically from claim
+	GiteaUsername string
+	GiteaToken    string
+	VoltranRepo   string
+	Branch        string
 
 	// OCIBaseURL base URL for OCI charts (e.g., "oci://ghcr.io/nimbusprotch")
 	OCIBaseURL string
@@ -62,6 +62,16 @@ func (r *ApplicationClaimGitOpsReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, nil
 	}
 
+	// Create GiteaClient dynamically from claim
+	giteaClient, err := gitea.NewClient(claim.Spec.GiteaURL, r.GiteaUsername, r.GiteaToken)
+	if err != nil {
+		logger.Error(err, "failed to create Gitea client")
+		claim.Status.Phase = "Failed"
+		claim.Status.LastUpdated = metav1.Now()
+		r.Status().Update(ctx, claim)
+		return ctrl.Result{}, err
+	}
+
 	// Update status to Provisioning
 	claim.Status.Phase = "Provisioning"
 	claim.Status.LastUpdated = metav1.Now()
@@ -93,10 +103,10 @@ func (r *ApplicationClaimGitOpsReconciler) Reconcile(ctx context.Context, req ct
 	}
 
 	// Push to Gitea - use internal clone URL
-	voltranURL := r.GiteaClient.ConstructCloneURL(r.Organization, r.VoltranRepo)
+	voltranURL := giteaClient.ConstructCloneURL(claim.Spec.Organization, r.VoltranRepo)
 	commitMsg := fmt.Sprintf("Update %s environment applications by operator", claim.Spec.Environment)
 
-	if err := r.GiteaClient.PushFiles(ctx, voltranURL, r.Branch, files, commitMsg,
+	if err := giteaClient.PushFiles(ctx, voltranURL, r.Branch, files, commitMsg,
 		"Platform Operator", "operator@platform.local"); err != nil {
 		logger.Error(err, "failed to push to Git")
 		claim.Status.Phase = "Failed"
@@ -135,7 +145,7 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 			"generators": []map[string]interface{}{
 				{
 					"git": map[string]interface{}{
-						"repoURL":  fmt.Sprintf("http://gitea.gitea.svc.cluster.local:3000/%s/%s", r.Organization, r.VoltranRepo),
+						"repoURL":  fmt.Sprintf("%s/%s/%s", claim.Spec.GiteaURL, claim.Spec.Organization, r.VoltranRepo),
 						"revision": r.Branch,
 						"directories": []map[string]interface{}{
 							{
@@ -174,7 +184,7 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 						},
 						{
 							// Values repository source
-							"repoURL":        fmt.Sprintf("http://gitea-http.gitea.svc.cluster.local:3000/%s/%s", r.Organization, r.VoltranRepo),
+							"repoURL":        fmt.Sprintf("%s/%s/%s", claim.Spec.GiteaURL, claim.Spec.Organization, r.VoltranRepo),
 							"targetRevision": r.Branch,
 							"ref":            "values",
 						},

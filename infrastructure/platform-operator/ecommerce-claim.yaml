@@ -4,6 +4,8 @@ metadata:
   name: ecommerce-platform
   namespace: default
 spec:
+  giteaURL: http://gitea-http.gitea.svc.cluster.local:3000
+  organization: infraforge
   owner:
     team: ecommerce-team
     email: ecommerce@example.com

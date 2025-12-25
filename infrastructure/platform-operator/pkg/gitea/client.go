@@ -409,6 +409,15 @@ func (c *Client) CloneAndExtractFiles(ctx context.Context, repoURL, branch, subP
 // 3. Merges custom values from customValues parameter
 // Returns the final merged values as YAML string
 func (c *Client) PullAndMergeOCIChartValues(ctx context.Context, chartURL, version string, production bool, customValues map[string]interface{}) (string, error) {
+	// Login to GitHub Container Registry if token is available
+	githubToken := os.Getenv("GITHUB_TOKEN")
+	if githubToken != "" {
+		loginCmd := exec.CommandContext(ctx, "helm", "registry", "login", "ghcr.io", "--username", "token", "--password", githubToken)
+		if err := loginCmd.Run(); err != nil {
+			fmt.Printf("Warning: Failed to login to GHCR: %v\n", err)
+		}
+	}
+
 	// Pull and extract chart
 	tmpDir, err := os.MkdirTemp("", "oci-values-*")
 	if err != nil {
