@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -14,6 +15,7 @@ import (
 
 	platformv1 "github.com/infraforge/platform-operator/api/v1"
 	"github.com/infraforge/platform-operator/pkg/gitea"
+	"github.com/infraforge/platform-operator/pkg/helm"
 )
 
 // ApplicationClaimGitOpsReconciler reconciles ApplicationClaim with GitOps
@@ -26,6 +28,9 @@ type ApplicationClaimGitOpsReconciler struct {
 	Organization string
 	VoltranRepo  string
 	Branch       string
+
+	// OCIBaseURL base URL for OCI charts (e.g., "oci://ghcr.io/nimbusprotch")
+	OCIBaseURL string
 }
 
 //+kubebuilder:rbac:groups=platform.infraforge.io,resources=applicationclaims,verbs=get;list;watch;create;update;patch;delete
@@ -155,14 +160,23 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 				},
 				"spec": map[string]interface{}{
 					"project": "default",
-					"source": map[string]interface{}{
-						"repoURL":        fmt.Sprintf("http://gitea.gitea.svc.cluster.local:3000/%s/charts", r.Organization),
-						"path":           "{{config.chart}}",
-						"targetRevision": r.Branch,
-						"helm": map[string]interface{}{
-							"valueFiles": []string{
-								fmt.Sprintf("../../%s/{{path}}/values.yaml", r.VoltranRepo),
+					"sources": []map[string]interface{}{
+						{
+							// OCI chart source
+							"repoURL":        fmt.Sprintf("%s/{{config.chart}}", r.OCIBaseURL),
+							"chart":          "{{config.chart}}",
+							"targetRevision": "{{config.version}}",
+							"helm": map[string]interface{}{
+								"valueFiles": []string{
+									"$values/environments/" + claim.Spec.ClusterType + "/" + claim.Spec.Environment + "/applications/{{path.basename}}/values.yaml",
+								},
 							},
+						},
+						{
+							// Values repository source
+							"repoURL":        fmt.Sprintf("http://gitea-http.gitea.svc.cluster.local:3000/%s/%s", r.Organization, r.VoltranRepo),
+							"targetRevision": r.Branch,
+							"ref":            "values",
 						},
 					},
 					"destination": map[string]interface{}{
@@ -200,66 +214,179 @@ func (r *ApplicationClaimGitOpsReconciler) generateConfigYAML(app platformv1.App
 	return string(yamlBytes)
 }
 
-// generateValuesYAML generates Helm values.yaml for an application
+// generateValuesYAML generates Helm values.yaml for an application using smart merging
+// 1. Pull chart from OCI registry
+// 2. Read base values.yaml
+// 3. If production environment, merge values-production.yaml
+// 4. Apply CRD custom overrides
 func (r *ApplicationClaimGitOpsReconciler) generateValuesYAML(claim *platformv1.ApplicationClaim, app platformv1.ApplicationSpec) string {
-	values := map[string]interface{}{
-		"image": map[string]interface{}{
+	logger := ctrl.Log.WithName("generateValues")
+
+	// Initialize Helm client
+	helmClient := helm.NewClient()
+
+	// Determine chart name and version
+	chartName := app.Chart.Name
+	if chartName == "" {
+		chartName = "microservice" // default chart
+	}
+	chartVersion := app.Chart.Version
+	if chartVersion == "" {
+		chartVersion = "1.0.0" // default version
+	}
+
+	// Build OCI chart URL
+	chartURL := fmt.Sprintf("%s/%s", r.OCIBaseURL, chartName)
+
+	// Step 1: Pull chart from OCI registry
+	chartPath, err := helmClient.PullOCIChart(context.Background(), chartURL, chartVersion)
+	if err != nil {
+		logger.Error(err, "failed to pull OCI chart, using CRD values only", "chart", chartURL, "version", chartVersion)
+		return r.generateValuesFromCRD(claim, app)
+	}
+
+	// Step 2: Read base values.yaml
+	baseValuesPath := filepath.Join(chartPath, "values.yaml")
+	baseValues, err := helmClient.ReadValuesFile(baseValuesPath)
+	if err != nil {
+		logger.Error(err, "failed to read base values.yaml, using CRD values only", "path", baseValuesPath)
+		return r.generateValuesFromCRD(claim, app)
+	}
+
+	// Step 3: Determine if production environment
+	isProd := claim.Spec.Environment == "prod" || claim.Spec.ClusterType == "prod"
+
+	finalValues := baseValues
+
+	// Step 4: Merge production values if applicable
+	if isProd {
+		prodValuesPath := filepath.Join(chartPath, "values-production.yaml")
+		prodValues, err := helmClient.ReadValuesFile(prodValuesPath)
+		if err == nil {
+			logger.Info("Merging production values", "chart", chartName)
+			finalValues = helmClient.MergeValues(finalValues, prodValues)
+		} else {
+			logger.Info("No production values found, using base values only", "path", prodValuesPath)
+		}
+	}
+
+	// Step 5: Apply CRD custom overrides
+	crdOverrides := r.buildCRDOverrides(app)
+	finalValues = helmClient.MergeValues(finalValues, crdOverrides)
+
+	// Marshal to YAML
+	data, _ := yaml.Marshal(finalValues)
+	return string(data)
+}
+
+// generateValuesFromCRD generates values.yaml from CRD spec only (fallback)
+func (r *ApplicationClaimGitOpsReconciler) generateValuesFromCRD(claim *platformv1.ApplicationClaim, app platformv1.ApplicationSpec) string {
+	values := r.buildCRDOverrides(app)
+	data, _ := yaml.Marshal(values)
+	return string(data)
+}
+
+// buildCRDOverrides builds override values from CRD spec
+func (r *ApplicationClaimGitOpsReconciler) buildCRDOverrides(app platformv1.ApplicationSpec) map[string]interface{} {
+	overrides := make(map[string]interface{})
+
+	// Image configuration
+	if app.Image.Repository != "" {
+		overrides["image"] = map[string]interface{}{
 			"repository": app.Image.Repository,
 			"tag":        app.Image.Tag,
-		},
-		"replicaCount": app.Replicas,
+		}
+		if app.Image.PullPolicy != "" {
+			overrides["image"].(map[string]interface{})["pullPolicy"] = app.Image.PullPolicy
+		}
 	}
 
-	if app.Replicas == 0 {
-		values["replicaCount"] = 1
+	// Replica count
+	if app.Replicas > 0 {
+		overrides["replicaCount"] = app.Replicas
 	}
 
-	// Add resources if specified
-	if app.Resources.Requests.CPU != "" || app.Resources.Requests.Memory != "" {
+	// Resources
+	if app.Resources.Requests.CPU != "" || app.Resources.Requests.Memory != "" ||
+		app.Resources.Limits.CPU != "" || app.Resources.Limits.Memory != "" {
 		resources := map[string]interface{}{}
 		if app.Resources.Requests.CPU != "" || app.Resources.Requests.Memory != "" {
-			resources["requests"] = map[string]interface{}{
-				"cpu":    app.Resources.Requests.CPU,
-				"memory": app.Resources.Requests.Memory,
+			resources["requests"] = map[string]interface{}{}
+			if app.Resources.Requests.CPU != "" {
+				resources["requests"].(map[string]interface{})["cpu"] = app.Resources.Requests.CPU
+			}
+			if app.Resources.Requests.Memory != "" {
+				resources["requests"].(map[string]interface{})["memory"] = app.Resources.Requests.Memory
 			}
 		}
 		if app.Resources.Limits.CPU != "" || app.Resources.Limits.Memory != "" {
-			resources["limits"] = map[string]interface{}{
-				"cpu":    app.Resources.Limits.CPU,
-				"memory": app.Resources.Limits.Memory,
+			resources["limits"] = map[string]interface{}{}
+			if app.Resources.Limits.CPU != "" {
+				resources["limits"].(map[string]interface{})["cpu"] = app.Resources.Limits.CPU
+			}
+			if app.Resources.Limits.Memory != "" {
+				resources["limits"].(map[string]interface{})["memory"] = app.Resources.Limits.Memory
 			}
 		}
-		values["resources"] = resources
+		overrides["resources"] = resources
 	}
 
-	// Add ingress if specified
+	// Ingress
 	if app.Ingress != nil && app.Ingress.Enabled {
-		values["ingress"] = map[string]interface{}{
+		ingress := map[string]interface{}{
 			"enabled": true,
-			"host":    app.Ingress.Host,
-			"path":    app.Ingress.Path,
-			"tls":     app.Ingress.TLS,
+		}
+		if app.Ingress.Host != "" {
+			ingress["host"] = app.Ingress.Host
+		}
+		if app.Ingress.Path != "" {
+			ingress["path"] = app.Ingress.Path
+		}
+		if app.Ingress.TLS {
+			ingress["tls"] = true
 		}
 		if len(app.Ingress.Annotations) > 0 {
-			values["ingress"].(map[string]interface{})["annotations"] = app.Ingress.Annotations
+			ingress["annotations"] = app.Ingress.Annotations
 		}
+		overrides["ingress"] = ingress
 	}
 
-	// Add environment variables
+	// Environment variables
 	if len(app.Env) > 0 {
 		envVars := []map[string]interface{}{}
 		for _, env := range app.Env {
 			envVar := map[string]interface{}{
-				"name":  env.Name,
-				"value": env.Value,
+				"name": env.Name,
+			}
+			if env.Value != "" {
+				envVar["value"] = env.Value
 			}
 			envVars = append(envVars, envVar)
 		}
-		values["env"] = envVars
+		overrides["env"] = envVars
 	}
 
-	data, _ := yaml.Marshal(values)
-	return string(data)
+	// Autoscaling
+	if app.Autoscaling != nil && app.Autoscaling.Enabled {
+		autoscaling := map[string]interface{}{
+			"enabled": true,
+		}
+		if app.Autoscaling.MinReplicas > 0 {
+			autoscaling["minReplicas"] = app.Autoscaling.MinReplicas
+		}
+		if app.Autoscaling.MaxReplicas > 0 {
+			autoscaling["maxReplicas"] = app.Autoscaling.MaxReplicas
+		}
+		if app.Autoscaling.TargetCPUUtilizationPercentage > 0 {
+			autoscaling["targetCPUUtilizationPercentage"] = app.Autoscaling.TargetCPUUtilizationPercentage
+		}
+		if app.Autoscaling.TargetMemoryUtilizationPercentage > 0 {
+			autoscaling["targetMemoryUtilizationPercentage"] = app.Autoscaling.TargetMemoryUtilizationPercentage
+		}
+		overrides["autoscaling"] = autoscaling
+	}
+
+	return overrides
 }
 
 // SetupWithManager sets up the controller with the Manager
