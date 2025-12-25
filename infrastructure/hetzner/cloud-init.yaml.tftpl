@@ -1,0 +1,457 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  # Base tools
+  - git
+  - curl
+  - wget
+  - vim
+  - nano
+  - htop
+  - tmux
+  - jq
+  - yq
+  - unzip
+  - tree
+  - ncdu
+  - bat
+  - ripgrep
+  - fd-find
+
+  # Network tools
+  - net-tools
+  - dnsutils
+  - iputils-ping
+  - traceroute
+  - tcpdump
+  - nmap
+
+  # Build tools
+  - build-essential
+  - gcc
+  - make
+
+  # Python
+  - python3
+  - python3-pip
+  - python3-venv
+
+  # SSL/TLS
+  - ca-certificates
+  - gnupg
+  - lsb-release
+  - apt-transport-https
+%{ if enable_vagrant }
+
+  # Virtualization (for Vagrant/Libvirt)
+  - qemu-kvm
+  - libvirt-daemon-system
+  - libvirt-clients
+  - bridge-utils
+  - virtinst
+  - cpu-checker
+%{ endif }
+
+write_files:
+  # SSH config for GitHub
+  - path: /root/.ssh/config
+    content: |
+      Host github.com
+        HostName github.com
+        User git
+        IdentityFile ~/.ssh/id_rsa
+        StrictHostKeyChecking no
+    permissions: '0600'
+
+  # Bash aliases
+  - path: /root/.bash_aliases
+    content: |
+%{ if enable_kind }
+      # Kubernetes
+      alias k='kubectl'
+      alias kgp='kubectl get pods'
+      alias kgs='kubectl get svc'
+      alias kgn='kubectl get nodes'
+      alias kga='kubectl get all'
+      alias kgaa='kubectl get all -A'
+      alias kdp='kubectl describe pod'
+      alias kds='kubectl describe svc'
+      alias kl='kubectl logs'
+      alias klf='kubectl logs -f'
+      alias kex='kubectl exec -it'
+      alias kctx='kubectl config use-context'
+      alias kns='kubectl config set-context --current --namespace'
+
+      # Kind
+      alias kind-reset='kind delete cluster --name infraforge-dev && kind create cluster --name infraforge-dev --config /root/kind-config.yaml'
+%{ endif }
+
+      # Docker
+      alias d='docker'
+      alias dc='docker compose'
+      alias dps='docker ps'
+      alias dpsa='docker ps -a'
+      alias di='docker images'
+      alias dex='docker exec -it'
+      alias dl='docker logs'
+      alias dlf='docker logs -f'
+      alias dprune='docker system prune -af'
+%{ if enable_vagrant }
+
+      # Vagrant
+      alias v='vagrant'
+      alias vup='vagrant up'
+      alias vhalt='vagrant halt'
+      alias vdestroy='vagrant destroy -f'
+      alias vssh='vagrant ssh'
+      alias vst='vagrant status'
+%{ endif }
+
+      # Git
+      alias gs='git status'
+      alias gp='git pull'
+      alias gpo='git push origin'
+      alias gc='git commit -m'
+      alias ga='git add'
+      alias gd='git diff'
+      alias gl='git log --oneline -10'
+
+      # Tofu
+      alias tf='tofu'
+      alias tfi='tofu init'
+      alias tfp='tofu plan'
+      alias tfa='tofu apply -auto-approve'
+      alias tfd='tofu destroy -auto-approve'
+%{ if enable_ansible }
+
+      # Ansible
+      alias ap='ansible-playbook'
+      alias ai='ansible-inventory'
+%{ endif }
+
+      # Navigation
+      alias ws='cd /root/workspace/PaaS-Platform'
+      alias infra='cd /root/workspace/PaaS-Platform/infrastructure'
+
+      # Misc
+      alias ll='ls -alh'
+      alias ports='netstat -tulanp'
+      alias myip='curl -s ifconfig.me'
+    permissions: '0644'
+
+  # Tmux config
+  - path: /root/.tmux.conf
+    content: |
+      set -g mouse on
+      set -g history-limit 50000
+      set -g base-index 1
+      setw -g pane-base-index 1
+      set -g renumber-windows on
+      set -g status-bg colour235
+      set -g status-fg white
+      set -g status-left '[#S] '
+      set -g status-right '%H:%M %d-%b'
+    permissions: '0644'
+%{ if enable_kind }
+
+  # Kind cluster config
+  - path: /root/kind-config.yaml
+    content: |
+      kind: Cluster
+      apiVersion: kind.x-k8s.io/v1alpha4
+      name: infraforge-dev
+      networking:
+        apiServerAddress: "0.0.0.0"
+        apiServerPort: 6443
+      nodes:
+        - role: control-plane
+          kubeadmConfigPatches:
+            - |
+              kind: InitConfiguration
+              nodeRegistration:
+                kubeletExtraArgs:
+                  node-labels: "ingress-ready=true"
+          extraPortMappings:
+            - containerPort: 80
+              hostPort: 80
+              protocol: TCP
+            - containerPort: 443
+              hostPort: 443
+              protocol: TCP
+            - containerPort: 30000
+              hostPort: 30000
+              protocol: TCP
+            - containerPort: 30001
+              hostPort: 30001
+              protocol: TCP
+            - containerPort: 30002
+              hostPort: 30002
+              protocol: TCP
+        - role: worker
+        - role: worker
+    permissions: '0644'
+%{ endif }
+
+  # Setup complete marker script
+  - path: /root/setup-complete.sh
+    content: |
+      #!/bin/bash
+      echo "=========================================="
+      echo "  InfraForge Dev Server - Setup Complete"
+      echo "=========================================="
+      echo ""
+      echo "Workspace: /root/workspace/PaaS-Platform"
+      echo "Docker: $(docker --version 2>/dev/null || echo 'not installed')"
+%{ if enable_kind }
+      echo "Kubectl: $(kubectl version --client -o yaml 2>/dev/null | grep gitVersion | head -1 || echo 'not installed')"
+      echo "Helm: $(helm version --short 2>/dev/null || echo 'not installed')"
+      echo "Kind: $(kind version 2>/dev/null || echo 'not installed')"
+%{ endif }
+%{ if enable_vagrant }
+      echo "Vagrant: $(vagrant --version 2>/dev/null || echo 'not installed')"
+%{ endif }
+%{ if enable_ansible }
+      echo "Ansible: $(ansible --version 2>/dev/null | head -1 || echo 'not installed')"
+%{ endif }
+      echo "Tofu: $(tofu version 2>/dev/null | head -1 || echo 'not installed')"
+%{ if enable_go }
+      echo "Go: $(go version 2>/dev/null || echo 'not installed')"
+%{ endif }
+%{ if enable_nodejs }
+      echo "Node: $(node --version 2>/dev/null || echo 'not installed')"
+%{ endif }
+      echo ""
+      echo "Quick commands:"
+      echo "  ws          - Go to workspace"
+%{ if enable_kind }
+      echo "  kind-reset  - Recreate Kind cluster"
+      echo "  k9s         - Kubernetes TUI"
+      echo "  kgaa        - Get all resources"
+      kubectl cluster-info 2>/dev/null || echo "No cluster running. Run: kind create cluster --config /root/kind-config.yaml"
+%{ endif }
+      echo ""
+    permissions: '0755'
+
+  # MOTD
+  - path: /etc/motd
+    content: |
+
+      ================================================================
+                   InfraForge Development Server
+      ================================================================
+       Workspace: /root/workspace/PaaS-Platform
+
+       Enabled features:
+         - Docker & Compose: YES
+%{ if enable_kind }
+         - Kind (Kubernetes): YES
+%{ else }
+         - Kind (Kubernetes): NO
+%{ endif }
+%{ if enable_vagrant }
+         - Vagrant + Libvirt: YES
+%{ else }
+         - Vagrant + Libvirt: NO
+%{ endif }
+%{ if enable_go }
+         - Go: YES
+%{ else }
+         - Go: NO
+%{ endif }
+%{ if enable_nodejs }
+         - Node.js: YES
+%{ else }
+         - Node.js: NO
+%{ endif }
+%{ if enable_ansible }
+         - Ansible: YES
+%{ else }
+         - Ansible: NO
+%{ endif }
+
+       Run 'setup-complete.sh' to see status
+      ================================================================
+
+    permissions: '0644'
+
+runcmd:
+  # ─────────────────────────────────────────────────────────────────
+  # DOCKER
+  # ─────────────────────────────────────────────────────────────────
+  - curl -fsSL https://get.docker.com | sh
+  - systemctl enable docker
+  - systemctl start docker
+  - usermod -aG docker root
+
+  # Docker Compose (standalone)
+  - mkdir -p /usr/local/lib/docker/cli-plugins
+  - curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" -o /usr/local/lib/docker/cli-plugins/docker-compose
+  - chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+  - ln -sf /usr/local/lib/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+%{ if enable_kind }
+
+  # ─────────────────────────────────────────────────────────────────
+  # KUBERNETES TOOLS
+  # ─────────────────────────────────────────────────────────────────
+  # Kubectl
+  - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+  - install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+  - rm kubectl
+
+  # Helm
+  - curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+  # Kind
+  - curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
+  - install -o root -g root -m 0755 kind /usr/local/bin/kind
+  - rm kind
+
+  # K9s
+  - curl -sS https://webinstall.dev/k9s | bash
+  - ln -sf /root/.local/bin/k9s /usr/local/bin/k9s
+
+  # Kubectx & Kubens
+  - git clone https://github.com/ahmetb/kubectx /opt/kubectx
+  - ln -s /opt/kubectx/kubectx /usr/local/bin/kubectx
+  - ln -s /opt/kubectx/kubens /usr/local/bin/kubens
+%{ endif }
+%{ if enable_vagrant }
+
+  # ─────────────────────────────────────────────────────────────────
+  # VAGRANT + LIBVIRT
+  # ─────────────────────────────────────────────────────────────────
+  - wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  - echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
+  - apt-get update && apt-get install -y vagrant
+  - vagrant plugin install vagrant-libvirt
+  - usermod -aG libvirt root
+  - usermod -aG kvm root
+  - systemctl enable libvirtd
+  - systemctl start libvirtd
+%{ endif }
+
+  # ─────────────────────────────────────────────────────────────────
+  # OPENTOFU
+  # ─────────────────────────────────────────────────────────────────
+  - curl -fsSL https://get.opentofu.org/install-opentofu.sh -o install-opentofu.sh
+  - chmod +x install-opentofu.sh
+  - ./install-opentofu.sh --install-method deb
+  - rm install-opentofu.sh
+%{ if enable_ansible }
+
+  # ─────────────────────────────────────────────────────────────────
+  # ANSIBLE
+  # ─────────────────────────────────────────────────────────────────
+  - pip3 install --break-system-packages ansible ansible-core ansible-lint
+  - pip3 install --break-system-packages jmespath netaddr
+%{ endif }
+%{ if enable_go }
+
+  # ─────────────────────────────────────────────────────────────────
+  # GO (for building operators)
+  # ─────────────────────────────────────────────────────────────────
+  - wget https://go.dev/dl/go1.22.0.linux-amd64.tar.gz
+  - tar -C /usr/local -xzf go1.22.0.linux-amd64.tar.gz
+  - rm go1.22.0.linux-amd64.tar.gz
+  - echo 'export PATH=$PATH:/usr/local/go/bin' >> /root/.bashrc
+  - echo 'export GOPATH=/root/go' >> /root/.bashrc
+  - echo 'export PATH=$PATH:$GOPATH/bin' >> /root/.bashrc
+%{ endif }
+%{ if enable_nodejs }
+
+  # ─────────────────────────────────────────────────────────────────
+  # NODE.JS (for UI development)
+  # ─────────────────────────────────────────────────────────────────
+  - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  - apt-get install -y nodejs
+  - npm install -g yarn pnpm
+%{ endif }
+
+  # ─────────────────────────────────────────────────────────────────
+  # CLONE REPOSITORY
+  # ─────────────────────────────────────────────────────────────────
+  - mkdir -p /root/workspace
+  - git clone ${git_repo_url} /root/workspace/PaaS-Platform || true
+  - chown -R root:root /root/workspace
+%{ if enable_kind }
+
+  # ─────────────────────────────────────────────────────────────────
+  # CREATE KIND CLUSTER
+  # ─────────────────────────────────────────────────────────────────
+  - export PATH=$PATH:/usr/local/bin
+  - kind create cluster --config /root/kind-config.yaml --wait 5m || true
+
+  # ─────────────────────────────────────────────────────────────────
+  # INSTALL NGINX INGRESS
+  # ─────────────────────────────────────────────────────────────────
+  - kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml || true
+  - sleep 30
+
+  # ─────────────────────────────────────────────────────────────────
+  # INSTALL KUBERNETES DASHBOARD
+  # ─────────────────────────────────────────────────────────────────
+  - kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml || true
+
+  # Create admin user for dashboard
+  - |
+    cat <<DASHEOF | kubectl apply -f -
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: admin-user
+      namespace: kubernetes-dashboard
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: admin-user
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: cluster-admin
+    subjects:
+    - kind: ServiceAccount
+      name: admin-user
+      namespace: kubernetes-dashboard
+    DASHEOF
+
+  # ─────────────────────────────────────────────────────────────────
+  # COPY KUBECONFIG FOR EXTERNAL ACCESS (Lens)
+  # ─────────────────────────────────────────────────────────────────
+  - mkdir -p /root/.kube
+  - kind get kubeconfig --name infraforge-dev > /root/.kube/config
+  - chmod 600 /root/.kube/config
+
+  # Create external kubeconfig (for Lens)
+  - |
+    cat /root/.kube/config | sed "s/0.0.0.0/$(curl -s ifconfig.me)/g" > /root/.kube/config-external
+    chmod 600 /root/.kube/config-external
+
+  - echo 'export KUBECONFIG=/root/.kube/config' >> /root/.bashrc
+  - kubectl completion bash > /etc/bash_completion.d/kubectl
+  - helm completion bash > /etc/bash_completion.d/helm
+%{ endif }
+
+  # ─────────────────────────────────────────────────────────────────
+  # CONFIGURE BASH
+  # ─────────────────────────────────────────────────────────────────
+  - echo 'source /root/.bash_aliases' >> /root/.bashrc
+  - echo 'cd /root/workspace/PaaS-Platform' >> /root/.bashrc
+
+  # ─────────────────────────────────────────────────────────────────
+  # CLEANUP & FINISH
+  # ─────────────────────────────────────────────────────────────────
+  - apt-get autoremove -y
+  - apt-get clean
+
+  # Mark setup complete
+  - touch /root/READY
+  - /root/setup-complete.sh > /root/setup-status.txt
+
+final_message: |
+  ═══════════════════════════════════════════════════════════════
+  InfraForge Development Server is ready!
+  Setup completed in $UPTIME seconds.
+  ═══════════════════════════════════════════════════════════════

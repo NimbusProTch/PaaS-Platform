@@ -66,12 +66,7 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// Create GiteaClient dynamically from claim
-	giteaClient, err := gitea.NewClient(claim.Spec.GiteaURL, r.GiteaUsername, r.GiteaToken)
-	if err != nil {
-		logger.Error(err, "failed to create Gitea client")
-		r.updateStatusFailed(ctx, claim, "Failed to create Gitea client: "+err.Error())
-		return ctrl.Result{}, err
-	}
+	giteaClient := gitea.NewClient(claim.Spec.GiteaURL, r.GiteaUsername, r.GiteaToken)
 
 	// Update status to Bootstrapping
 	claim.Status.Phase = "Bootstrapping"
@@ -137,7 +132,6 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Bootstrap only creates the GitOps structure in voltran repo
 
 	var chartFiles map[string]string
-	var err error
 
 	// Check if external charts repository is specified
 	if claim.Spec.ChartsRepository != nil {
@@ -163,6 +157,7 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			chartsPath := claim.Spec.ChartsRepository.Path
 
 			logger.Info("Cloning charts from Git repository", "branch", chartsBranch, "path", chartsPath)
+			var err error
 			chartFiles, err = giteaClient.CloneAndExtractFiles(ctx, claim.Spec.ChartsRepository.URL, chartsBranch, chartsPath)
 			if err != nil {
 				logger.Error(err, "failed to clone charts from Git repository")
@@ -173,6 +168,7 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	} else {
 		// Fallback to embedded charts for backwards compatibility
 		logger.Info("Loading charts from embedded path", "path", r.ChartsPath)
+		var err error
 		chartFiles, err = r.loadChartsFromEmbedded(r.ChartsPath)
 		if err != nil {
 			logger.Error(err, "failed to load charts")

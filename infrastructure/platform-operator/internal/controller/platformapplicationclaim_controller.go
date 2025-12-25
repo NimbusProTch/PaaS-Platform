@@ -59,15 +59,7 @@ func (r *PlatformApplicationClaimReconciler) Reconcile(ctx context.Context, req 
 	}
 
 	// Create GiteaClient dynamically from claim
-	giteaClient, err := gitea.NewClient(claim.Spec.GiteaURL, r.GiteaUsername, r.GiteaToken)
-	if err != nil {
-		logger.Error(err, "failed to create Gitea client")
-		claim.Status.Phase = "Failed"
-		claim.Status.Message = fmt.Sprintf("Failed to create Gitea client: %v", err)
-		claim.Status.LastUpdated = metav1.Now()
-		r.Status().Update(ctx, claim)
-		return ctrl.Result{}, err
-	}
+	giteaClient := gitea.NewClient(claim.Spec.GiteaURL, r.GiteaUsername, r.GiteaToken)
 
 	// Update status to Provisioning
 	claim.Status.Phase = "Provisioning"

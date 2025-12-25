@@ -1,12 +1,46 @@
 # InfraForge Platform - Architecture Documentation
 
-**Last Updated**: 2025-12-25 16:00 UTC+3
-**Status**: ✅ OCI Implementation Complete
-**Phase**: Production-Ready with GitHub Container Registry
+**Last Updated**: 2025-12-25 18:30 UTC+3
+**Status**: ✅ Claim-Driven Architecture Complete
+**Phase**: Production-Ready with Dynamic Configuration
 
 ---
 
 ## 🎯 Current Status
+
+### ✅ Latest Update (2025-12-25 18:30)
+
+#### 🔄 Complete Refactoring to Claim-Driven Architecture
+1. **All Hardcoded Values Removed**
+   - GiteaURL now comes from claims
+   - Organization name from claims
+   - No more hardcoded service names
+   - Dynamic client creation
+
+2. **Controller Updates**
+   - **BootstrapReconciler**: Creates GiteaClient dynamically from claim.Spec.GiteaURL
+   - **ApplicationClaimGitOpsReconciler**: Uses claim.Spec.Organization and GiteaURL
+   - **PlatformApplicationClaimReconciler**: All configuration from claims
+
+3. **CRD Schema Updates**
+   ```go
+   // Added to ApplicationClaim and PlatformApplicationClaim
+   GiteaURL string `json:"giteaURL"`
+   Organization string `json:"organization"`
+   ```
+
+4. **Bootstrap Configuration**
+   - Organization changed: `nimbusprotch` → `infraforge`
+   - OCI Registry: `oci://ghcr.io/infraforge`
+   - All claims updated with new fields
+
+5. **Key Benefits**
+   - Multi-environment support (different Gitea instances)
+   - Multi-organization support
+   - No rebuild needed for config changes
+   - True GitOps approach
+
+---
 
 ### ✅ Completed (2025-12-25)
 

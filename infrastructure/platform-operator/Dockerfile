@@ -1,5 +1,9 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.21-alpine AS builder
+
+# Declare build arguments for cross-compilation
+ARG TARGETOS
+ARG TARGETARCH
 
 # Install git for go modules
 RUN apk add --no-cache git curl
@@ -13,12 +17,14 @@ RUN go mod download
 # Copy operator source code
 COPY . ./
 
-# Build the operator
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o manager cmd/manager/main.go
+# Build the operator for the target architecture
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -a -installsuffix cgo -o manager cmd/manager/main.go
 
-# Download Helm
-RUN curl -fsSL https://get.helm.sh/helm-v3.13.3-linux-amd64.tar.gz | tar -xz && \
-    mv linux-amd64/helm /usr/local/bin/helm && \
+# Download Helm for the target architecture
+RUN HELM_ARCH=${TARGETARCH} && \
+    if [ "$TARGETARCH" = "arm64" ]; then HELM_ARCH="arm64"; fi && \
+    curl -fsSL https://get.helm.sh/helm-v3.13.3-linux-${HELM_ARCH}.tar.gz | tar -xz && \
+    mv linux-${HELM_ARCH}/helm /usr/local/bin/helm && \
     chmod +x /usr/local/bin/helm
 
 # Final stage

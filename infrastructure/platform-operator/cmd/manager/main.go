@@ -15,7 +15,6 @@ import (
 
 	platformv1 "github.com/infraforge/platform-operator/api/v1"
 	"github.com/infraforge/platform-operator/internal/controller"
-	"github.com/infraforge/platform-operator/pkg/gitea"
 )
 
 var (
