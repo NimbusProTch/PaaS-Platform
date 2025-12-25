@@ -191,96 +191,62 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformElements(claim *pla
 	return elements
 }
 
-// generatePlatformValuesYAML generates Helm values.yaml for a platform service
+// generatePlatformValuesYAML generates Helm values.yaml for a platform service using chart-aware merging
+// 1. Determines chart name from service type
+// 2. Determines production mode from environment
+// 3. Pulls and merges: base values + production values (if applicable) + custom values from CRD
 func (r *PlatformApplicationClaimReconciler) generatePlatformValuesYAML(claim *platformv1.PlatformApplicationClaim, service platformv1.PlatformServiceSpec) string {
-	values := map[string]interface{}{}
+	logger := log.Log.WithName("generatePlatformValuesYAML")
 
-	// Environment-specific configuration based on size
-	switch service.Size {
-	case "large":
-		values["resources"] = map[string]interface{}{
-			"requests": map[string]interface{}{
-				"cpu":    "2000m",
-				"memory": "4Gi",
-			},
-			"limits": map[string]interface{}{
-				"cpu":    "4000m",
-				"memory": "8Gi",
-			},
-		}
-	case "small":
-		values["resources"] = map[string]interface{}{
-			"requests": map[string]interface{}{
-				"cpu":    "100m",
-				"memory": "256Mi",
-			},
-			"limits": map[string]interface{}{
-				"cpu":    "200m",
-				"memory": "512Mi",
-			},
-		}
-	default: // medium
-		values["resources"] = map[string]interface{}{
-			"requests": map[string]interface{}{
-				"cpu":    "500m",
-				"memory": "1Gi",
-			},
-			"limits": map[string]interface{}{
-				"cpu":    "1000m",
-				"memory": "2Gi",
-			},
-		}
+	// Determine chart name
+	chartName := service.Chart.Name
+	if chartName == "" {
+		chartName = service.Type // fallback to type
 	}
 
-	// High Availability
-	if service.HighAvailability {
-		values["replicaCount"] = 3
-		values["podDisruptionBudget"] = map[string]interface{}{
-			"enabled":        true,
-			"minAvailable":   2,
-			"maxUnavailable": 1,
-		}
+	// Determine chart version
+	chartVersion := service.Chart.Version
+	if chartVersion == "" {
+		chartVersion = "1.0.0" // default version
 	}
 
-	// Backup configuration
-	if service.Backup != nil && service.Backup.Enabled {
-		values["backup"] = map[string]interface{}{
-			"enabled":      true,
-			"schedule":     service.Backup.Schedule,
-			"retention":    service.Backup.Retention,
-			"storageClass": service.Backup.StorageClass,
-		}
-	}
+	// Determine if production environment
+	production := claim.Spec.Environment == "prod" || claim.Spec.ClusterType == "prod"
 
-	// Monitoring
-	if service.Monitoring {
-		values["metrics"] = map[string]interface{}{
-			"enabled": true,
-			"serviceMonitor": map[string]interface{}{
-				"enabled": true,
-			},
-		}
-	}
-
-	// Service version
-	if service.Version != "" {
-		values["image"] = map[string]interface{}{
-			"tag": service.Version,
-		}
-	}
-
-	// Custom values from spec (merge with generated values)
+	// Parse custom values from CRD
+	var customValues map[string]interface{}
 	if service.Values.Raw != nil {
-		var customValues map[string]interface{}
-		if err := yaml.Unmarshal(service.Values.Raw, &customValues); err == nil {
-			for k, v := range customValues {
-				values[k] = v
-			}
+		if err := yaml.Unmarshal(service.Values.Raw, &customValues); err != nil {
+			logger.Error(err, "failed to parse custom values, using empty", "service", service.Name)
+			customValues = make(map[string]interface{})
 		}
 	}
 
-	data, _ := yaml.Marshal(values)
-	return string(data)
+	// Pull and merge chart values from OCI registry
+	// This is where the magic happens: base + production + custom
+	chartURL := fmt.Sprintf("oci://ghcr.io/%s/%s", r.Organization, chartName)
+	mergedValues, err := r.GiteaClient.PullAndMergeOCIChartValues(
+		context.Background(),
+		chartURL,
+		chartVersion,
+		production,
+		customValues,
+	)
+
+	if err != nil {
+		// Fallback: if OCI pull fails, return custom values only
+		logger.Error(err, "failed to pull and merge chart values from OCI, using custom values only",
+			"chart", chartName, "version", chartVersion)
+
+		if customValues == nil {
+			customValues = make(map[string]interface{})
+		}
+
+		data, _ := yaml.Marshal(customValues)
+		return string(data)
+	}
+
+	return mergedValues
 }
 
 // SetupWithManager sets up the controller with the Manager

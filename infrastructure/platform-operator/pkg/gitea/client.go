@@ -18,6 +18,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
+	"gopkg.in/yaml.v3"
 )
 
 // Client is a Gitea API and Git client
@@ -400,6 +401,106 @@ func (c *Client) CloneAndExtractFiles(ctx context.Context, repoURL, branch, subP
 	}
 
 	return files, nil
+}
+
+// PullAndMergeOCIChartValues pulls a chart from OCI registry and merges values
+// 1. Fetches base values.yaml
+// 2. If production=true, merges values-production.yaml
+// 3. Merges custom values from customValues parameter
+// Returns the final merged values as YAML string
+func (c *Client) PullAndMergeOCIChartValues(ctx context.Context, chartURL, version string, production bool, customValues map[string]interface{}) (string, error) {
+	// Pull and extract chart
+	tmpDir, err := os.MkdirTemp("", "oci-values-*")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp dir: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	args := []string{"pull", chartURL}
+	if version != "" {
+		args = append(args, "--version", version)
+	}
+	args = append(args, "--destination", tmpDir, "--untar")
+
+	cmd := exec.CommandContext(ctx, "helm", args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("helm pull failed: %w\nOutput: %s", err, string(output))
+	}
+
+	// Find chart directory
+	entries, err := os.ReadDir(tmpDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to read temp dir: %w", err)
+	}
+	if len(entries) == 0 {
+		return "", fmt.Errorf("no chart extracted")
+	}
+
+	chartDir := filepath.Join(tmpDir, entries[0].Name())
+
+	// Read base values.yaml
+	baseValuesPath := filepath.Join(chartDir, "values.yaml")
+	baseValuesData, err := os.ReadFile(baseValuesPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read values.yaml: %w", err)
+	}
+
+	// Parse base values
+	var finalValues map[string]interface{}
+	if err := yaml.Unmarshal(baseValuesData, &finalValues); err != nil {
+		return "", fmt.Errorf("failed to parse base values: %w", err)
+	}
+
+	// If production, merge values-production.yaml
+	if production {
+		prodValuesPath := filepath.Join(chartDir, "values-production.yaml")
+		if prodValuesData, err := os.ReadFile(prodValuesPath); err == nil {
+			var prodValues map[string]interface{}
+			if err := yaml.Unmarshal(prodValuesData, &prodValues); err == nil {
+				finalValues = mergeMaps(finalValues, prodValues)
+			}
+		}
+		// Note: If values-production.yaml doesn't exist or fails to parse, we continue with base values
+	}
+
+	// Merge custom values
+	if customValues != nil {
+		finalValues = mergeMaps(finalValues, customValues)
+	}
+
+	// Convert back to YAML
+	result, err := yaml.Marshal(finalValues)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal final values: %w", err)
+	}
+
+	return string(result), nil
+}
+
+// mergeMaps recursively merges two maps, with values from 'override' taking precedence
+func mergeMaps(base, override map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	// Copy base values
+	for k, v := range base {
+		result[k] = v
+	}
+
+	// Override with values from override map
+	for k, v := range override {
+		if vMap, ok := v.(map[string]interface{}); ok {
+			// If both base and override values are maps, merge recursively
+			if baseMap, ok := result[k].(map[string]interface{}); ok {
+				result[k] = mergeMaps(baseMap, vMap)
+				continue
+			}
+		}
+		// Otherwise, override completely
+		result[k] = v
+	}
+
+	return result
 }
 
 // Helper functions
