@@ -104,6 +104,11 @@ spec:
                       required:
                       - name
                       type: object
+                    enabled:
+                      default: true
+                      description: 'Enabled whether this application should be deployed
+                        (default: true)'
+                      type: boolean
                     env:
                       description: Env environment variables
                       items:

@@ -130,6 +130,11 @@ spec:
                       required:
                       - name
                       type: object
+                    enabled:
+                      default: true
+                      description: 'Enabled whether this service should be deployed
+                        (default: true)'
+                      type: boolean
                     highAvailability:
                       description: HighAvailability enable HA configuration
                       type: boolean

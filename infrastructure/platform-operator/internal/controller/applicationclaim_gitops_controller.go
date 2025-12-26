@@ -146,11 +146,6 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 					"git": map[string]interface{}{
 						"repoURL":  fmt.Sprintf("%s/%s/%s", claim.Spec.GiteaURL, claim.Spec.Organization, r.VoltranRepo),
 						"revision": r.Branch,
-						"directories": []map[string]interface{}{
-							{
-								"path": fmt.Sprintf("environments/%s/%s/applications/*", claim.Spec.ClusterType, claim.Spec.Environment),
-							},
-						},
 						"files": []map[string]interface{}{
 							{
 								"path": fmt.Sprintf("environments/%s/%s/applications/*/config.yaml", claim.Spec.ClusterType, claim.Spec.Environment),
