@@ -156,9 +156,9 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 			},
 			"template": map[string]interface{}{
 				"metadata": map[string]interface{}{
-					"name": "{{path.basename}}-" + claim.Spec.Environment,
+					"name": "{{path[4]}}-" + claim.Spec.Environment,
 					"labels": map[string]string{
-						"platform.infraforge.io/app": "{{path.basename}}",
+						"platform.infraforge.io/app": "{{path[4]}}",
 						"platform.infraforge.io/env": claim.Spec.Environment,
 					},
 				},
@@ -172,7 +172,7 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 							"targetRevision": "{{config.version}}",
 							"helm": map[string]interface{}{
 								"valueFiles": []string{
-									"$values/environments/" + claim.Spec.ClusterType + "/" + claim.Spec.Environment + "/applications/{{path.basename}}/values.yaml",
+									"$values/environments/" + claim.Spec.ClusterType + "/" + claim.Spec.Environment + "/applications/{{path[4]}}/values.yaml",
 								},
 							},
 						},
