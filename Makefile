@@ -4,7 +4,7 @@ CLUSTER_NAME = platform-dev
 GITEA_ADMIN_USER = gitea_admin
 GITEA_ADMIN_PASS = r8sA8CPHD9!bt6d
 OPERATOR_IMAGE = platform-operator:dev
-GITHUB_TOKEN ?= $(GITHUB_TOKEN)
+GITHUB_TOKEN ?= ${GITHUB_TOKEN}
 ARGOCD_VERSION = v2.9.3
 
 help: ## Yardım göster
