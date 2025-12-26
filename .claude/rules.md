@@ -20,6 +20,30 @@ LAK takip edilmeli. Hiçbir istisna yok!
 
 **İstisna:** Kod, YAML, commit message İngilizce olabilir.
 
+### 1.5 **ULTRATHINK MODU - HER ZAMAN AKTİF**
+
+**Kullanıcı promptunun sonunda "ultrathink" görünce:**
+- Daha dikkatli ve detaylı analiz yap
+- Her adımı net şekilde planla
+- Hataları proaktif olarak önle
+- Alternatif çözümleri değerlendir
+
+### 1.6 **LOKALDE DOCKER BUILD KESINLIKLE YASAK**
+
+```
+❌ YASAK KOMUTLAR:
+docker build ...
+make docker-build
+make docker-push
+make kind-load
+
+✅ SADECE GITHUB ACTIONS:
+git add . && git commit -m "..." && git push
+# GitHub Actions otomatik build edecek
+```
+
+**KURAL:** Kullanıcı açıkça izin vermedikçe ASLA lokalde container build yapma!
+
 ---
 
 ### 2. **BELİRLENEN YAPININ DIŞINA ASLA ÇIKMA**

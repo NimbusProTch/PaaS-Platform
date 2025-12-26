@@ -146,6 +146,11 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 					"git": map[string]interface{}{
 						"repoURL":  fmt.Sprintf("%s/%s/%s", claim.Spec.GiteaURL, claim.Spec.Organization, r.VoltranRepo),
 						"revision": r.Branch,
+						"directories": []map[string]interface{}{
+							{
+								"path": fmt.Sprintf("environments/%s/%s/applications/*", claim.Spec.ClusterType, claim.Spec.Environment),
+							},
+						},
 						"files": []map[string]interface{}{
 							{
 								"path": fmt.Sprintf("environments/%s/%s/applications/*/config.yaml", claim.Spec.ClusterType, claim.Spec.Environment),
@@ -156,9 +161,9 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 			},
 			"template": map[string]interface{}{
 				"metadata": map[string]interface{}{
-					"name": "{{path[4]}}-" + claim.Spec.Environment,
+					"name": "{{path.basename}}-" + claim.Spec.Environment,
 					"labels": map[string]string{
-						"platform.infraforge.io/app": "{{path[4]}}",
+						"platform.infraforge.io/app": "{{path.basename}}",
 						"platform.infraforge.io/env": claim.Spec.Environment,
 					},
 				},
@@ -172,7 +177,7 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 							"targetRevision": "{{config.version}}",
 							"helm": map[string]interface{}{
 								"valueFiles": []string{
-									"$values/environments/" + claim.Spec.ClusterType + "/" + claim.Spec.Environment + "/applications/{{path[4]}}/values.yaml",
+									"$values/environments/" + claim.Spec.ClusterType + "/" + claim.Spec.Environment + "/applications/{{path.basename}}/values.yaml",
 								},
 							},
 						},
