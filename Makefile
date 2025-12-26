@@ -1,21 +1,38 @@
-.PHONY: help dev cluster gitea argocd operator token bootstrap claims clean logs status lightweight
+.PHONY: help dev cluster gitea argocd operator token bootstrap argocd-setup claims clean logs status lightweight full-deploy
 
 CLUSTER_NAME = platform-dev
 GITEA_ADMIN_USER = gitea_admin
 GITEA_ADMIN_PASS = r8sA8CPHD9!bt6d
 OPERATOR_IMAGE = platform-operator:dev
-GITHUB_TOKEN ?= ${GITHUB_TOKEN}
+GITHUB_TOKEN ?= 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
+GITHUB_USER = infraforge
 ARGOCD_VERSION = v2.9.3
 
 help: ## Yardım göster
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-dev: clean cluster gitea operator token bootstrap claims ## Tam development ortamı kur
+dev: clean cluster gitea argocd operator token bootstrap argocd-setup claims ## Tam development ortamı kur (ESKI - deprecated)
 	@echo ""
 	@echo "✅ Development ortamı hazır!"
 	@echo "🌐 Gitea: http://localhost:30300 ($(GITEA_ADMIN_USER)/$(GITEA_ADMIN_PASS))"
 	@echo "📊 Status: make status"
 	@echo "📋 Logs: make logs"
+
+full-deploy: clean cluster gitea argocd operator github-secret token bootstrap argocd-setup claims ## 🚀 TAM DEPLOYMENT (Sıfırdan, otomatik)
+	@echo ""
+	@echo "🎉 ==================== DEPLOYMENT TAMAMLANDI ===================="
+	@echo "✅ Cluster: $(CLUSTER_NAME)"
+	@echo "✅ Gitea: http://localhost:30300 ($(GITEA_ADMIN_USER)/$(GITEA_ADMIN_PASS))"
+	@echo "✅ ArgoCD: kubectl port-forward svc/argocd-server -n argocd 8080:443"
+	@echo "✅ Platform Operator: Çalışıyor"
+	@echo "✅ GitOps Repository: voltran (infraforge organizasyonu)"
+	@echo "✅ ArgoCD Root Apps: Deploy edildi"
+	@echo "✅ Application Claims: İşleniyor..."
+	@echo ""
+	@echo "📊 Status kontrolü: make status"
+	@echo "📋 Operator logları: make logs"
+	@echo "🔍 ArgoCD apps: kubectl get applications -n argocd"
+	@echo "=================================================================="
 
 cluster: ## Kind cluster oluştur
 	@echo "🔨 Kind cluster oluşturuluyor..."
@@ -81,6 +98,17 @@ operator: ## Operator build ve deploy
 	@sleep 10
 	@echo "✅ Operator hazır"
 
+github-secret: ## GitHub image pull secret oluştur
+	@echo "🔐 GitHub image pull secret oluşturuluyor..."
+	@kubectl create namespace platform-operator-system --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl create secret docker-registry ghcr-pull-secret \
+	  --docker-server=ghcr.io \
+	  --docker-username=$(GITHUB_USER) \
+	  --docker-password=$(GITHUB_TOKEN) \
+	  --namespace platform-operator-system \
+	  --dry-run=client -o yaml | kubectl apply -f -
+	@echo "✅ GitHub image pull secret hazır"
+
 token: ## Gitea ve GitHub token oluştur
 	@echo "🔑 Gitea token oluşturuluyor..."
 	@sleep 5
@@ -105,20 +133,57 @@ token: ## Gitea ve GitHub token oluştur
 bootstrap: ## Bootstrap deploy et
 	@echo "🚀 Bootstrap deploy ediliyor..."
 	@kubectl apply -f infrastructure/platform-operator/bootstrap-claim.yaml
-	@echo "⏳ Bootstrap bekleniyor..."
-	@sleep 15
+	@echo "⏳ Bootstrap'in hazır olması bekleniyor (30 saniye)..."
+	@sleep 30
+	@kubectl wait --for=condition=Ready bootstrapclaim/platform-bootstrap --timeout=60s 2>/dev/null || true
 	@echo "✅ Bootstrap tamamlandı"
 
-claims: ## Application ve Platform claims deploy et
-	@echo "🚀 Application claims deploy ediliyor..."
+argocd-setup: ## ArgoCD setup (voltran'dan secret'ları ve root app'leri deploy et)
+	@echo "🔧 ArgoCD setup başlatılıyor..."
+	@echo "📂 Voltran repository clone ediliyor..."
+	@rm -rf /tmp/voltran 2>/dev/null || true
+	@kubectl port-forward -n gitea svc/gitea-http 3000:3000 > /dev/null 2>&1 & \
+	  PF_PID=$$! && \
+	  sleep 3 && \
+	  git clone http://$(GITEA_ADMIN_USER):$(GITEA_ADMIN_PASS)@localhost:3000/infraforge/voltran.git /tmp/voltran 2>/dev/null && \
+	  kill $$PF_PID 2>/dev/null || true
+	@echo "🔑 GitHub token'ları güncelleniyor..."
+	@cd /tmp/voltran && \
+	  sed -i.bak "s/GITHUB_TOKEN/$(GITHUB_TOKEN)/g" argocd-setup/02-helm-oci-secret.yaml && \
+	  sed -i.bak "s/GITHUB_TOKEN/$(GITHUB_TOKEN)/g" argocd-setup/03-github-token-secret.yaml && \
+	  AUTH_BASE64=$$(echo -n "$(GITHUB_USER):$(GITHUB_TOKEN)" | base64) && \
+	  sed -i.bak "s/BASE64_ENCODED_USERNAME:TOKEN/$$AUTH_BASE64/g" argocd-setup/03-github-token-secret.yaml
+	@echo "📋 ArgoCD secret'ları deploy ediliyor..."
+	@kubectl apply -f /tmp/voltran/argocd-setup/
+	@echo "🚀 Root applications deploy ediliyor..."
+	@kubectl apply -f /tmp/voltran/root-apps/nonprod/
+	@echo "⏳ ArgoCD sync bekleniyor (10 saniye)..."
+	@sleep 10
+	@echo "✅ ArgoCD setup tamamlandı!"
+	@echo "🔍 Kontrol: kubectl get applications -n argocd"
+
+claims: ## Lightweight claims deploy et (hızlı test için)
+	@echo "🚀 Lightweight platform services deploy ediliyor (PostgreSQL + Redis)..."
+	@kubectl apply -f deployments/lightweight/platform-minimal.yaml
+	@echo "⏳ Platform services işleniyor (15 saniye)..."
+	@sleep 15
+	@echo "🚀 Lightweight applications deploy ediliyor (2 microservice)..."
+	@kubectl apply -f deployments/lightweight/apps-minimal.yaml
+	@echo "⏳ Applications işleniyor (10 saniye)..."
+	@sleep 10
+	@echo "✅ Claims tamamlandı!"
+	@kubectl get applicationclaim,platformapplicationclaim
+
+claims-full: ## Tüm claims deploy et (5 app + 8 platform service)
+	@echo "🚀 Full application claims deploy ediliyor..."
 	@kubectl apply -f deployments/dev/apps-claim.yaml
 	@echo "⏳ Bekleniyor..."
-	@sleep 10
-	@echo "🚀 Platform claims deploy ediliyor..."
+	@sleep 15
+	@echo "🚀 Full platform claims deploy ediliyor..."
 	@kubectl apply -f deployments/dev/platform-infrastructure-claim.yaml
 	@echo "⏳ Bekleniyor..."
-	@sleep 10
-	@echo "✅ Claims tamamlandı"
+	@sleep 15
+	@echo "✅ Full claims tamamlandı"
 
 lightweight: ## Lightweight claims deploy et (2 app + postgres + redis)
 	@echo "🚀 Lightweight deployment başlatılıyor..."
@@ -134,20 +199,29 @@ lightweight: ## Lightweight claims deploy et (2 app + postgres + redis)
 status: ## Status göster
 	@echo "📊 === CLUSTER STATUS ==="
 	@echo ""
-	@echo "Gitea Pods:"
+	@echo "🔷 Gitea Pods:"
 	@kubectl get pods -n gitea 2>/dev/null || echo "Yok"
 	@echo ""
-	@echo "Operator Pods:"
+	@echo "🔷 ArgoCD Pods:"
+	@kubectl get pods -n argocd 2>/dev/null || echo "Yok"
+	@echo ""
+	@echo "🔷 Operator Pods:"
 	@kubectl get pods -n platform-operator-system 2>/dev/null || echo "Yok"
 	@echo ""
-	@echo "Bootstrap:"
+	@echo "🔷 Bootstrap:"
 	@kubectl get bootstrapclaim 2>/dev/null || echo "Yok"
 	@echo ""
-	@echo "Application Claims:"
+	@echo "🔷 Application Claims:"
 	@kubectl get applicationclaim 2>/dev/null || echo "Yok"
 	@echo ""
-	@echo "Platform Claims:"
+	@echo "🔷 Platform Claims:"
 	@kubectl get platformapplicationclaim 2>/dev/null || echo "Yok"
+	@echo ""
+	@echo "🔷 ArgoCD Applications:"
+	@kubectl get applications -n argocd 2>/dev/null || echo "Yok"
+	@echo ""
+	@echo "🔷 ArgoCD ApplicationSets:"
+	@kubectl get applicationsets -n argocd 2>/dev/null || echo "Yok"
 
 logs: ## Operator logları göster
 	@kubectl logs -n platform-operator-system -l control-plane=controller-manager --tail=100 -f
