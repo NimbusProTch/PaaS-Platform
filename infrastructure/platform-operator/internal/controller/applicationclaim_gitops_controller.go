@@ -168,7 +168,8 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 					"sources": []map[string]interface{}{
 						{
 							// OCI chart source
-							"repoURL":        r.OCIBaseURL + "/{{chart}}",
+							"repoURL":        r.OCIBaseURL,
+							"chart":          "{{chart}}",
 							"targetRevision": "{{version}}",
 							"helm": map[string]interface{}{
 								"valueFiles": []string{
