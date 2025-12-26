@@ -15,7 +15,6 @@ import (
 
 	platformv1 "github.com/infraforge/platform-operator/api/v1"
 	"github.com/infraforge/platform-operator/pkg/gitea"
-	"github.com/infraforge/platform-operator/pkg/helm"
 )
 
 // PlatformApplicationClaimReconciler reconciles a PlatformApplicationClaim object
