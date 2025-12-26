@@ -1,0 +1,4 @@
+apiVersion: platform.infraforge.io/v1
+kind: BootstrapClaim
+metadata:
+  name: platform-bootstrap

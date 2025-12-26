@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -94,9 +95,9 @@ func (r *ApplicationClaimGitOpsReconciler) Reconcile(ctx context.Context, req ct
 		valuesContent := r.generateValuesYAML(claim, app)
 		files[valuesPath] = valuesContent
 
-		// config.yaml (metadata)
-		configPath := fmt.Sprintf("environments/%s/%s/applications/%s/config.yaml", claim.Spec.ClusterType, claim.Spec.Environment, app.Name)
-		configContent := r.generateConfigYAML(app)
+		// config.json (metadata for ApplicationSet)
+		configPath := fmt.Sprintf("environments/%s/%s/applications/%s/config.json", claim.Spec.ClusterType, claim.Spec.Environment, app.Name)
+		configContent := r.generateConfigJSON(app)
 		files[configPath] = configContent
 	}
 
@@ -146,14 +147,9 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 					"git": map[string]interface{}{
 						"repoURL":  fmt.Sprintf("%s/%s/%s", claim.Spec.GiteaURL, claim.Spec.Organization, r.VoltranRepo),
 						"revision": r.Branch,
-						"directories": []map[string]interface{}{
-							{
-								"path": fmt.Sprintf("environments/%s/%s/applications/*", claim.Spec.ClusterType, claim.Spec.Environment),
-							},
-						},
 						"files": []map[string]interface{}{
 							{
-								"path": fmt.Sprintf("environments/%s/%s/applications/*/config.yaml", claim.Spec.ClusterType, claim.Spec.Environment),
+								"path": fmt.Sprintf("environments/%s/%s/applications/*/config.json", claim.Spec.ClusterType, claim.Spec.Environment),
 							},
 						},
 					},
@@ -161,9 +157,9 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 			},
 			"template": map[string]interface{}{
 				"metadata": map[string]interface{}{
-					"name": "{{path.basename}}-" + claim.Spec.Environment,
+					"name": "{{name}}-" + claim.Spec.Environment,
 					"labels": map[string]string{
-						"platform.infraforge.io/app": "{{path.basename}}",
+						"platform.infraforge.io/app": "{{name}}",
 						"platform.infraforge.io/env": claim.Spec.Environment,
 					},
 				},
@@ -172,12 +168,11 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 					"sources": []map[string]interface{}{
 						{
 							// OCI chart source
-							"repoURL":        r.OCIBaseURL,
-							"chart":          "{{config.chart}}",
-							"targetRevision": "{{config.version}}",
+							"repoURL":        r.OCIBaseURL + "/{{chart}}",
+							"targetRevision": "{{version}}",
 							"helm": map[string]interface{}{
 								"valueFiles": []string{
-									"$values/environments/" + claim.Spec.ClusterType + "/" + claim.Spec.Environment + "/applications/{{path.basename}}/values.yaml",
+									"$values/environments/" + claim.Spec.ClusterType + "/" + claim.Spec.Environment + "/applications/{{name}}/values.yaml",
 								},
 							},
 						},
@@ -208,9 +203,10 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 	return string(data)
 }
 
-// generateConfigYAML generates config.yaml with chart metadata
-func (r *ApplicationClaimGitOpsReconciler) generateConfigYAML(app platformv1.ApplicationSpec) string {
+// generateConfigJSON generates config.json with chart metadata and service name
+func (r *ApplicationClaimGitOpsReconciler) generateConfigJSON(app platformv1.ApplicationSpec) string {
 	config := map[string]interface{}{
+		"name":    app.Name,
 		"chart":   app.Chart.Name,
 		"version": app.Chart.Version,
 	}
@@ -219,8 +215,8 @@ func (r *ApplicationClaimGitOpsReconciler) generateConfigYAML(app platformv1.App
 		config["version"] = "1.0.0"
 	}
 
-	yamlBytes, _ := yaml.Marshal(config)
-	return string(yamlBytes)
+	jsonBytes, _ := json.Marshal(config)
+	return string(jsonBytes)
 }
 
 // generateValuesYAML generates Helm values.yaml for an application using smart merging
