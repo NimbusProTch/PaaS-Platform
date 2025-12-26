@@ -1,4 +1,4 @@
-.PHONY: help dev cluster gitea argocd operator token bootstrap argocd-setup claims clean logs status lightweight full-deploy
+.PHONY: help dev cluster gitea argocd operator token bootstrap argocd-setup claims clean logs status full-deploy
 
 CLUSTER_NAME = platform-dev
 GITEA_ADMIN_USER = gitea_admin
@@ -162,16 +162,18 @@ argocd-setup: ## ArgoCD setup (voltran'dan secret'ları ve root app'leri deploy 
 	@echo "✅ ArgoCD setup tamamlandı!"
 	@echo "🔍 Kontrol: kubectl get applications -n argocd"
 
-claims: ## Lightweight claims deploy et (hızlı test için)
-	@echo "🚀 Lightweight platform services deploy ediliyor (PostgreSQL + Redis)..."
-	@kubectl apply -f deployments/lightweight/platform-minimal.yaml
+claims: ## Minimal claims deploy et (2 apps + 2 DBs + Redis)
+	@echo "🚀 Platform infrastructure deploy ediliyor (2x PostgreSQL + Redis)..."
+	@kubectl apply -f deployments/dev/platform-infrastructure-claim.yaml
 	@echo "⏳ Platform services işleniyor (15 saniye)..."
 	@sleep 15
-	@echo "🚀 Lightweight applications deploy ediliyor (2 microservice)..."
-	@kubectl apply -f deployments/lightweight/apps-minimal.yaml
+	@echo "🚀 Applications deploy ediliyor (2 microservices enabled)..."
+	@kubectl apply -f deployments/dev/apps-claim.yaml
 	@echo "⏳ Applications işleniyor (10 saniye)..."
 	@sleep 10
 	@echo "✅ Claims tamamlandı!"
+	@echo "Enabled: product-service, user-service, product-db, user-db, redis"
+	@echo "Disabled: order-service, payment-service, notification-service, etc."
 	@kubectl get applicationclaim,platformapplicationclaim
 
 claims-full: ## Tüm claims deploy et (5 app + 8 platform service)
@@ -185,16 +187,6 @@ claims-full: ## Tüm claims deploy et (5 app + 8 platform service)
 	@sleep 15
 	@echo "✅ Full claims tamamlandı"
 
-lightweight: ## Lightweight claims deploy et (2 app + postgres + redis)
-	@echo "🚀 Lightweight deployment başlatılıyor..."
-	@kubectl apply -f deployments/lightweight/platform-minimal.yaml
-	@echo "⏳ Platform services bekleniyor..."
-	@sleep 15
-	@kubectl apply -f deployments/lightweight/apps-minimal.yaml
-	@echo "⏳ Applications bekleniyor..."
-	@sleep 10
-	@echo "✅ Lightweight deployment tamamlandı"
-	@kubectl get applicationclaim,platformapplicationclaim
 
 status: ## Status göster
 	@echo "📊 === CLUSTER STATUS ==="

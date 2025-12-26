@@ -36,6 +36,10 @@ type PlatformServiceSpec struct {
 	// Name service name (e.g., "postgres", "redis", "rabbitmq")
 	Name string `json:"name"`
 
+	// Enabled whether this service should be deployed (default: true)
+	// +kubebuilder:default=true
+	Enabled bool `json:"enabled,omitempty"`
+
 	// Type service type (postgresql, redis, rabbitmq, mongodb, mysql, kafka, elasticsearch)
 	Type string `json:"type"`
 

@@ -83,6 +83,12 @@ func (r *ApplicationClaimGitOpsReconciler) Reconcile(ctx context.Context, req ct
 
 	// Generate directory structure for each application
 	for _, app := range claim.Spec.Applications {
+		// Skip disabled applications
+		if !app.Enabled {
+			logger.Info("Skipping disabled application", "name", app.Name)
+			continue
+		}
+
 		// values.yaml
 		valuesPath := fmt.Sprintf("environments/%s/%s/applications/%s/values.yaml", claim.Spec.ClusterType, claim.Spec.Environment, app.Name)
 		valuesContent := r.generateValuesYAML(claim, app)

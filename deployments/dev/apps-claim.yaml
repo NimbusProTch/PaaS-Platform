@@ -21,41 +21,39 @@ spec:
     email: platform@infraforge.io
     slack: "#platform-dev"
 
-  # E-commerce Microservices
+  # E-commerce Microservices with enable/disable capability
   applications:
-    # Product Service (Node.js)
+    # Product Service (Node.js) - ENABLED for testing
     - name: product-service
+      enabled: true  # Set to false to disable this service
       chart:
         name: microservice
         version: "1.0.0"
       image:
         repository: ghcr.io/nimbusprotch/product-service
-        tag: v1.0.0
+        tag: "20251221-221634"  # Using actual published tag from GitHub
       serviceName: product-service
       version: v1.0.0
-      replicas: 2
+      replicas: 1  # Reduced for Kind cluster
 
       ports:
         - name: http
           port: 8080
           protocol: TCP
-        - name: metrics
-          port: 9090
-          protocol: TCP
 
       healthCheck:
         path: /health
         port: 8080
-        initialDelaySeconds: 40
+        initialDelaySeconds: 30
         periodSeconds: 10
 
       resources:
         requests:
-          cpu: "250m"
-          memory: "512Mi"
+          cpu: "50m"     # Minimal CPU for Kind
+          memory: "64Mi" # Minimal memory for Kind
         limits:
-          cpu: "500m"
-          memory: "1Gi"
+          cpu: "100m"
+          memory: "128Mi"
 
       env:
         - name: NODE_ENV
@@ -63,25 +61,22 @@ spec:
         - name: PORT
           value: "8080"
         - name: DATABASE_URL
-          value: "postgresql://product_user:product_pass@product-db:5432/product_db"
+          value: "postgresql://postgres:postgres@product-db-rw:5432/products"
         - name: REDIS_URL
-          value: "redis://redis:6379"
-        - name: AMQP_URL
-          value: "amqp://guest:guest@rabbitmq:5672"
-        - name: ELASTICSEARCH_URL
-          value: "http://elasticsearch:9200"
+          value: "redis://redis-master:6379"
 
-    # User Service (Go)
+    # User Service (Go) - ENABLED for testing
     - name: user-service
+      enabled: true
       chart:
         name: microservice
         version: "1.0.0"
       image:
         repository: ghcr.io/nimbusprotch/user-service
-        tag: v1.0.0
+        tag: "20251221-221631"  # Using actual published tag
       serviceName: user-service
       version: v1.0.0
-      replicas: 2
+      replicas: 1
 
       ports:
         - name: http
@@ -91,16 +86,16 @@ spec:
       healthCheck:
         path: /health
         port: 8081
-        initialDelaySeconds: 40
+        initialDelaySeconds: 30
         periodSeconds: 10
 
       resources:
         requests:
-          cpu: "200m"
-          memory: "256Mi"
+          cpu: "50m"
+          memory: "64Mi"
         limits:
-          cpu: "400m"
-          memory: "512Mi"
+          cpu: "100m"
+          memory: "128Mi"
 
       env:
         - name: ENVIRONMENT
@@ -108,33 +103,32 @@ spec:
         - name: PORT
           value: "8081"
         - name: DB_HOST
-          value: "user-db"
+          value: "user-db-rw"
         - name: DB_PORT
           value: "5432"
         - name: DB_USER
-          value: "user_service"
+          value: "postgres"
         - name: DB_PASSWORD
-          value: "user_pass"
+          value: "postgres"
         - name: DB_NAME
-          value: "user_db"
+          value: "users"
         - name: REDIS_HOST
-          value: "redis"
+          value: "redis-master"
         - name: REDIS_PORT
           value: "6379"
-        - name: AMQP_URL
-          value: "amqp://guest:guest@rabbitmq:5672/"
 
-    # Order Service (Go)
+    # Order Service (Go) - DISABLED to save resources
     - name: order-service
+      enabled: false  # Disabled for minimal deployment
       chart:
         name: microservice
         version: "1.0.0"
       image:
         repository: ghcr.io/nimbusprotch/order-service
-        tag: v1.0.0
+        tag: "latest"
       serviceName: order-service
       version: v1.0.0
-      replicas: 2
+      replicas: 1
 
       ports:
         - name: http
@@ -144,95 +138,70 @@ spec:
       healthCheck:
         path: /health
         port: 8082
-        initialDelaySeconds: 40
+        initialDelaySeconds: 30
         periodSeconds: 10
 
       resources:
         requests:
-          cpu: "200m"
-          memory: "256Mi"
+          cpu: "50m"
+          memory: "64Mi"
         limits:
-          cpu: "400m"
-          memory: "512Mi"
+          cpu: "100m"
+          memory: "128Mi"
 
       env:
         - name: ENVIRONMENT
           value: "development"
         - name: PORT
           value: "8082"
-        - name: DB_HOST
-          value: "order-db"
-        - name: DB_PORT
-          value: "5432"
-        - name: DB_USER
-          value: "order_user"
-        - name: DB_PASSWORD
-          value: "order_pass"
-        - name: DB_NAME
-          value: "order_db"
-        - name: REDIS_HOST
-          value: "redis"
-        - name: REDIS_PORT
-          value: "6379"
-        - name: AMQP_URL
-          value: "amqp://guest:guest@rabbitmq:5672/"
 
-    # Payment Service (Node.js)
+    # Payment Service (Node.js) - DISABLED
     - name: payment-service
+      enabled: false
       chart:
         name: microservice
         version: "1.0.0"
       image:
         repository: ghcr.io/nimbusprotch/payment-service
-        tag: v1.0.0
+        tag: "20251221-221633"  # Using actual published tag
       serviceName: payment-service
       version: v1.0.0
-      replicas: 2
+      replicas: 1
 
       ports:
         - name: http
           port: 8083
           protocol: TCP
-        - name: metrics
-          port: 9090
-          protocol: TCP
 
       healthCheck:
         path: /health
         port: 8083
-        initialDelaySeconds: 40
+        initialDelaySeconds: 30
         periodSeconds: 10
 
       resources:
         requests:
-          cpu: "250m"
-          memory: "512Mi"
+          cpu: "50m"
+          memory: "64Mi"
         limits:
-          cpu: "500m"
-          memory: "1Gi"
+          cpu: "100m"
+          memory: "128Mi"
 
       env:
         - name: NODE_ENV
           value: "development"
         - name: PORT
           value: "8083"
-        - name: DATABASE_URL
-          value: "postgresql://payment_user:payment_pass@payment-db:5432/payment_db"
-        - name: REDIS_URL
-          value: "redis://redis:6379"
-        - name: AMQP_URL
-          value: "amqp://guest:guest@rabbitmq:5672"
-        - name: STRIPE_SECRET_KEY
-          value: "sk_test_dummy"
 
-    # Notification Service (Go)
+    # Notification Service (Go) - DISABLED
     - name: notification-service
+      enabled: false
       chart:
         name: microservice
         version: "1.0.0"
       image:
         repository: ghcr.io/nimbusprotch/notification-service
-        tag: v1.0.0
+        tag: "20251221-221634"  # Using actual published tag
       serviceName: notification-service
       version: v1.0.0
       replicas: 1
@@ -245,41 +214,19 @@ spec:
       healthCheck:
         path: /health
         port: 8084
-        initialDelaySeconds: 40
+        initialDelaySeconds: 30
         periodSeconds: 10
 
       resources:
         requests:
+          cpu: "50m"
+          memory: "64Mi"
+        limits:
           cpu: "100m"
           memory: "128Mi"
-        limits:
-          cpu: "200m"
-          memory: "256Mi"
 
       env:
         - name: ENVIRONMENT
           value: "development"
         - name: PORT
           value: "8084"
-        - name: DB_HOST
-          value: "notification-db"
-        - name: DB_PORT
-          value: "5432"
-        - name: DB_USER
-          value: "notification_user"
-        - name: DB_PASSWORD
-          value: "notification_pass"
-        - name: DB_NAME
-          value: "notification_db"
-        - name: REDIS_HOST
-          value: "redis"
-        - name: REDIS_PORT
-          value: "6379"
-        - name: AMQP_URL
-          value: "amqp://guest:guest@rabbitmq:5672/"
-        - name: SMTP_HOST
-          value: "smtp.gmail.com"
-        - name: SMTP_PORT
-          value: "587"
-        - name: SMTP_FROM
-          value: "noreply@infraforge.io"

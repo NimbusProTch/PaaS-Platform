@@ -79,6 +79,12 @@ func (r *PlatformApplicationClaimReconciler) Reconcile(ctx context.Context, req 
 
 	// Generate values.yaml for each service
 	for _, service := range claim.Spec.Services {
+		// Skip disabled services
+		if !service.Enabled {
+			logger.Info("Skipping disabled platform service", "name", service.Name)
+			continue
+		}
+
 		valuesPath := fmt.Sprintf("environments/%s/%s/platform/%s/values.yaml", claim.Spec.ClusterType, claim.Spec.Environment, service.Name)
 		valuesContent := r.generatePlatformValuesYAML(claim, service, giteaClient)
 		files[valuesPath] = valuesContent
@@ -186,6 +192,11 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformElements(claim *pla
 	elements := []map[string]string{}
 
 	for _, service := range claim.Spec.Services {
+		// Skip disabled services
+		if !service.Enabled {
+			continue
+		}
+
 		chartName := service.Chart.Name
 		if chartName == "" {
 			chartName = service.Type // fallback to type

@@ -39,6 +39,10 @@ type ApplicationSpec struct {
 	// Name application name
 	Name string `json:"name"`
 
+	// Enabled whether this application should be deployed (default: true)
+	// +kubebuilder:default=true
+	Enabled bool `json:"enabled,omitempty"`
+
 	// ServiceName Kubernetes service name (optional, defaults to name)
 	ServiceName string `json:"serviceName,omitempty"`
 

@@ -21,106 +21,38 @@ spec:
     email: platform@infraforge.io
     slack: "#platform-dev"
 
-  # Infrastructure Components - Shared platform services
+  # Infrastructure Components with enable/disable capability
   services:
     # PostgreSQL Databases (one per microservice)
+
+    # Product DB - ENABLED (required for product-service)
     - type: postgresql
       name: product-db
+      enabled: true  # Set to false to disable
       version: "15"
-      size: medium
+      size: small  # Reduced for Kind
       chart:
         name: postgresql
         version: "1.0.0"
       values:
         persistence:
-          size: 20Gi
+          size: 5Gi  # Minimal storage for Kind
         resources:
           requests:
-            cpu: "500m"
-            memory: "1Gi"
+            cpu: "100m"    # Minimal CPU
+            memory: "128Mi" # Minimal memory
           limits:
-            cpu: "1000m"
-            memory: "2Gi"
+            cpu: "200m"
+            memory: "256Mi"
 
+    # User DB - ENABLED (required for user-service)
     - type: postgresql
       name: user-db
+      enabled: true
       version: "15"
       size: small
       chart:
         name: postgresql
-        version: "1.0.0"
-      values:
-        persistence:
-          size: 10Gi
-        resources:
-          requests:
-            cpu: "250m"
-            memory: "512Mi"
-          limits:
-            cpu: "500m"
-            memory: "1Gi"
-
-    - type: postgresql
-      name: order-db
-      version: "15"
-      size: medium
-      chart:
-        name: postgresql
-        version: "1.0.0"
-      values:
-        persistence:
-          size: 20Gi
-        resources:
-          requests:
-            cpu: "500m"
-            memory: "1Gi"
-          limits:
-            cpu: "1000m"
-            memory: "2Gi"
-
-    - type: postgresql
-      name: payment-db
-      version: "15"
-      size: small
-      chart:
-        name: postgresql
-        version: "1.0.0"
-      values:
-        persistence:
-          size: 10Gi
-        resources:
-          requests:
-            cpu: "250m"
-            memory: "512Mi"
-          limits:
-            cpu: "500m"
-            memory: "1Gi"
-
-    - type: postgresql
-      name: notification-db
-      version: "15"
-      size: small
-      chart:
-        name: postgresql
-        version: "1.0.0"
-      values:
-        persistence:
-          size: 5Gi
-        resources:
-          requests:
-            cpu: "250m"
-            memory: "256Mi"
-          limits:
-            cpu: "500m"
-            memory: "512Mi"
-
-    # Shared Services
-    - type: redis
-      name: redis
-      version: "7"
-      size: small
-      chart:
-        name: redis
         version: "1.0.0"
       values:
         persistence:
@@ -128,26 +60,149 @@ spec:
         resources:
           requests:
             cpu: "100m"
-            memory: "256Mi"
+            memory: "128Mi"
           limits:
-            cpu: "250m"
-            memory: "512Mi"
+            cpu: "200m"
+            memory: "256Mi"
 
+    # Order DB - DISABLED (order-service disabled)
+    - type: postgresql
+      name: order-db
+      enabled: false  # Disabled to save resources
+      version: "15"
+      size: small
+      chart:
+        name: postgresql
+        version: "1.0.0"
+      values:
+        persistence:
+          size: 5Gi
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+
+    # Payment DB - DISABLED
+    - type: postgresql
+      name: payment-db
+      enabled: false
+      version: "15"
+      size: small
+      chart:
+        name: postgresql
+        version: "1.0.0"
+      values:
+        persistence:
+          size: 5Gi
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+
+    # Notification DB - DISABLED
+    - type: postgresql
+      name: notification-db
+      enabled: false
+      version: "15"
+      size: small
+      chart:
+        name: postgresql
+        version: "1.0.0"
+      values:
+        persistence:
+          size: 5Gi
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+
+    # Shared Services
+
+    # Redis - ENABLED (cache for all services)
+    - type: redis
+      name: redis
+      enabled: true  # Required for caching
+      version: "7"
+      size: small
+      chart:
+        name: redis
+        version: "1.0.0"
+      values:
+        persistence:
+          size: 2Gi  # Minimal storage
+        resources:
+          requests:
+            cpu: "50m"     # Minimal CPU
+            memory: "64Mi" # Minimal memory
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+
+    # RabbitMQ - DISABLED (not needed for basic test)
     - type: rabbitmq
       name: rabbitmq
+      enabled: false  # Disabled to save resources
       version: "3.12"
-      size: medium
+      size: small
       chart:
         name: rabbitmq
+        version: "1.0.0"
+      values:
+        persistence:
+          size: 5Gi
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+
+    # MongoDB - DISABLED (not needed)
+    - type: mongodb
+      name: mongodb
+      enabled: false
+      version: "7.0"
+      size: small
+      chart:
+        name: mongodb
+        version: "1.0.0"
+      values:
+        persistence:
+          size: 5Gi
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+
+    # Kafka - DISABLED (not needed for basic test)
+    - type: kafka
+      name: kafka
+      enabled: false
+      version: "3.5"
+      size: small
+      chart:
+        name: kafka
         version: "1.0.0"
       values:
         persistence:
           size: 10Gi
         resources:
           requests:
-            cpu: "250m"
-            memory: "512Mi"
+            cpu: "200m"
+            memory: "256Mi"
           limits:
             cpu: "500m"
-            memory: "1Gi"
-
+            memory: "512Mi"
