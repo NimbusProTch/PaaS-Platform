@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -14,6 +15,7 @@ import (
 
 	platformv1 "github.com/infraforge/platform-operator/api/v1"
 	"github.com/infraforge/platform-operator/pkg/gitea"
+	"github.com/infraforge/platform-operator/pkg/helm"
 )
 
 // PlatformApplicationClaimReconciler reconciles a PlatformApplicationClaim object
@@ -55,18 +57,16 @@ func (r *PlatformApplicationClaimReconciler) Reconcile(ctx context.Context, req 
 		if err := r.Status().Update(ctx, claim); err != nil {
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{Requeue: true}, nil
+	}
+
+	// Skip if already ready
+	if claim.Status.Phase == "Ready" && claim.Status.Ready {
 		return ctrl.Result{}, nil
 	}
 
 	// Create GiteaClient dynamically from claim
 	giteaClient := gitea.NewClient(claim.Spec.GiteaURL, r.GiteaUsername, r.GiteaToken)
-
-	// Update status to Provisioning
-	claim.Status.Phase = "Provisioning"
-	claim.Status.LastUpdated = metav1.Now()
-	if err := r.Status().Update(ctx, claim); err != nil {
-		return ctrl.Result{}, err
-	}
 
 	// Generate ApplicationSet and values.yaml for platform services
 	logger.Info("Generating platform ApplicationSet and values", "environment", claim.Spec.Environment)
@@ -92,20 +92,20 @@ func (r *PlatformApplicationClaimReconciler) Reconcile(ctx context.Context, req 
 	if err := giteaClient.PushFiles(ctx, voltranURL, r.Branch, files, commitMsg,
 		"Platform Operator", "operator@platform.local"); err != nil {
 		logger.Error(err, "failed to push to Git")
-		claim.Status.Phase = "Failed"
-		claim.Status.Message = fmt.Sprintf("Failed to push to Git: %v", err)
-		claim.Status.LastUpdated = metav1.Now()
-		r.Status().Update(ctx, claim)
-		return ctrl.Result{}, err
+		// Don't update status on git errors, just retry
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
-	// Update status to Ready
-	claim.Status.Phase = "Ready"
-	claim.Status.Ready = true
-	claim.Status.ServicesReady = true
-	claim.Status.LastUpdated = metav1.Now()
-	if err := r.Status().Update(ctx, claim); err != nil {
-		return ctrl.Result{}, err
+	// Update status to Ready only if not already ready
+	if claim.Status.Phase != "Ready" || !claim.Status.Ready {
+		claim.Status.Phase = "Ready"
+		claim.Status.Ready = true
+		claim.Status.ServicesReady = true
+		claim.Status.LastUpdated = metav1.Now()
+		if err := r.Status().Update(ctx, claim); err != nil {
+			logger.Error(err, "failed to update status")
+			return ctrl.Result{Requeue: true}, nil
+		}
 	}
 
 	logger.Info("PlatformApplicationClaim reconciliation completed successfully")

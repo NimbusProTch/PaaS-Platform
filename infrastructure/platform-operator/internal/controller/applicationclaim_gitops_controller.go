@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -59,18 +60,16 @@ func (r *ApplicationClaimGitOpsReconciler) Reconcile(ctx context.Context, req ct
 		if err := r.Status().Update(ctx, claim); err != nil {
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{Requeue: true}, nil
+	}
+
+	// Skip if already ready
+	if claim.Status.Phase == "Ready" && claim.Status.Ready {
 		return ctrl.Result{}, nil
 	}
 
 	// Create GiteaClient dynamically from claim
 	giteaClient := gitea.NewClient(claim.Spec.GiteaURL, r.GiteaUsername, r.GiteaToken)
-
-	// Update status to Provisioning
-	claim.Status.Phase = "Provisioning"
-	claim.Status.LastUpdated = metav1.Now()
-	if err := r.Status().Update(ctx, claim); err != nil {
-		return ctrl.Result{}, err
-	}
 
 	// Generate ApplicationSet and values.yaml
 	logger.Info("Generating ApplicationSet and values", "environment", claim.Spec.Environment)
@@ -102,19 +101,20 @@ func (r *ApplicationClaimGitOpsReconciler) Reconcile(ctx context.Context, req ct
 	if err := giteaClient.PushFiles(ctx, voltranURL, r.Branch, files, commitMsg,
 		"Platform Operator", "operator@platform.local"); err != nil {
 		logger.Error(err, "failed to push to Git")
-		claim.Status.Phase = "Failed"
-		claim.Status.LastUpdated = metav1.Now()
-		r.Status().Update(ctx, claim)
-		return ctrl.Result{}, err
+		// Don't update status on git errors, just retry
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
-	// Update status to Ready
-	claim.Status.Phase = "Ready"
-	claim.Status.Ready = true
-	claim.Status.ApplicationsReady = true
-	claim.Status.LastUpdated = metav1.Now()
-	if err := r.Status().Update(ctx, claim); err != nil {
-		return ctrl.Result{}, err
+	// Update status to Ready only if not already ready
+	if claim.Status.Phase != "Ready" || !claim.Status.Ready {
+		claim.Status.Phase = "Ready"
+		claim.Status.Ready = true
+		claim.Status.ApplicationsReady = true
+		claim.Status.LastUpdated = metav1.Now()
+		if err := r.Status().Update(ctx, claim); err != nil {
+			logger.Error(err, "failed to update status")
+			return ctrl.Result{Requeue: true}, nil
+		}
 	}
 
 	logger.Info("ApplicationClaim reconciliation completed successfully")
