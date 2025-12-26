@@ -46,7 +46,7 @@ func main() {
 	flag.StringVar(&voltranRepo, "voltran-repo", "voltran", "GitOps voltran repository name")
 	flag.StringVar(&gitBranch, "git-branch", "main", "Git branch to use")
 	flag.StringVar(&chartsPath, "charts-path", "", "Path to charts directory for bootstrap")
-	flag.StringVar(&ociBaseURL, "oci-base-url", "oci://ghcr.io/infraforge", "Base URL for OCI chart registry")
+	flag.StringVar(&ociBaseURL, "oci-base-url", "oci://ghcr.io/nimbusprotch", "Base URL for OCI chart registry")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))

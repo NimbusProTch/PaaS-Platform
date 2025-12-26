@@ -1,4 +1,6 @@
 #cloud-config
+# InfraForge Development Server - Cloud Init Configuration
+
 package_update: true
 package_upgrade: true
 
@@ -12,13 +14,13 @@ packages:
   - htop
   - tmux
   - jq
-  - yq
   - unzip
   - tree
   - ncdu
   - bat
   - ripgrep
   - fd-find
+  - fzf
 
   # Network tools
   - net-tools
@@ -52,6 +54,7 @@ packages:
   - bridge-utils
   - virtinst
   - cpu-checker
+  - virt-manager
 %{ endif }
 
 write_files:
@@ -68,7 +71,7 @@ write_files:
   # Bash aliases
   - path: /root/.bash_aliases
     content: |
-%{ if enable_kind }
+%{ if enable_kind || enable_rke }
       # Kubernetes
       alias k='kubectl'
       alias kgp='kubectl get pods'
@@ -83,6 +86,8 @@ write_files:
       alias kex='kubectl exec -it'
       alias kctx='kubectl config use-context'
       alias kns='kubectl config set-context --current --namespace'
+%{ endif }
+%{ if enable_kind }
 
       # Kind
       alias kind-reset='kind delete cluster --name infraforge-dev && kind create cluster --name infraforge-dev --config /root/kind-config.yaml'
@@ -107,6 +112,7 @@ write_files:
       alias vdestroy='vagrant destroy -f'
       alias vssh='vagrant ssh'
       alias vst='vagrant status'
+      alias vgl='vagrant global-status'
 %{ endif }
 
       # Git
@@ -129,6 +135,12 @@ write_files:
       # Ansible
       alias ap='ansible-playbook'
       alias ai='ansible-inventory'
+      alias ag='ansible-galaxy'
+%{ endif }
+%{ if enable_claude }
+
+      # Claude
+      alias c='claude'
 %{ endif }
 
       # Navigation
@@ -137,6 +149,8 @@ write_files:
 
       # Misc
       alias ll='ls -alh'
+      alias la='ls -A'
+      alias l='ls -CF'
       alias ports='netstat -tulanp'
       alias myip='curl -s ifconfig.me'
     permissions: '0644'
@@ -153,6 +167,10 @@ write_files:
       set -g status-fg white
       set -g status-left '[#S] '
       set -g status-right '%H:%M %d-%b'
+
+      # Easy split
+      bind | split-window -h
+      bind - split-window -v
     permissions: '0644'
 %{ if enable_kind }
 
@@ -203,24 +221,34 @@ write_files:
       echo "=========================================="
       echo ""
       echo "Workspace: /root/workspace/PaaS-Platform"
-      echo "Docker: $(docker --version 2>/dev/null || echo 'not installed')"
+      echo ""
+      echo "Installed tools:"
+      echo "  Docker:    $(docker --version 2>/dev/null | cut -d' ' -f3 | tr -d ',' || echo 'not installed')"
 %{ if enable_kind }
-      echo "Kubectl: $(kubectl version --client -o yaml 2>/dev/null | grep gitVersion | head -1 || echo 'not installed')"
-      echo "Helm: $(helm version --short 2>/dev/null || echo 'not installed')"
-      echo "Kind: $(kind version 2>/dev/null || echo 'not installed')"
+      echo "  Kubectl:   $(kubectl version --client -o yaml 2>/dev/null | grep gitVersion | head -1 | awk '{print $2}' || echo 'not installed')"
+      echo "  Helm:      $(helm version --short 2>/dev/null || echo 'not installed')"
+      echo "  Kind:      $(kind version 2>/dev/null || echo 'not installed')"
+      echo "  K9s:       $(k9s version --short 2>/dev/null | head -1 || echo 'not installed')"
 %{ endif }
 %{ if enable_vagrant }
-      echo "Vagrant: $(vagrant --version 2>/dev/null || echo 'not installed')"
+      echo "  Vagrant:   $(vagrant --version 2>/dev/null || echo 'not installed')"
+      echo "  Libvirt:   $(virsh --version 2>/dev/null || echo 'not installed')"
+%{ endif }
+%{ if enable_rke }
+      echo "  RKE2:      $(rke2 --version 2>/dev/null | head -1 || echo 'not installed')"
 %{ endif }
 %{ if enable_ansible }
-      echo "Ansible: $(ansible --version 2>/dev/null | head -1 || echo 'not installed')"
+      echo "  Ansible:   $(ansible --version 2>/dev/null | head -1 | awk '{print $2}' || echo 'not installed')"
 %{ endif }
-      echo "Tofu: $(tofu version 2>/dev/null | head -1 || echo 'not installed')"
+      echo "  Tofu:      $(tofu version 2>/dev/null | head -1 | awk '{print $2}' || echo 'not installed')"
 %{ if enable_go }
-      echo "Go: $(go version 2>/dev/null || echo 'not installed')"
+      echo "  Go:        $(go version 2>/dev/null | awk '{print $3}' || echo 'not installed')"
 %{ endif }
 %{ if enable_nodejs }
-      echo "Node: $(node --version 2>/dev/null || echo 'not installed')"
+      echo "  Node:      $(node --version 2>/dev/null || echo 'not installed')"
+%{ endif }
+%{ if enable_claude }
+      echo "  Claude:    $(claude --version 2>/dev/null || echo 'not installed')"
 %{ endif }
       echo ""
       echo "Quick commands:"
@@ -229,7 +257,15 @@ write_files:
       echo "  kind-reset  - Recreate Kind cluster"
       echo "  k9s         - Kubernetes TUI"
       echo "  kgaa        - Get all resources"
-      kubectl cluster-info 2>/dev/null || echo "No cluster running. Run: kind create cluster --config /root/kind-config.yaml"
+      echo ""
+      kubectl cluster-info 2>/dev/null || echo "No K8s cluster. Run: kind create cluster --config /root/kind-config.yaml"
+%{ endif }
+%{ if enable_vagrant }
+      echo "  vup         - Start Vagrant VMs"
+      echo "  vgl         - List all Vagrant VMs"
+%{ endif }
+%{ if enable_claude }
+      echo "  c           - Claude CLI"
 %{ endif }
       echo ""
     permissions: '0755'
@@ -244,37 +280,57 @@ write_files:
        Workspace: /root/workspace/PaaS-Platform
 
        Enabled features:
-         - Docker & Compose: YES
+         - Docker & Compose ........ YES
 %{ if enable_kind }
-         - Kind (Kubernetes): YES
+         - Kind (Kubernetes) ....... YES
 %{ else }
-         - Kind (Kubernetes): NO
+         - Kind (Kubernetes) ....... NO
 %{ endif }
 %{ if enable_vagrant }
-         - Vagrant + Libvirt: YES
+         - Vagrant + Libvirt ....... YES
 %{ else }
-         - Vagrant + Libvirt: NO
+         - Vagrant + Libvirt ....... NO
+%{ endif }
+%{ if enable_rke }
+         - RKE2 CLI ................ YES
+%{ else }
+         - RKE2 CLI ................ NO
 %{ endif }
 %{ if enable_go }
-         - Go: YES
+         - Go ...................... YES
 %{ else }
-         - Go: NO
+         - Go ...................... NO
 %{ endif }
 %{ if enable_nodejs }
-         - Node.js: YES
+         - Node.js ................. YES
 %{ else }
-         - Node.js: NO
+         - Node.js ................. NO
 %{ endif }
 %{ if enable_ansible }
-         - Ansible: YES
+         - Ansible ................. YES
 %{ else }
-         - Ansible: NO
+         - Ansible ................. NO
+%{ endif }
+%{ if enable_claude }
+         - Claude CLI .............. YES
+%{ else }
+         - Claude CLI .............. NO
 %{ endif }
 
-       Run 'setup-complete.sh' to see status
+       Run 'setup-complete.sh' to see detailed status
       ================================================================
 
     permissions: '0644'
+%{ if enable_claude && anthropic_api_key != "" }
+
+  # Claude CLI config
+  - path: /root/.claude/.credentials.json
+    content: |
+      {
+        "claudeAiApiKey": "${anthropic_api_key}"
+      }
+    permissions: '0600'
+%{ endif }
 
 runcmd:
   # ─────────────────────────────────────────────────────────────────
@@ -285,12 +341,12 @@ runcmd:
   - systemctl start docker
   - usermod -aG docker root
 
-  # Docker Compose (standalone)
+  # Docker Compose
   - mkdir -p /usr/local/lib/docker/cli-plugins
   - curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" -o /usr/local/lib/docker/cli-plugins/docker-compose
   - chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
   - ln -sf /usr/local/lib/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
-%{ if enable_kind }
+%{ if enable_kind || enable_rke }
 
   # ─────────────────────────────────────────────────────────────────
   # KUBERNETES TOOLS
@@ -303,11 +359,6 @@ runcmd:
   # Helm
   - curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-  # Kind
-  - curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
-  - install -o root -g root -m 0755 kind /usr/local/bin/kind
-  - rm kind
-
   # K9s
   - curl -sS https://webinstall.dev/k9s | bash
   - ln -sf /root/.local/bin/k9s /usr/local/bin/k9s
@@ -316,6 +367,13 @@ runcmd:
   - git clone https://github.com/ahmetb/kubectx /opt/kubectx
   - ln -s /opt/kubectx/kubectx /usr/local/bin/kubectx
   - ln -s /opt/kubectx/kubens /usr/local/bin/kubens
+%{ endif }
+%{ if enable_kind }
+
+  # Kind
+  - curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
+  - install -o root -g root -m 0755 kind /usr/local/bin/kind
+  - rm kind
 %{ endif }
 %{ if enable_vagrant }
 
@@ -330,6 +388,14 @@ runcmd:
   - usermod -aG kvm root
   - systemctl enable libvirtd
   - systemctl start libvirtd
+%{ endif }
+%{ if enable_rke }
+
+  # ─────────────────────────────────────────────────────────────────
+  # RKE2 CLI
+  # ─────────────────────────────────────────────────────────────────
+  - curl -sfL https://get.rke2.io | sh -
+  - ln -sf /var/lib/rancher/rke2/bin/kubectl /usr/local/bin/kubectl-rke2
 %{ endif }
 
   # ─────────────────────────────────────────────────────────────────
@@ -350,11 +416,11 @@ runcmd:
 %{ if enable_go }
 
   # ─────────────────────────────────────────────────────────────────
-  # GO (for building operators)
+  # GO
   # ─────────────────────────────────────────────────────────────────
-  - wget https://go.dev/dl/go1.22.0.linux-amd64.tar.gz
-  - tar -C /usr/local -xzf go1.22.0.linux-amd64.tar.gz
-  - rm go1.22.0.linux-amd64.tar.gz
+  - wget https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
+  - tar -C /usr/local -xzf go1.23.4.linux-amd64.tar.gz
+  - rm go1.23.4.linux-amd64.tar.gz
   - echo 'export PATH=$PATH:/usr/local/go/bin' >> /root/.bashrc
   - echo 'export GOPATH=/root/go' >> /root/.bashrc
   - echo 'export PATH=$PATH:$GOPATH/bin' >> /root/.bashrc
@@ -362,11 +428,18 @@ runcmd:
 %{ if enable_nodejs }
 
   # ─────────────────────────────────────────────────────────────────
-  # NODE.JS (for UI development)
+  # NODE.JS
   # ─────────────────────────────────────────────────────────────────
-  - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
   - apt-get install -y nodejs
   - npm install -g yarn pnpm
+%{ endif }
+%{ if enable_claude }
+
+  # ─────────────────────────────────────────────────────────────────
+  # CLAUDE CLI
+  # ─────────────────────────────────────────────────────────────────
+  - npm install -g @anthropic-ai/claude-code
 %{ endif }
 
   # ─────────────────────────────────────────────────────────────────
@@ -383,15 +456,11 @@ runcmd:
   - export PATH=$PATH:/usr/local/bin
   - kind create cluster --config /root/kind-config.yaml --wait 5m || true
 
-  # ─────────────────────────────────────────────────────────────────
-  # INSTALL NGINX INGRESS
-  # ─────────────────────────────────────────────────────────────────
+  # Install NGINX Ingress
   - kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml || true
   - sleep 30
 
-  # ─────────────────────────────────────────────────────────────────
-  # INSTALL KUBERNETES DASHBOARD
-  # ─────────────────────────────────────────────────────────────────
+  # Install Kubernetes Dashboard
   - kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml || true
 
   # Create admin user for dashboard
@@ -417,9 +486,7 @@ runcmd:
       namespace: kubernetes-dashboard
     DASHEOF
 
-  # ─────────────────────────────────────────────────────────────────
-  # COPY KUBECONFIG FOR EXTERNAL ACCESS (Lens)
-  # ─────────────────────────────────────────────────────────────────
+  # Copy kubeconfig for external access (Lens)
   - mkdir -p /root/.kube
   - kind get kubeconfig --name infraforge-dev > /root/.kube/config
   - chmod 600 /root/.kube/config

@@ -70,13 +70,12 @@ func (c *Client) PullOCIChart(ctx context.Context, chartURL, version string) (st
 	}
 
 	// Pull chart using helm pull
-	fullChartRef := fmt.Sprintf("%s:%s", chartURL, version)
-	cmd := exec.CommandContext(ctx, "helm", "pull", fullChartRef, "--untar", "--destination", c.cacheDir)
+	cmd := exec.CommandContext(ctx, "helm", "pull", chartURL, "--version", version, "--untar", "--destination", c.cacheDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("failed to pull OCI chart %s: %w", fullChartRef, err)
+		return "", fmt.Errorf("failed to pull OCI chart %s version %s: %w", chartURL, version, err)
 	}
 
 	// Helm extracts to a directory named after the chart (without version)

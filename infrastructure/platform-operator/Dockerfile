@@ -27,8 +27,13 @@ RUN HELM_ARCH=${TARGETARCH} && \
     mv linux-${HELM_ARCH}/helm /usr/local/bin/helm && \
     chmod +x /usr/local/bin/helm
 
-# Final stage
-FROM gcr.io/distroless/base:nonroot
+# Final stage - Using alpine instead of distroless for git support
+FROM alpine:3.18
+
+# Install git and ca-certificates
+RUN apk add --no-cache git ca-certificates && \
+    addgroup -g 65532 -S nonroot && \
+    adduser -u 65532 -S nonroot -G nonroot
 
 WORKDIR /
 
@@ -38,5 +43,8 @@ COPY --from=builder /workspace/manager .
 COPY --from=builder /usr/local/bin/helm /usr/local/bin/helm
 
 USER 65532:65532
+
+# Set writable working directory for helm operations
+WORKDIR /tmp
 
 ENTRYPOINT ["/manager"]

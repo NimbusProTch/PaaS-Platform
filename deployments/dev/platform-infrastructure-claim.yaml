@@ -12,6 +12,10 @@ spec:
   environment: dev
   clusterType: nonprod
 
+  # GitOps configuration
+  giteaURL: http://gitea-http.gitea.svc.cluster.local:3000
+  organization: infraforge
+
   owner:
     team: platform-team
     email: platform@infraforge.io

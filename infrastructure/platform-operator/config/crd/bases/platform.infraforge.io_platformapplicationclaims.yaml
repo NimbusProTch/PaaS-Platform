@@ -64,8 +64,14 @@ spec:
                 description: Environment deployment environment (dev, qa, sandbox,
                   staging, prod)
                 type: string
+              giteaURL:
+                description: GiteaURL Gitea server URL (e.g., http://gitea-http.gitea.svc.cluster.local:3000)
+                type: string
               namespace:
                 description: Namespace target namespace (auto-generated if empty)
+                type: string
+              organization:
+                description: Organization Gitea organization name
                 type: string
               owner:
                 description: Owner team ownership information
@@ -156,6 +162,8 @@ spec:
             required:
             - clusterType
             - environment
+            - giteaURL
+            - organization
             - owner
             - services
             type: object
