@@ -6,8 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -217,10 +219,19 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
+	// Generate ArgoCD setup manifests in the GitOps repo
+	logger.Info("Generating ArgoCD setup manifests")
+	if err := r.generateArgoCDSetup(ctx, claim, giteaClient, repoURLs[voltranRepo], branch); err != nil {
+		logger.Error(err, "failed to generate ArgoCD setup manifests")
+		// Don't fail the whole reconciliation, just log the error
+		claim.Status.Message = fmt.Sprintf("Bootstrap completed but ArgoCD setup generation failed: %v", err)
+	} else {
+		claim.Status.Message = "Bootstrap completed successfully - Apply argocd-setup manifests to complete"
+	}
+
 	// Mark as ready
 	claim.Status.Phase = "Ready"
 	claim.Status.Ready = true
-	claim.Status.Message = "Bootstrap completed successfully"
 	claim.Status.LastUpdated = metav1.Now()
 	if err := r.Status().Update(ctx, claim); err != nil {
 		return ctrl.Result{}, err
@@ -386,6 +397,260 @@ func (r *BootstrapReconciler) updateStatusFailed(ctx context.Context, claim *pla
 	claim.Status.Message = message
 	claim.Status.LastUpdated = metav1.Now()
 	r.Status().Update(ctx, claim)
+}
+
+// generateArgoCDSetup generates ArgoCD setup manifests in the GitOps repo
+func (r *BootstrapReconciler) generateArgoCDSetup(ctx context.Context, claim *platformv1.BootstrapClaim, giteaClient *gitea.Client, voltranURL, branch string) error {
+	logger := log.FromContext(ctx)
+
+	clusterType := claim.Spec.GitOps.ClusterType
+	if clusterType == "" {
+		clusterType = "nonprod"
+	}
+
+	// Generate ArgoCD setup manifests
+	setupFiles := make(map[string]string)
+
+	// 1. Repository secret for Gitea
+	setupFiles["argocd-setup/01-repo-secret.yaml"] = fmt.Sprintf(`# ArgoCD Repository Secret for Gitea
+# Apply this to enable ArgoCD to pull from Gitea
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitea-repo
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+type: Opaque
+stringData:
+  type: git
+  url: %s/%s/voltran
+  username: %s
+  password: %s
+`, claim.Spec.GiteaURL, claim.Spec.Organization, r.GiteaUsername, r.GiteaToken)
+
+	// 2. OCI registry credentials for GHCR (for pulling Helm charts)
+	setupFiles["argocd-setup/02-helm-oci-secret.yaml"] = `# ArgoCD Helm OCI Registry Credentials
+# Apply this to enable ArgoCD to pull Helm charts from GHCR
+# NOTE: Replace GITHUB_TOKEN with your actual token
+apiVersion: v1
+kind: Secret
+metadata:
+  name: helm-oci-creds
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+type: Opaque
+stringData:
+  type: helm
+  url: oci://ghcr.io/infraforge
+  username: infraforge
+  password: GITHUB_TOKEN  # Replace with actual GitHub token
+  enableOCI: "true"
+`
+
+	// 3. Root application for apps
+	setupFiles["argocd-setup/03-apps-root.yaml"] = fmt.Sprintf(`# Root Application for Application ApplicationSets
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: %s-apps-root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: %s/%s/voltran
+    path: appsets/%s/apps
+    targetRevision: %s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+`, clusterType, claim.Spec.GiteaURL, claim.Spec.Organization, clusterType, branch)
+
+	// 4. Root application for platform
+	setupFiles["argocd-setup/04-platform-root.yaml"] = fmt.Sprintf(`# Root Application for Platform ApplicationSets
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: %s-platform-root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: %s/%s/voltran
+    path: appsets/%s/platform
+    targetRevision: %s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+`, clusterType, claim.Spec.GiteaURL, claim.Spec.Organization, clusterType, branch)
+
+	// 5. GitHub token secret for image pulls
+	setupFiles["argocd-setup/05-github-token-secret.yaml"] = `# GitHub Token Secret for Image Pulls from GHCR
+# Apply this to enable pulling container images from GitHub Container Registry
+# NOTE: Replace GITHUB_TOKEN with your actual token
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-token
+  namespace: platform-operator-system
+type: kubernetes.io/dockerconfigjson
+stringData:
+  .dockerconfigjson: |
+    {
+      "auths": {
+        "ghcr.io": {
+          "username": "infraforge",
+          "password": "GITHUB_TOKEN",
+          "auth": "BASE64_ENCODED_USERNAME:TOKEN"
+        }
+      }
+    }
+---
+# ImagePullSecret for pulling images from GHCR
+# This will be used by the platform-operator deployment
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ghcr-pull-secret
+  namespace: platform-operator-system
+type: kubernetes.io/dockerconfigjson
+stringData:
+  .dockerconfigjson: |
+    {
+      "auths": {
+        "ghcr.io": {
+          "username": "infraforge",
+          "password": "GITHUB_TOKEN",
+          "auth": "BASE64_ENCODED_USERNAME:TOKEN"
+        }
+      }
+    }
+`
+
+	// 6. README with instructions
+	setupFiles["argocd-setup/README.md"] = fmt.Sprintf(`# ArgoCD Setup Manifests
+
+These manifests were automatically generated by the Platform Operator to set up ArgoCD for your GitOps workflow.
+
+## Prerequisites
+
+1. Ensure ArgoCD is installed in your cluster:
+   \`\`\`bash
+   kubectl create namespace argocd
+   kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+   \`\`\`
+
+2. Ensure you have a GitHub token with package:read permissions for pulling Helm charts from GHCR
+
+## Setup Steps
+
+1. **Update GitHub tokens in the manifests**:
+   - In \`02-helm-oci-secret.yaml\`: Replace \`GITHUB_TOKEN\` with your actual GitHub token
+   - In \`05-github-token-secret.yaml\`: Replace \`GITHUB_TOKEN\` and \`BASE64_ENCODED_USERNAME:TOKEN\`
+     (You can generate the base64 auth with: \`echo -n "infraforge:YOUR_GITHUB_TOKEN" | base64\`)
+
+2. **Apply all manifests**:
+   \`\`\`bash
+   kubectl apply -f argocd-setup/
+   \`\`\`
+
+   Or apply individually in order:
+   \`\`\`bash
+   kubectl apply -f argocd-setup/01-repo-secret.yaml
+   kubectl apply -f argocd-setup/02-helm-oci-secret.yaml
+   kubectl apply -f argocd-setup/03-apps-root.yaml
+   kubectl apply -f argocd-setup/04-platform-root.yaml
+   kubectl apply -f argocd-setup/05-github-token-secret.yaml
+   \`\`\`
+
+3. **Verify the setup**:
+   \`\`\`bash
+   # Check if secrets are created
+   kubectl get secrets -n argocd | grep -E "gitea-repo|helm-oci-creds"
+
+   # Check if root applications are created and synced
+   kubectl get applications -n argocd
+   \`\`\`
+
+## What These Manifests Do
+
+- **01-repo-secret.yaml**: Configures ArgoCD to authenticate with your Gitea repository
+- **02-helm-oci-secret.yaml**: Configures ArgoCD to pull Helm charts from GitHub Container Registry
+- **03-apps-root.yaml**: Creates the root application that watches for ApplicationSets for microservices
+- **04-platform-root.yaml**: Creates the root application that watches for ApplicationSets for platform services
+- **05-github-token-secret.yaml**: Configures image pull secrets for pulling container images from GHCR
+
+## Next Steps
+
+After applying these manifests:
+
+1. Create ApplicationClaims to deploy your applications:
+   \`\`\`bash
+   kubectl apply -f deployments/dev/apps-claim.yaml
+   kubectl apply -f deployments/dev/platform-infrastructure-claim.yaml
+   \`\`\`
+
+2. Monitor the operator logs:
+   \`\`\`bash
+   kubectl logs -n platform-operator-system -l control-plane=controller-manager -f
+   \`\`\`
+
+3. Check ArgoCD UI to see your applications being deployed:
+   \`\`\`bash
+   kubectl port-forward svc/argocd-server -n argocd 8080:443
+   \`\`\`
+   Then visit https://localhost:8080
+
+## Troubleshooting
+
+- If applications show as "Unknown" in ArgoCD, ensure the OCI registry credentials are correct
+- If sync fails, check that the Gitea repository secret has the correct credentials
+- For image pull issues, ensure the GitHub token secret exists in the platform-operator-system namespace
+
+Generated by Platform Operator at $(date)
+`)
+
+	// Push the setup files to Gitea
+	if err := giteaClient.PushFiles(ctx, voltranURL, branch, setupFiles,
+		"Add ArgoCD setup manifests", "Platform Operator", "operator@platform.local"); err != nil {
+		return fmt.Errorf("failed to push ArgoCD setup manifests: %w", err)
+	}
+
+	logger.Info("Successfully generated ArgoCD setup manifests in voltran/argocd-setup/")
+	logger.Info("To complete setup, apply the manifests: kubectl apply -f argocd-setup/")
+
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager
