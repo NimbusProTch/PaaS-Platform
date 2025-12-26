@@ -1,0 +1,110 @@
+apiVersion: platform.infraforge.io/v1
+kind: ApplicationClaim
+metadata:
+  name: minimal-apps
+  namespace: default
+  labels:
+    environment: dev
+    type: minimal
+spec:
+  environment: dev
+  clusterType: nonprod
+
+  # GitOps configuration
+  giteaURL: http://gitea-http.gitea.svc.cluster.local:3000
+  organization: infraforge
+
+  owner:
+    team: platform-team
+    email: platform@infraforge.io
+    slack: "#platform-dev"
+
+  # Only 2 microservices for testing
+  applications:
+    # User Service (lightweight)
+    - name: user-service
+      chart:
+        name: microservice
+        version: "1.0.0"
+      image:
+        repository: ghcr.io/nimbusprotch/user-service
+        tag: v1.0.0
+      serviceName: user-service
+      version: v1.0.0
+      replicas: 1  # Single replica
+
+      ports:
+        - name: http
+          port: 8081
+          protocol: TCP
+
+      healthCheck:
+        path: /health
+        port: 8081
+        initialDelaySeconds: 30
+        periodSeconds: 10
+
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "128Mi"
+        limits:
+          cpu: "200m"
+          memory: "256Mi"
+
+      env:
+        - name: ENVIRONMENT
+          value: "development"
+        - name: PORT
+          value: "8081"
+        - name: DB_HOST
+          value: "main-db"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: "users"
+        - name: REDIS_HOST
+          value: "cache"
+        - name: REDIS_PORT
+          value: "6379"
+
+    # Product Service (lightweight)
+    - name: product-service
+      chart:
+        name: microservice
+        version: "1.0.0"
+      image:
+        repository: ghcr.io/nimbusprotch/product-service
+        tag: v1.0.0
+      serviceName: product-service
+      version: v1.0.0
+      replicas: 1  # Single replica
+
+      ports:
+        - name: http
+          port: 8080
+          protocol: TCP
+
+      healthCheck:
+        path: /health
+        port: 8080
+        initialDelaySeconds: 30
+        periodSeconds: 10
+
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "256Mi"
+        limits:
+          cpu: "200m"
+          memory: "512Mi"
+
+      env:
+        - name: NODE_ENV
+          value: "development"
+        - name: PORT
+          value: "8080"
+        - name: DATABASE_URL
+          value: "postgresql://product:password@main-db:5432/products"
+        - name: REDIS_URL
+          value: "redis://cache:6379"
