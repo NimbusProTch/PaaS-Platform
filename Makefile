@@ -1,10 +1,11 @@
-.PHONY: help dev cluster gitea operator token bootstrap claims clean logs status
+.PHONY: help dev cluster gitea argocd operator token bootstrap claims clean logs status lightweight
 
 CLUSTER_NAME = platform-dev
 GITEA_ADMIN_USER = gitea_admin
 GITEA_ADMIN_PASS = r8sA8CPHD9!bt6d
 OPERATOR_IMAGE = platform-operator:dev
 GITHUB_TOKEN ?= $(GITHUB_TOKEN)
+ARGOCD_VERSION = v2.9.3
 
 help: ## Yardım göster
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -47,6 +48,21 @@ gitea: ## Gitea kur (minimal, TEK pod)
 	@kubectl delete service -n gitea gitea-valkey-cluster gitea-valkey-cluster-headless 2>/dev/null || true
 	@kubectl delete pvc -n gitea -l app.kubernetes.io/name=valkey 2>/dev/null || true
 	@echo "✅ Gitea hazır (TEK pod)"
+
+argocd: ## ArgoCD kur
+	@echo "🚀 ArgoCD kuruluyor..."
+	@kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/$(ARGOCD_VERSION)/manifests/install.yaml
+	@echo "⏳ ArgoCD pod'ların hazır olması bekleniyor..."
+	@kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
+	@echo "🔑 ArgoCD admin şifresi alınıyor..."
+	@echo ""
+	@echo "ArgoCD Admin Password:"
+	@kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d && echo ""
+	@echo ""
+	@echo "✅ ArgoCD hazır!"
+	@echo "Port-forward: kubectl port-forward svc/argocd-server -n argocd 8080:443"
+	@echo "Login: admin / (yukarıdaki şifre)"
 
 operator: ## Operator build ve deploy
 	@echo "🔨 Operator build ediliyor..."
@@ -103,6 +119,17 @@ claims: ## Application ve Platform claims deploy et
 	@echo "⏳ Bekleniyor..."
 	@sleep 10
 	@echo "✅ Claims tamamlandı"
+
+lightweight: ## Lightweight claims deploy et (2 app + postgres + redis)
+	@echo "🚀 Lightweight deployment başlatılıyor..."
+	@kubectl apply -f deployments/lightweight/platform-minimal.yaml
+	@echo "⏳ Platform services bekleniyor..."
+	@sleep 15
+	@kubectl apply -f deployments/lightweight/apps-minimal.yaml
+	@echo "⏳ Applications bekleniyor..."
+	@sleep 10
+	@echo "✅ Lightweight deployment tamamlandı"
+	@kubectl get applicationclaim,platformapplicationclaim
 
 status: ## Status göster
 	@echo "📊 === CLUSTER STATUS ==="

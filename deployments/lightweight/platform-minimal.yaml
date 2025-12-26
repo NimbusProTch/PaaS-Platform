@@ -1,0 +1,63 @@
+apiVersion: platform.infraforge.io/v1
+kind: PlatformApplicationClaim
+metadata:
+  name: minimal-platform
+  namespace: default
+  labels:
+    environment: dev
+    type: minimal
+spec:
+  environment: dev
+  clusterType: nonprod
+
+  # GitOps configuration
+  giteaURL: http://gitea-http.gitea.svc.cluster.local:3000
+  organization: infraforge
+
+  owner:
+    team: platform-team
+    email: platform@infraforge.io
+    slack: "#platform-dev"
+
+  # Minimal infrastructure services
+  services:
+    # Single PostgreSQL for both services
+    - type: postgresql
+      name: main-db
+      version: "15"
+      size: small
+      chart:
+        name: postgresql
+        version: "1.0.0"
+      values:
+        persistence:
+          size: 5Gi
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        postgresql:
+          maxConnections: 100
+          sharedBuffers: "64MB"
+
+    # Redis for caching
+    - type: redis
+      name: cache
+      version: "7"
+      size: small
+      chart:
+        name: redis
+        version: "1.0.0"
+      values:
+        persistence:
+          size: 1Gi
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
