@@ -1,0 +1,9 @@
+{{- if .Values.createNamespace }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "microservice.labels" . | nindent 4 }}
+    environment: {{ .Values.environment | default "dev" }}
+{{- end }}

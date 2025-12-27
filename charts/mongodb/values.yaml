@@ -1,4 +1,9 @@
 mongodb:
+# Namespace configuration
+createNamespace: true
+namespace: ""  # Will use .Release.Namespace if empty
+environment: dev
+
   members: 1
   version: "6.0.5"
   

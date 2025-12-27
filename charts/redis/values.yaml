@@ -1,4 +1,9 @@
 redis:
+# Namespace configuration
+createNamespace: true
+namespace: ""  # Will use .Release.Namespace if empty
+environment: dev
+
   clusterSize: 3
   image: redis:7.0
   

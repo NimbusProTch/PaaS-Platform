@@ -1,4 +1,9 @@
 # Base values - development defaults
+
+# Namespace configuration
+createNamespace: true
+namespace: ""  # Will use .Release.Namespace if empty
+environment: dev
 postgresql:
   instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:16

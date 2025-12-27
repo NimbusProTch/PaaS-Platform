@@ -1,6 +1,11 @@
 # Default values for microservice chart
 # This is a YAML-formatted file with development-friendly defaults
 
+# Namespace configuration
+createNamespace: true
+namespace: ""  # Will use .Release.Namespace if empty
+environment: dev
+
 replicaCount: 1
 
 image:

@@ -1,4 +1,9 @@
 kafka:
+# Namespace configuration
+createNamespace: true
+namespace: ""  # Will use .Release.Namespace if empty
+environment: dev
+
   replicas: 1
   version: 3.5.0
   

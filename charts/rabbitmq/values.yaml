@@ -1,4 +1,9 @@
 rabbitmq:
+# Namespace configuration
+createNamespace: true
+namespace: ""  # Will use .Release.Namespace if empty
+environment: dev
+
   replicas: 1
   image: rabbitmq:3.12-management
   

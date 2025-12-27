@@ -3,7 +3,8 @@
 CLUSTER_NAME = infraforge-local
 GITEA_ADMIN_USER = gitea_admin
 GITEA_ADMIN_PASS = r00tp@ssw0rd
-OPERATOR_IMAGE = platform-operator:dev
+# OPERATOR_IMAGE artık kullanılmıyor, GitHub'dan çekiyoruz
+# OPERATOR_IMAGE = platform-operator:dev
 GITHUB_TOKEN ?= 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
 GITHUB_USER = infraforge
 ARGOCD_VERSION = v2.9.3
@@ -81,22 +82,25 @@ argocd: ## ArgoCD kur
 	@echo "Port-forward: kubectl port-forward svc/argocd-server -n argocd 8080:443"
 	@echo "Login: admin / (yukarıdaki şifre)"
 
-operator: ## Operator build ve deploy
-	@echo "🔨 Operator build ediliyor..."
-	@docker build -t $(OPERATOR_IMAGE) -f infrastructure/platform-operator/Dockerfile infrastructure/platform-operator -q
-	@echo "📦 Kind'a yükleniyor..."
-	@kind load docker-image $(OPERATOR_IMAGE) --name $(CLUSTER_NAME)
+operator: ## Operator deploy (GitHub'dan pull)
 	@echo "📋 CRD kuruluyor..."
 	@kubectl apply -f infrastructure/platform-operator/config/crd/bases
-	@echo "🚀 Operator deploy ediliyor..."
+	@echo "🚀 Operator deploy ediliyor (GitHub Package'dan)..."
 	@kubectl create namespace platform-operator-system --dry-run=client -o yaml | kubectl apply -f -
+	@echo "🔐 Image pull secret oluşturuluyor..."
+	@kubectl create secret docker-registry ghcr-secret \
+	  --docker-server=ghcr.io \
+	  --docker-username=$(GITHUB_USER) \
+	  --docker-password=$(GITHUB_TOKEN) \
+	  --namespace platform-operator-system \
+	  --dry-run=client -o yaml | kubectl apply -f -
 	@kubectl apply -f infrastructure/platform-operator/config/default/rbac.yaml -n platform-operator-system
 	@cd infrastructure/platform-operator/config/manager && \
-	  kustomize edit set image controller=$(OPERATOR_IMAGE) && \
+	  kustomize edit set image controller=ghcr.io/nimbusprotch/platform-operator:latest && \
 	  kubectl apply -k . -n platform-operator-system
 	@echo "⏳ Operator bekleniyor..."
 	@sleep 10
-	@echo "✅ Operator hazır"
+	@echo "✅ Operator hazır (ghcr.io/nimbusprotch/platform-operator:latest)"
 
 github-secret: ## GitHub image pull secret oluştur
 	@echo "🔐 GitHub image pull secret oluşturuluyor..."
