@@ -17,7 +17,7 @@ app.get('/ready', (req: Request, res: Response) => {
 app.get('/', (req: Request, res: Response) => {
   res.json({
     service: 'user-service',
-    version: '1.0.0',
+    version: '1.0.1',
     timestamp: new Date().toISOString()
   });
 });
