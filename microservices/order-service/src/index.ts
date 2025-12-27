@@ -16,20 +16,20 @@ app.get('/ready', (req: Request, res: Response) => {
 // Main endpoint
 app.get('/', (req: Request, res: Response) => {
   res.json({
-    service: 'payment-service',
+    service: 'order-service',
     version: '1.0.0',
     timestamp: new Date().toISOString()
   });
 });
 
-// Payments endpoints
-app.get('/payments', (req: Request, res: Response) => {
+// Orders endpoints
+app.get('/orders', (req: Request, res: Response) => {
   res.json([
-    { id: 1, amount: 100, status: 'completed' },
-    { id: 2, amount: 200, status: 'pending' }
+    { id: 1, product: 'Product 1', quantity: 2, status: 'pending' },
+    { id: 2, product: 'Product 2', quantity: 1, status: 'shipped' }
   ]);
 });
 
 app.listen(PORT, () => {
-  console.log(`Payment service is running on port ${PORT}`);
+  console.log(`Order service is running on port ${PORT}`);
 });

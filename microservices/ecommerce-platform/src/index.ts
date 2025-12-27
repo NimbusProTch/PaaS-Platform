@@ -16,20 +16,21 @@ app.get('/ready', (req: Request, res: Response) => {
 // Main endpoint
 app.get('/', (req: Request, res: Response) => {
   res.json({
-    service: 'payment-service',
+    service: 'ecommerce-platform',
     version: '1.0.0',
     timestamp: new Date().toISOString()
   });
 });
 
-// Payments endpoints
-app.get('/payments', (req: Request, res: Response) => {
-  res.json([
-    { id: 1, amount: 100, status: 'completed' },
-    { id: 2, amount: 200, status: 'pending' }
-  ]);
+// Platform endpoints
+app.get('/api/status', (req: Request, res: Response) => {
+  res.json({
+    platform: 'ecommerce-platform',
+    services: ['product', 'user', 'order', 'payment', 'notification'],
+    status: 'operational'
+  });
 });
 
 app.listen(PORT, () => {
-  console.log(`Payment service is running on port ${PORT}`);
+  console.log(`Ecommerce platform is running on port ${PORT}`);
 });
