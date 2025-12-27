@@ -1,20 +1,15 @@
-FROM golang:1.21-alpine AS builder
+FROM node:20-alpine
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
-RUN go mod download
+COPY package*.json ./
+RUN npm install
 
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o user-service .
+COPY tsconfig.json ./
+COPY src ./src
 
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
+RUN npm run build
 
-WORKDIR /root/
+EXPOSE 8080
 
-COPY --from=builder /app/user-service .
-
-EXPOSE 8081
-
-CMD ["./user-service"]
+CMD ["npm", "start"]
