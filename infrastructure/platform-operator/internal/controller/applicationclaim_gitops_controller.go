@@ -59,10 +59,8 @@ func (r *ApplicationClaimGitOpsReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	// Skip if already ready
-	if claim.Status.Phase == "Ready" && claim.Status.Ready {
-		return ctrl.Result{}, nil
-	}
+	// Always reconcile to handle spec changes
+	// This ensures updates to the ApplicationClaim are always processed
 
 	// Create GiteaClient dynamically from claim
 	giteaClient := gitea.NewClient(claim.Spec.GiteaURL, r.GiteaUsername, r.GiteaToken)

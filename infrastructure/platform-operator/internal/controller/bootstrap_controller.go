@@ -59,11 +59,8 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	// Skip if already ready
-	if claim.Status.Ready {
-		logger.Info("BootstrapClaim already ready", "name", claim.Name)
-		return ctrl.Result{}, nil
-	}
+	// Always reconcile to handle spec changes
+	// Check if gitea resources already exist before recreating
 
 	// Create GiteaClient dynamically from claim
 	giteaClient := gitea.NewClient(claim.Spec.GiteaURL, r.GiteaUsername, r.GiteaToken)
