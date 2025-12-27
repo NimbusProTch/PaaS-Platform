@@ -34,6 +34,7 @@ type PlatformApplicationClaimReconciler struct {
 //+kubebuilder:rbac:groups=platform.infraforge.io,resources=platformapplicationclaims/finalizers,verbs=update
 
 // Reconcile handles PlatformApplicationClaim reconciliation
+// This will process platform services like PostgreSQL, Redis, RabbitMQ, etc.
 func (r *PlatformApplicationClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Reconciling PlatformApplicationClaim", "name", req.Name, "namespace", req.Namespace)
