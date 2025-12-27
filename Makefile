@@ -1,8 +1,8 @@
-.PHONY: help dev cluster gitea argocd operator token bootstrap argocd-setup claims clean logs status full-deploy
+.PHONY: help dev cluster gitea argocd operator token bootstrap argocd-setup claims clean logs status full-deploy kind-create kind-delete install-gitea install-argocd install-operator
 
-CLUSTER_NAME = platform-dev
+CLUSTER_NAME = infraforge-local
 GITEA_ADMIN_USER = gitea_admin
-GITEA_ADMIN_PASS = r8sA8CPHD9!bt6d
+GITEA_ADMIN_PASS = r00tp@ssw0rd
 OPERATOR_IMAGE = platform-operator:dev
 GITHUB_TOKEN ?= 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
 GITHUB_USER = infraforge
@@ -222,3 +222,14 @@ clean: ## Her şeyi sil
 	@echo "🧹 Temizleniyor..."
 	@kind delete cluster --name $(CLUSTER_NAME) 2>/dev/null || true
 	@echo "✅ Temizlendi"
+
+# Alias commands for consistency
+kind-create: cluster ## Kind cluster oluştur (alias)
+
+kind-delete: clean ## Kind cluster sil (alias)
+
+install-gitea: gitea ## Gitea kur (alias)
+
+install-argocd: argocd ## ArgoCD kur (alias)
+
+install-operator: operator ## Operator kur (alias)
