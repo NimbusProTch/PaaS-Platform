@@ -151,11 +151,11 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 					"project": "default",
 					"source": map[string]interface{}{
 						"repoURL":        fmt.Sprintf("%s/%s/voltran", claim.Spec.GiteaURL, claim.Spec.Organization),
-						"path":           "charts",
+						"path":           "charts/{{chart}}",
 						"targetRevision": r.Branch,
 						"helm": map[string]interface{}{
 							"valueFiles": []string{
-								"../environments/" + claim.Spec.ClusterType + "/" + claim.Spec.Environment + "/platform/{{service}}/values.yaml",
+								"../../environments/" + claim.Spec.ClusterType + "/" + claim.Spec.Environment + "/platform/{{service}}/values.yaml",
 							},
 						},
 					},
