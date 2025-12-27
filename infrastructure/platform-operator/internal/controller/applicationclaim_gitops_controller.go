@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -17,7 +16,6 @@ import (
 
 	platformv1 "github.com/infraforge/platform-operator/api/v1"
 	"github.com/infraforge/platform-operator/pkg/gitea"
-	"github.com/infraforge/platform-operator/pkg/helm"
 )
 
 // ApplicationClaimGitOpsReconciler reconciles ApplicationClaim with GitOps
@@ -30,9 +28,6 @@ type ApplicationClaimGitOpsReconciler struct {
 	GiteaToken    string
 	VoltranRepo   string
 	Branch        string
-
-	// OCIBaseURL base URL for OCI charts (e.g., "oci://ghcr.io/nimbusprotch")
-	OCIBaseURL string
 }
 
 //+kubebuilder:rbac:groups=platform.infraforge.io,resources=applicationclaims,verbs=get;list;watch;create;update;patch;delete
@@ -165,23 +160,14 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 				},
 				"spec": map[string]interface{}{
 					"project": "default",
-					"sources": []map[string]interface{}{
-						{
-							// OCI chart source
-							"repoURL":        r.OCIBaseURL,
-							"chart":          "{{chart}}",
-							"targetRevision": "{{version}}",
-							"helm": map[string]interface{}{
-								"valueFiles": []string{
-									"$values/environments/" + claim.Spec.ClusterType + "/" + claim.Spec.Environment + "/applications/{{name}}/values.yaml",
-								},
+					"source": map[string]interface{}{
+						"repoURL":        fmt.Sprintf("%s/%s/%s", claim.Spec.GiteaURL, claim.Spec.Organization, r.VoltranRepo),
+						"path":           "charts/microservice",
+						"targetRevision": r.Branch,
+						"helm": map[string]interface{}{
+							"valueFiles": []string{
+								"../../environments/" + claim.Spec.ClusterType + "/" + claim.Spec.Environment + "/applications/{{name}}/values.yaml",
 							},
-						},
-						{
-							// Values repository source
-							"repoURL":        fmt.Sprintf("%s/%s/%s", claim.Spec.GiteaURL, claim.Spec.Organization, r.VoltranRepo),
-							"targetRevision": r.Branch,
-							"ref":            "values",
 						},
 					},
 					"destination": map[string]interface{}{
@@ -220,69 +206,11 @@ func (r *ApplicationClaimGitOpsReconciler) generateConfigJSON(app platformv1.App
 	return string(jsonBytes)
 }
 
-// generateValuesYAML generates Helm values.yaml for an application using smart merging
-// 1. Pull chart from OCI registry
-// 2. Read base values.yaml
-// 3. If production environment, merge values-production.yaml
-// 4. Apply CRD custom overrides
+// generateValuesYAML generates Helm values.yaml for an application
+// Since charts are now in Gitea, we just generate values from CRD spec
 func (r *ApplicationClaimGitOpsReconciler) generateValuesYAML(claim *platformv1.ApplicationClaim, app platformv1.ApplicationSpec) string {
-	logger := ctrl.Log.WithName("generateValues")
-
-	// Initialize Helm client
-	helmClient := helm.NewClient()
-
-	// Determine chart name and version
-	chartName := app.Chart.Name
-	if chartName == "" {
-		chartName = "microservice" // default chart
-	}
-	chartVersion := app.Chart.Version
-	if chartVersion == "" {
-		chartVersion = "1.0.0" // default version
-	}
-
-	// Build OCI chart URL
-	chartURL := fmt.Sprintf("%s/%s", r.OCIBaseURL, chartName)
-
-	// Step 1: Pull chart from OCI registry
-	chartPath, err := helmClient.PullOCIChart(context.Background(), chartURL, chartVersion)
-	if err != nil {
-		logger.Error(err, "failed to pull OCI chart, using CRD values only", "chart", chartURL, "version", chartVersion)
-		return r.generateValuesFromCRD(claim, app)
-	}
-
-	// Step 2: Read base values.yaml
-	baseValuesPath := filepath.Join(chartPath, "values.yaml")
-	baseValues, err := helmClient.ReadValuesFile(baseValuesPath)
-	if err != nil {
-		logger.Error(err, "failed to read base values.yaml, using CRD values only", "path", baseValuesPath)
-		return r.generateValuesFromCRD(claim, app)
-	}
-
-	// Step 3: Determine if production environment
-	isProd := claim.Spec.Environment == "prod" || claim.Spec.ClusterType == "prod"
-
-	finalValues := baseValues
-
-	// Step 4: Merge production values if applicable
-	if isProd {
-		prodValuesPath := filepath.Join(chartPath, "values-production.yaml")
-		prodValues, err := helmClient.ReadValuesFile(prodValuesPath)
-		if err == nil {
-			logger.Info("Merging production values", "chart", chartName)
-			finalValues = helmClient.MergeValues(finalValues, prodValues)
-		} else {
-			logger.Info("No production values found, using base values only", "path", prodValuesPath)
-		}
-	}
-
-	// Step 5: Apply CRD custom overrides
-	crdOverrides := r.buildCRDOverrides(app)
-	finalValues = helmClient.MergeValues(finalValues, crdOverrides)
-
-	// Marshal to YAML
-	data, _ := yaml.Marshal(finalValues)
-	return string(data)
+	// Generate values from CRD spec
+	return r.generateValuesFromCRD(claim, app)
 }
 
 // generateValuesFromCRD generates values.yaml from CRD spec only (fallback)
@@ -305,6 +233,13 @@ func (r *ApplicationClaimGitOpsReconciler) buildCRDOverrides(app platformv1.Appl
 		if app.Image.PullPolicy != "" {
 			overrides["image"].(map[string]interface{})["pullPolicy"] = app.Image.PullPolicy
 		}
+	}
+
+	// Always add imagePullSecrets for GHCR
+	overrides["imagePullSecrets"] = []map[string]interface{}{
+		{
+			"name": "ghcr-pull-secret",
+		},
 	}
 
 	// Replica count

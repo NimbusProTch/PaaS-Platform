@@ -27,7 +27,6 @@ type PlatformApplicationClaimReconciler struct {
 	GiteaToken    string
 	VoltranRepo   string
 	Branch        string
-	OCIBaseURL    string // Base URL for OCI registry (e.g., "oci://ghcr.io/nimbusprotch")
 }
 
 //+kubebuilder:rbac:groups=platform.infraforge.io,resources=platformapplicationclaims,verbs=get;list;watch;create;update;patch;delete
@@ -150,21 +149,14 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 				},
 				"spec": map[string]interface{}{
 					"project": "default",
-					"sources": []map[string]interface{}{
-						{
-							"repoURL":        "oci://ghcr.io/nimbusprotch",
-							"chart":          "{{chart}}",
-							"targetRevision": "1.0.0",
-							"helm": map[string]interface{}{
-								"valueFiles": []string{
-									"$values/environments/" + claim.Spec.ClusterType + "/" + claim.Spec.Environment + "/platform/{{service}}/values.yaml",
-								},
+					"source": map[string]interface{}{
+						"repoURL":        fmt.Sprintf("%s/%s/voltran", claim.Spec.GiteaURL, claim.Spec.Organization),
+						"path":           "charts",
+						"targetRevision": r.Branch,
+						"helm": map[string]interface{}{
+							"valueFiles": []string{
+								"../environments/" + claim.Spec.ClusterType + "/" + claim.Spec.Environment + "/platform/{{service}}/values.yaml",
 							},
-						},
-						{
-							"repoURL":        fmt.Sprintf("%s/%s/voltran", claim.Spec.GiteaURL, claim.Spec.Organization),
-							"targetRevision": r.Branch,
-							"ref":            "values",
 						},
 					},
 					"destination": map[string]interface{}{
@@ -212,27 +204,10 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformElements(claim *pla
 	return elements
 }
 
-// generatePlatformValuesYAML generates Helm values.yaml for a platform service using chart-aware merging
-// 1. Determines chart name from service type
-// 2. Determines production mode from environment
-// 3. Pulls and merges: base values + production values (if applicable) + custom values from CRD
+// generatePlatformValuesYAML generates Helm values.yaml for a platform service
+// Since charts are now in Gitea, we just generate values from CRD spec
 func (r *PlatformApplicationClaimReconciler) generatePlatformValuesYAML(claim *platformv1.PlatformApplicationClaim, service platformv1.PlatformServiceSpec, giteaClient *gitea.Client) string {
 	logger := log.Log.WithName("generatePlatformValuesYAML")
-
-	// Determine chart name
-	chartName := service.Chart.Name
-	if chartName == "" {
-		chartName = service.Type // fallback to type
-	}
-
-	// Determine chart version
-	chartVersion := service.Chart.Version
-	if chartVersion == "" {
-		chartVersion = "1.0.0" // default version
-	}
-
-	// Determine if production environment
-	production := claim.Spec.Environment == "prod" || claim.Spec.ClusterType == "prod"
 
 	// Parse custom values from CRD
 	var customValues map[string]interface{}
@@ -243,31 +218,12 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformValuesYAML(claim *p
 		}
 	}
 
-	// Pull and merge chart values from OCI registry
-	// This is where the magic happens: base + production + custom
-	chartURL := fmt.Sprintf("%s/%s", r.OCIBaseURL, chartName)
-	mergedValues, err := giteaClient.PullAndMergeOCIChartValues(
-		context.Background(),
-		chartURL,
-		chartVersion,
-		production,
-		customValues,
-	)
-
-	if err != nil {
-		// Fallback: if OCI pull fails, return custom values only
-		logger.Error(err, "failed to pull and merge chart values from OCI, using custom values only",
-			"chart", chartName, "version", chartVersion)
-
-		if customValues == nil {
-			customValues = make(map[string]interface{})
-		}
-
-		data, _ := yaml.Marshal(customValues)
-		return string(data)
+	if customValues == nil {
+		customValues = make(map[string]interface{})
 	}
 
-	return mergedValues
+	data, _ := yaml.Marshal(customValues)
+	return string(data)
 }
 
 // SetupWithManager sets up the controller with the Manager
