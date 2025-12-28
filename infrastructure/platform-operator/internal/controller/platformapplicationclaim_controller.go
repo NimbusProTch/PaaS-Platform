@@ -74,7 +74,7 @@ func (r *PlatformApplicationClaimReconciler) Reconcile(ctx context.Context, req 
 
 	// Generate ApplicationSet for platform services
 	appSetPath := fmt.Sprintf("appsets/%s/platform/%s-platform-appset.yaml", claim.Spec.ClusterType, claim.Spec.Environment)
-	appSetContent := r.generatePlatformApplicationSet(claim)
+	appSetContent := r.generatePlatformApplicationSet(claim, giteaClient)
 	files[appSetPath] = appSetContent
 
 	// Generate values.yaml for each service
@@ -118,7 +118,7 @@ func (r *PlatformApplicationClaimReconciler) Reconcile(ctx context.Context, req 
 }
 
 // generatePlatformApplicationSet generates ArgoCD ApplicationSet for platform services
-func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(claim *platformv1.PlatformApplicationClaim) string {
+func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(claim *platformv1.PlatformApplicationClaim, giteaClient *gitea.Client) string {
 	appSet := map[string]interface{}{
 		"apiVersion": "argoproj.io/v1alpha1",
 		"kind":       "ApplicationSet",
@@ -135,7 +135,7 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 			"generators": []map[string]interface{}{
 				{
 					"list": map[string]interface{}{
-						"elements": r.generatePlatformElements(claim),
+						"elements": r.generatePlatformElements(claim, giteaClient),
 					},
 				},
 			},
@@ -151,13 +151,11 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 				"spec": map[string]interface{}{
 					"project": "default",
 					"source": map[string]interface{}{
-						"repoURL":        fmt.Sprintf("%s/%s/voltran", claim.Spec.GiteaURL, claim.Spec.Organization),
-						"path":           "charts/{{chart}}",
-						"targetRevision": r.Branch,
+						"repoURL":        "oci://ghcr.io/nimbusprotch",
+						"chart":          "{{chart}}",
+						"targetRevision": "{{version}}",
 						"helm": map[string]interface{}{
-							"valueFiles": []string{
-								"../../environments/" + claim.Spec.ClusterType + "/" + claim.Spec.Environment + "/platform/{{service}}/values.yaml",
-							},
+							"values": "{{values}}",
 						},
 					},
 					"destination": map[string]interface{}{
@@ -181,7 +179,7 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 }
 
 // generatePlatformElements generates list elements for platform ApplicationSet
-func (r *PlatformApplicationClaimReconciler) generatePlatformElements(claim *platformv1.PlatformApplicationClaim) []map[string]string {
+func (r *PlatformApplicationClaimReconciler) generatePlatformElements(claim *platformv1.PlatformApplicationClaim, giteaClient *gitea.Client) []map[string]string {
 	elements := []map[string]string{}
 
 	for _, service := range claim.Spec.Services {
@@ -195,10 +193,14 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformElements(claim *pla
 			chartName = service.Type // fallback to type
 		}
 
+		valuesYAML := r.generatePlatformValuesYAML(claim, service, giteaClient)
+
 		elements = append(elements, map[string]string{
 			"service":     service.Name,
 			"chart":       chartName,
 			"environment": claim.Spec.Environment,
+			"version":     "1.0.0", // Chart version
+			"values":      valuesYAML,
 		})
 	}
 

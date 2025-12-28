@@ -90,7 +90,7 @@ func (r *ApplicationClaimGitOpsReconciler) Reconcile(ctx context.Context, req ct
 
 		// config.json (metadata for ApplicationSet)
 		configPath := fmt.Sprintf("environments/%s/%s/applications/%s/config.json", claim.Spec.ClusterType, claim.Spec.Environment, app.Name)
-		configContent := r.generateConfigJSON(app)
+		configContent := r.generateConfigJSON(claim, app)
 		files[configPath] = configContent
 	}
 
@@ -159,13 +159,11 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 				"spec": map[string]interface{}{
 					"project": "default",
 					"source": map[string]interface{}{
-						"repoURL":        fmt.Sprintf("%s/%s/%s", claim.Spec.GiteaURL, claim.Spec.Organization, r.VoltranRepo),
-						"path":           "charts/microservice",
-						"targetRevision": r.Branch,
+						"repoURL":        "oci://ghcr.io/nimbusprotch",
+						"chart":          "{{chart}}",
+						"targetRevision": "{{version}}",
 						"helm": map[string]interface{}{
-							"valueFiles": []string{
-								"../../environments/" + claim.Spec.ClusterType + "/" + claim.Spec.Environment + "/applications/{{name}}/values.yaml",
-							},
+							"values": "{{values}}",
 						},
 					},
 					"destination": map[string]interface{}{
@@ -189,11 +187,12 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 }
 
 // generateConfigJSON generates config.json with chart metadata and service name
-func (r *ApplicationClaimGitOpsReconciler) generateConfigJSON(app platformv1.ApplicationSpec) string {
+func (r *ApplicationClaimGitOpsReconciler) generateConfigJSON(claim *platformv1.ApplicationClaim, app platformv1.ApplicationSpec) string {
 	config := map[string]interface{}{
 		"name":    app.Name,
 		"chart":   app.Chart.Name,
 		"version": app.Chart.Version,
+		"values":  r.generateValuesYAML(claim, app),
 	}
 
 	if app.Chart.Version == "" {
