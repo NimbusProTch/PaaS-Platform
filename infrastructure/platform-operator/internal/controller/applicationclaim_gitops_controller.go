@@ -203,8 +203,8 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 }
 
 // generateApplicationElements generates list elements for ApplicationSet
-func (r *ApplicationClaimGitOpsReconciler) generateApplicationElements(claim *platformv1.ApplicationClaim) []map[string]string {
-	elements := []map[string]string{}
+func (r *ApplicationClaimGitOpsReconciler) generateApplicationElements(claim *platformv1.ApplicationClaim) []map[string]interface{} {
+	elements := []map[string]interface{}{}
 
 	for _, app := range claim.Spec.Applications {
 		// Skip disabled applications
@@ -222,13 +222,14 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationElements(claim *pl
 			version = "1.0.0" // default version
 		}
 
-		valuesYAML := r.generateValuesYAML(claim, app)
+		// Get values as map instead of YAML string
+		valuesMap := r.buildCRDOverrides(app)
 
-		elements = append(elements, map[string]string{
-			"name":    app.Name,
-			"chart":   chartName,
-			"version": version,
-			"values":  valuesYAML,
+		elements = append(elements, map[string]interface{}{
+			"name":         app.Name,
+			"chart":        chartName,
+			"version":      version,
+			"valuesObject": valuesMap, // Use valuesObject for proper parsing
 		})
 	}
 

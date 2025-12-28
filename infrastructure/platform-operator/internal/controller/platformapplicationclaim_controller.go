@@ -200,8 +200,8 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 }
 
 // generatePlatformElements generates list elements for platform ApplicationSet
-func (r *PlatformApplicationClaimReconciler) generatePlatformElements(claim *platformv1.PlatformApplicationClaim, giteaClient *gitea.Client) []map[string]string {
-	elements := []map[string]string{}
+func (r *PlatformApplicationClaimReconciler) generatePlatformElements(claim *platformv1.PlatformApplicationClaim, giteaClient *gitea.Client) []map[string]interface{} {
+	elements := []map[string]interface{}{}
 
 	for _, service := range claim.Spec.Services {
 		// Skip disabled services
@@ -214,14 +214,22 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformElements(claim *pla
 			chartName = service.Type // fallback to type
 		}
 
-		valuesYAML := r.generatePlatformValuesYAML(claim, service, giteaClient)
+		// Parse values YAML to map
+		var valuesMap map[string]interface{}
+		if service.Values.Raw != nil {
+			if err := yaml.Unmarshal(service.Values.Raw, &valuesMap); err != nil {
+				valuesMap = make(map[string]interface{})
+			}
+		} else {
+			valuesMap = make(map[string]interface{})
+		}
 
-		elements = append(elements, map[string]string{
-			"service":     service.Name,
-			"chart":       chartName,  // Just chart name, no prefix
-			"environment": claim.Spec.Environment,
-			"version":     "1.0.0", // Chart version
-			"values":      valuesYAML,
+		elements = append(elements, map[string]interface{}{
+			"service":      service.Name,
+			"chart":        chartName,  // Just chart name, no prefix
+			"environment":  claim.Spec.Environment,
+			"version":      "1.0.0", // Chart version
+			"valuesObject": valuesMap, // Use valuesObject instead of values
 		})
 	}
 

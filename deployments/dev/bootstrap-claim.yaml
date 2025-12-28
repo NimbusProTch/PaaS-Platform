@@ -7,19 +7,26 @@ spec:
   # Gitea configuration
   giteaURL: http://gitea-http.gitea.svc.cluster.local:3000
   organization: infraforge
-  repository: voltran
-  branch: main
 
-  # Environment configuration
-  environment: dev
-  clusterType: nonprod
+  # Repositories to create
+  repositories:
+    charts: charts
+    voltran: voltran
 
-  # Auto-create gitops structure
-  createGitOpsStructure: true
+  # GitOps configuration
+  gitOps:
+    branch: main
+    clusterType: nonprod
+    environments:
+      - dev
+      - qa
+      - sandbox
+      - staging
+      - prod
 
-  # ArgoCD root applications to deploy
-  argoCDApplications:
-    - name: dev-apps-root
-      path: appsets/nonprod/apps/root-app.yaml
-    - name: dev-platform-root
-      path: appsets/nonprod/platform/root-app.yaml
+  # Charts repository configuration (optional - uses embedded charts if not specified)
+  # chartsRepository:
+  #   type: git
+  #   url: https://github.com/your-org/charts
+  #   branch: main
+  #   path: charts
