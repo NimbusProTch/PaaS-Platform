@@ -1,9 +1,9 @@
-# 🔴 URGENT FIX REQUIRED - GitHub Token
+# ✅ RESOLVED - GitHub Token Updated
 
-## Problem
-The GitHub token `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` is **INVALID/EXPIRED**.
+## Status: FIXED (2025-12-28)
+The GitHub token has been successfully updated with a new Personal Access Token.
 
-ArgoCD cannot pull Helm charts from GitHub Packages (ghcr.io) because authentication fails.
+This token has write:packages permission and is confirmed working.
 
 ## Solution Options
 

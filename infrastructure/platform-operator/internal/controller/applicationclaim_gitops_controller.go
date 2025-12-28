@@ -163,7 +163,7 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 						"chart":          "{{chart}}",
 						"targetRevision": "{{version}}",
 						"helm": map[string]interface{}{
-							"values": "{{values}}",
+							"valuesLiteral": "{{values}}",
 						},
 					},
 					"destination": map[string]interface{}{

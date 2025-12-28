@@ -155,7 +155,7 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 						"chart":          "{{chart}}",
 						"targetRevision": "{{version}}",
 						"helm": map[string]interface{}{
-							"values": "{{values}}",
+							"valuesLiteral": "{{values}}",
 						},
 					},
 					"destination": map[string]interface{}{
