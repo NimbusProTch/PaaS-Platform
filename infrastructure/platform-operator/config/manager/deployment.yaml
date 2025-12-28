@@ -17,10 +17,10 @@ spec:
     spec:
       serviceAccountName: platform-operator
       imagePullSecrets:
-      - name: ghcr-secret
+      - name: ghcr-pull-secret
       containers:
       - name: manager
-        image: platform-operator:latest
+        image: ghcr.io/nimbusprotch/platform-operator:latest
         imagePullPolicy: IfNotPresent
         args:
         - --leader-elect

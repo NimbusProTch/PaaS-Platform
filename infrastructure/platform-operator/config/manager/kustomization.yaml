@@ -4,7 +4,7 @@ namespace: platform-operator-system
 resources:
 - deployment.yaml
 images:
-- name: controller
+- name: platform-operator:latest
   newName: ghcr.io/nimbusprotch/platform-operator
   newTag: latest
 patches:
