@@ -176,7 +176,7 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 						"chart":          "{{chart}}",
 						"targetRevision": "{{version}}",
 						"helm": map[string]interface{}{
-							"valuesObject": "{{valuesObject}}",
+							"values": "{{values}}",
 						},
 					},
 					"destination": map[string]interface{}{
@@ -224,12 +224,13 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformElements(claim *pla
 			valuesMap = make(map[string]interface{})
 		}
 
+		valuesYAML, _ := yaml.Marshal(valuesMap)
 		elements = append(elements, map[string]interface{}{
-			"service":      service.Name,
-			"chart":        chartName,  // Just chart name, no prefix
-			"environment":  claim.Spec.Environment,
-			"version":      "1.0.0", // Chart version
-			"valuesObject": valuesMap, // Use valuesObject instead of values
+			"service":     service.Name,
+			"chart":       chartName, // Just chart name, no prefix
+			"environment": claim.Spec.Environment,
+			"version":     "1.0.0",           // Chart version
+			"values":      string(valuesYAML), // Send as YAML string
 		})
 	}
 

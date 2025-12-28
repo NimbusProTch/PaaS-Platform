@@ -179,7 +179,7 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 						"chart":          "{{chart}}",
 						"targetRevision": "{{version}}",
 						"helm": map[string]interface{}{
-							"valuesObject": "{{valuesObject}}",
+							"values": "{{values}}",
 						},
 					},
 					"destination": map[string]interface{}{
@@ -222,14 +222,15 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationElements(claim *pl
 			version = "1.0.0" // default version
 		}
 
-		// Get values as map instead of YAML string
+		// Get values as YAML string for ArgoCD
 		valuesMap := r.buildCRDOverrides(app)
+		valuesYAML, _ := yaml.Marshal(valuesMap)
 
 		elements = append(elements, map[string]interface{}{
-			"name":         app.Name,
-			"chart":        chartName,
-			"version":      version,
-			"valuesObject": valuesMap, // Use valuesObject for proper parsing
+			"name":    app.Name,
+			"chart":   chartName,
+			"version": version,
+			"values":  string(valuesYAML), // Send as YAML string
 		})
 	}
 
