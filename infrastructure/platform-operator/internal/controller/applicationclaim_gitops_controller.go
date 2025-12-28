@@ -75,14 +75,17 @@ func (r *ApplicationClaimGitOpsReconciler) Reconcile(ctx context.Context, req ct
 	appSetPath := fmt.Sprintf("appsets/%s/apps/%s-appset.yaml", claim.Spec.ClusterType, claim.Spec.Environment)
 	appSetContent := r.generateApplicationSet(claim)
 	files[appSetPath] = appSetContent
+	logger.Info("Generated ApplicationSet content", "path", appSetPath, "length", len(appSetContent))
 
 	// Generate directory structure for each application
+	enabledCount := 0
 	for _, app := range claim.Spec.Applications {
 		// Skip disabled applications
 		if !app.Enabled {
 			logger.Info("Skipping disabled application", "name", app.Name)
 			continue
 		}
+		enabledCount++
 
 		// values.yaml
 		valuesPath := fmt.Sprintf("environments/%s/%s/applications/%s/values.yaml", claim.Spec.ClusterType, claim.Spec.Environment, app.Name)
@@ -93,25 +96,36 @@ func (r *ApplicationClaimGitOpsReconciler) Reconcile(ctx context.Context, req ct
 		configPath := fmt.Sprintf("environments/%s/%s/applications/%s/config.json", claim.Spec.ClusterType, claim.Spec.Environment, app.Name)
 		configContent := r.generateConfigJSON(claim, app)
 		files[configPath] = configContent
+
+		logger.Info("Generated application files", "app", app.Name, "valuesPath", valuesPath, "configPath", configPath)
 	}
+
+	logger.Info("Total files to push", "fileCount", len(files), "enabledApps", enabledCount)
 
 	// Push to Gitea - use internal clone URL
 	voltranURL := giteaClient.ConstructCloneURL(claim.Spec.Organization, r.VoltranRepo)
 	commitMsg := fmt.Sprintf("Update %s environment applications by operator", claim.Spec.Environment)
 
+	logger.Info("Pushing files to Gitea", "url", voltranURL, "branch", r.Branch, "commitMsg", commitMsg)
+
 	if err := giteaClient.PushFiles(ctx, voltranURL, r.Branch, files, commitMsg,
 		"Platform Operator", "operator@platform.local"); err != nil {
-		logger.Error(err, "failed to push to Git")
+		logger.Error(err, "failed to push to Git", "url", voltranURL)
 		// Don't update status on git errors, just retry
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
+	logger.Info("Successfully pushed files to Git")
+
 	// Create ApplicationSet in ArgoCD namespace
+	logger.Info("Creating ApplicationSet in ArgoCD", "name", fmt.Sprintf("%s-apps", claim.Spec.Environment))
 	appSet := r.generateApplicationSet(claim)
 	if err := r.createApplicationSet(ctx, appSet, claim); err != nil {
 		logger.Error(err, "failed to create ApplicationSet")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
+
+	logger.Info("Successfully created ApplicationSet")
 
 	// Update status to Ready only if not already ready
 	if claim.Status.Phase != "Ready" || !claim.Status.Ready {
@@ -337,14 +351,20 @@ func (r *ApplicationClaimGitOpsReconciler) buildCRDOverrides(app platformv1.Appl
 
 // createApplicationSet creates or updates the ApplicationSet in ArgoCD namespace
 func (r *ApplicationClaimGitOpsReconciler) createApplicationSet(ctx context.Context, appSetYAML string, claim *platformv1.ApplicationClaim) error {
+	logger := log.FromContext(ctx)
+	logger.Info("Starting createApplicationSet", "yamlLength", len(appSetYAML))
+
 	// Parse YAML to unstructured object
 	obj := &unstructured.Unstructured{}
 	if err := yaml.Unmarshal([]byte(appSetYAML), &obj.Object); err != nil {
+		logger.Error(err, "Failed to unmarshal ApplicationSet YAML")
 		return fmt.Errorf("failed to unmarshal ApplicationSet: %w", err)
 	}
 
 	// Set namespace to argocd
 	obj.SetNamespace("argocd")
+	appSetName := obj.GetName()
+	logger.Info("ApplicationSet details", "name", appSetName, "namespace", "argocd", "kind", obj.GetKind())
 
 	// Create or update ApplicationSet
 	existing := &unstructured.Unstructured{}
@@ -357,18 +377,25 @@ func (r *ApplicationClaimGitOpsReconciler) createApplicationSet(ctx context.Cont
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Create new ApplicationSet
+			logger.Info("ApplicationSet does not exist, creating new one", "name", appSetName)
 			if err := r.Create(ctx, obj); err != nil {
+				logger.Error(err, "Failed to create ApplicationSet", "name", appSetName)
 				return fmt.Errorf("failed to create ApplicationSet: %w", err)
 			}
+			logger.Info("Successfully created ApplicationSet", "name", appSetName)
 		} else {
+			logger.Error(err, "Failed to get ApplicationSet", "name", appSetName)
 			return fmt.Errorf("failed to get ApplicationSet: %w", err)
 		}
 	} else {
 		// Update existing ApplicationSet
+		logger.Info("ApplicationSet already exists, updating", "name", appSetName)
 		obj.SetResourceVersion(existing.GetResourceVersion())
 		if err := r.Update(ctx, obj); err != nil {
+			logger.Error(err, "Failed to update ApplicationSet", "name", appSetName)
 			return fmt.Errorf("failed to update ApplicationSet: %w", err)
 		}
+		logger.Info("Successfully updated ApplicationSet", "name", appSetName)
 	}
 
 	return nil

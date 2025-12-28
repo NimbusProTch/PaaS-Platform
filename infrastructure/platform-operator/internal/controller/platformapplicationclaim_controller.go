@@ -77,37 +77,50 @@ func (r *PlatformApplicationClaimReconciler) Reconcile(ctx context.Context, req 
 	appSetPath := fmt.Sprintf("appsets/%s/platform/%s-platform-appset.yaml", claim.Spec.ClusterType, claim.Spec.Environment)
 	appSetContent := r.generatePlatformApplicationSet(claim, giteaClient)
 	files[appSetPath] = appSetContent
+	logger.Info("Generated platform ApplicationSet content", "path", appSetPath, "length", len(appSetContent))
 
 	// Generate values.yaml for each service
+	enabledCount := 0
 	for _, service := range claim.Spec.Services {
 		// Skip disabled services
 		if !service.Enabled {
 			logger.Info("Skipping disabled platform service", "name", service.Name)
 			continue
 		}
+		enabledCount++
 
 		valuesPath := fmt.Sprintf("environments/%s/%s/platform/%s/values.yaml", claim.Spec.ClusterType, claim.Spec.Environment, service.Name)
 		valuesContent := r.generatePlatformValuesYAML(claim, service, giteaClient)
 		files[valuesPath] = valuesContent
+		logger.Info("Generated platform service files", "service", service.Name, "valuesPath", valuesPath)
 	}
+
+	logger.Info("Total platform files to push", "fileCount", len(files), "enabledServices", enabledCount)
 
 	// Push to Gitea - use internal clone URL
 	voltranURL := giteaClient.ConstructCloneURL(claim.Spec.Organization, r.VoltranRepo)
 	commitMsg := fmt.Sprintf("Update %s environment platform services by operator", claim.Spec.Environment)
 
+	logger.Info("Pushing platform files to Gitea", "url", voltranURL, "branch", r.Branch, "commitMsg", commitMsg)
+
 	if err := giteaClient.PushFiles(ctx, voltranURL, r.Branch, files, commitMsg,
 		"Platform Operator", "operator@platform.local"); err != nil {
-		logger.Error(err, "failed to push to Git")
+		logger.Error(err, "failed to push to Git", "url", voltranURL)
 		// Don't update status on git errors, just retry
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
+	logger.Info("Successfully pushed platform files to Git")
+
 	// Create ApplicationSet in ArgoCD namespace
+	logger.Info("Creating platform ApplicationSet in ArgoCD", "name", fmt.Sprintf("%s-platform", claim.Spec.Environment))
 	appSet := r.generatePlatformApplicationSet(claim, giteaClient)
 	if err := r.createApplicationSet(ctx, appSet, claim); err != nil {
 		logger.Error(err, "failed to create ApplicationSet")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
+
+	logger.Info("Successfully created platform ApplicationSet")
 
 	// Update status to Ready only if not already ready
 	if claim.Status.Phase != "Ready" || !claim.Status.Ready {
@@ -239,14 +252,20 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformValuesYAML(claim *p
 
 // createApplicationSet creates or updates the ApplicationSet in ArgoCD namespace
 func (r *PlatformApplicationClaimReconciler) createApplicationSet(ctx context.Context, appSetYAML string, claim *platformv1.PlatformApplicationClaim) error {
+	logger := log.FromContext(ctx)
+	logger.Info("Starting createApplicationSet for platform", "yamlLength", len(appSetYAML))
+
 	// Parse YAML to unstructured object
 	obj := &unstructured.Unstructured{}
 	if err := yaml.Unmarshal([]byte(appSetYAML), &obj.Object); err != nil {
+		logger.Error(err, "Failed to unmarshal platform ApplicationSet YAML")
 		return fmt.Errorf("failed to unmarshal ApplicationSet: %w", err)
 	}
 
 	// Set namespace to argocd
 	obj.SetNamespace("argocd")
+	appSetName := obj.GetName()
+	logger.Info("Platform ApplicationSet details", "name", appSetName, "namespace", "argocd", "kind", obj.GetKind())
 
 	// Create or update ApplicationSet
 	existing := &unstructured.Unstructured{}
@@ -259,18 +278,25 @@ func (r *PlatformApplicationClaimReconciler) createApplicationSet(ctx context.Co
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Create new ApplicationSet
+			logger.Info("Platform ApplicationSet does not exist, creating new one", "name", appSetName)
 			if err := r.Create(ctx, obj); err != nil {
+				logger.Error(err, "Failed to create platform ApplicationSet", "name", appSetName)
 				return fmt.Errorf("failed to create ApplicationSet: %w", err)
 			}
+			logger.Info("Successfully created platform ApplicationSet", "name", appSetName)
 		} else {
+			logger.Error(err, "Failed to get platform ApplicationSet", "name", appSetName)
 			return fmt.Errorf("failed to get ApplicationSet: %w", err)
 		}
 	} else {
 		// Update existing ApplicationSet
+		logger.Info("Platform ApplicationSet already exists, updating", "name", appSetName)
 		obj.SetResourceVersion(existing.GetResourceVersion())
 		if err := r.Update(ctx, obj); err != nil {
+			logger.Error(err, "Failed to update platform ApplicationSet", "name", appSetName)
 			return fmt.Errorf("failed to update ApplicationSet: %w", err)
 		}
+		logger.Info("Successfully updated platform ApplicationSet", "name", appSetName)
 	}
 
 	return nil
