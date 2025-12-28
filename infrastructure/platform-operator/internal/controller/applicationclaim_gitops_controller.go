@@ -159,14 +159,8 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 		"spec": map[string]interface{}{
 			"generators": []map[string]interface{}{
 				{
-					"git": map[string]interface{}{
-						"repoURL":  fmt.Sprintf("%s/%s/%s", claim.Spec.GiteaURL, claim.Spec.Organization, r.VoltranRepo),
-						"revision": r.Branch,
-						"files": []map[string]interface{}{
-							{
-								"path": fmt.Sprintf("environments/%s/%s/applications/*/config.json", claim.Spec.ClusterType, claim.Spec.Environment),
-							},
-						},
+					"list": map[string]interface{}{
+						"elements": r.generateApplicationElements(claim),
 					},
 				},
 			},
@@ -206,6 +200,39 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 
 	data, _ := yaml.Marshal(appSet)
 	return string(data)
+}
+
+// generateApplicationElements generates list elements for ApplicationSet
+func (r *ApplicationClaimGitOpsReconciler) generateApplicationElements(claim *platformv1.ApplicationClaim) []map[string]string {
+	elements := []map[string]string{}
+
+	for _, app := range claim.Spec.Applications {
+		// Skip disabled applications
+		if !app.Enabled {
+			continue
+		}
+
+		chartName := app.Chart.Name
+		if chartName == "" {
+			chartName = "microservice" // default chart name
+		}
+
+		version := app.Chart.Version
+		if version == "" {
+			version = "1.0.0" // default version
+		}
+
+		valuesYAML := r.generateValuesYAML(claim, app)
+
+		elements = append(elements, map[string]string{
+			"name":    app.Name,
+			"chart":   chartName,
+			"version": version,
+			"values":  valuesYAML,
+		})
+	}
+
+	return elements
 }
 
 // generateConfigJSON generates config.json with chart metadata and service name
