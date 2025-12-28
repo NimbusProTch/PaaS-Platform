@@ -1,239 +1,256 @@
-.PHONY: help dev cluster gitea argocd operator token bootstrap argocd-setup claims clean logs status full-deploy kind-create kind-delete install-gitea install-argocd install-operator
+.PHONY: help dev cluster gitea argocd operator token bootstrap argocd-setup claims clean logs status full-deploy kind-create kind-delete install-gitea install-argocd install-operator install-chartmuseum setup-gitea deploy-claims upload-charts
 
 CLUSTER_NAME = infraforge-local
 GITEA_ADMIN_USER = gitea_admin
-GITEA_ADMIN_PASS = r00tp@ssw0rd
-# OPERATOR_IMAGE artık kullanılmıyor, GitHub'dan çekiyoruz
-# OPERATOR_IMAGE = platform-operator:dev
-GITHUB_TOKEN ?= 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
-GITHUB_USER = infraforge
+GITEA_ADMIN_PASS = r8sA8CPHD9!bt6d
+GITHUB_TOKEN ?= $(GITHUB_TOKEN_ENV)
+GITHUB_USER = NimbusProTch
 ARGOCD_VERSION = v3.2.3
 
 help: ## Yardım göster
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-dev: clean cluster gitea argocd operator token bootstrap argocd-setup claims ## Tam development ortamı kur (ESKI - deprecated)
+# 🚀 ANA KOMUT - TEK KOMUTLA HERŞEY
+full-deploy: ## 🚀 TAM DEPLOYMENT (Sıfırdan, otomatik)
+	@echo "════════════════════════════════════════════════════════════════"
+	@echo "🚀 FULL PLATFORM DEPLOYMENT BAŞLIYOR"
+	@echo "════════════════════════════════════════════════════════════════"
+	@$(MAKE) clean
+	@$(MAKE) kind-create
+	@$(MAKE) install-gitea
+	@$(MAKE) install-argocd
+	@$(MAKE) install-chartmuseum
+	@$(MAKE) install-operator
+	@$(MAKE) setup-gitea
+	@$(MAKE) upload-charts
+	@$(MAKE) deploy-claims
 	@echo ""
-	@echo "✅ Development ortamı hazır!"
-	@echo "🌐 Gitea: http://localhost:30300 ($(GITEA_ADMIN_USER)/$(GITEA_ADMIN_PASS))"
-	@echo "📊 Status: make status"
-	@echo "📋 Logs: make logs"
-
-full-deploy: clean cluster gitea argocd operator github-secret token bootstrap argocd-setup claims ## 🚀 TAM DEPLOYMENT (Sıfırdan, otomatik)
-	@echo ""
-	@echo "🎉 ==================== DEPLOYMENT TAMAMLANDI ===================="
+	@echo "🎉 ════════════════ DEPLOYMENT TAMAMLANDI ═══════════════════"
 	@echo "✅ Cluster: $(CLUSTER_NAME)"
 	@echo "✅ Gitea: http://localhost:30300 ($(GITEA_ADMIN_USER)/$(GITEA_ADMIN_PASS))"
-	@echo "✅ ArgoCD: kubectl port-forward svc/argocd-server -n argocd 8080:443"
+	@echo "✅ ArgoCD: https://localhost:8080 (admin/password)"
+	@echo "✅ ChartMuseum: http://localhost:30880"
 	@echo "✅ Platform Operator: Çalışıyor"
-	@echo "✅ GitOps Repository: voltran (infraforge organizasyonu)"
-	@echo "✅ ArgoCD Root Apps: Deploy edildi"
-	@echo "✅ Application Claims: İşleniyor..."
+	@echo "✅ GitOps Repository: voltran hazır"
+	@echo "✅ Applications: Deploy ediliyor..."
 	@echo ""
 	@echo "📊 Status kontrolü: make status"
 	@echo "📋 Operator logları: make logs"
 	@echo "🔍 ArgoCD apps: kubectl get applications -n argocd"
-	@echo "=================================================================="
+	@echo "════════════════════════════════════════════════════════════════"
+	@$(MAKE) status
 
-cluster: ## Kind cluster oluştur
+# CLUSTER
+kind-create: ## Kind cluster oluştur
 	@echo "🔨 Kind cluster oluşturuluyor..."
 	@kind create cluster --name $(CLUSTER_NAME) --config kind-config.yaml
 	@echo "✅ Cluster hazır"
 
-gitea: ## Gitea kur (minimal, TEK pod)
+# GITEA
+install-gitea: ## Gitea kur (minimal)
 	@echo "📦 Gitea kuruluyor..."
 	@kubectl create namespace gitea --dry-run=client -o yaml | kubectl apply -f -
 	@helm repo add gitea-charts https://dl.gitea.com/charts/ 2>/dev/null || true
-	@helm repo update gitea-charts 2>/dev/null
+	@helm repo update gitea-charts
 	@helm upgrade --install gitea gitea-charts/gitea -n gitea \
-	  --set service.http.type=NodePort \
-	  --set service.http.nodePort=30300 \
-	  --set gitea.admin.username=$(GITEA_ADMIN_USER) \
-	  --set gitea.admin.password=$(GITEA_ADMIN_PASS) \
-	  --set gitea.admin.email=gitea@local.domain \
-	  --set persistence.enabled=false \
-	  --set postgresql-ha.enabled=false \
-	  --set postgresql.enabled=false \
-	  --set redis-cluster.enabled=false \
-	  --set redis.enabled=false \
-	  --set gitea.config.database.DB_TYPE=sqlite3 \
-	  --set gitea.config.cache.ENABLED=false \
-	  --set gitea.config.server.ROOT_URL=http://gitea-http.gitea.svc.cluster.local:3000 \
-	  --wait --timeout 5m 2>/dev/null
-	@echo "⏳ Valkey temizleniyor..."
-	@sleep 3
+		--set service.http.type=NodePort \
+		--set service.http.nodePort=30300 \
+		--set gitea.admin.username=$(GITEA_ADMIN_USER) \
+		--set gitea.admin.password=$(GITEA_ADMIN_PASS) \
+		--set gitea.admin.email=gitea@local.domain \
+		--set persistence.enabled=false \
+		--set postgresql-ha.enabled=false \
+		--set postgresql.enabled=false \
+		--set redis-cluster.enabled=false \
+		--set redis.enabled=false \
+		--set gitea.config.database.DB_TYPE=sqlite3 \
+		--set gitea.config.cache.ENABLED=false \
+		--set gitea.config.server.ROOT_URL=http://gitea-http.gitea.svc.cluster.local:3000 \
+		--wait --timeout 5m
+	@echo "⏳ Gereksiz pod'lar temizleniyor..."
 	@kubectl delete statefulset -n gitea gitea-valkey-cluster 2>/dev/null || true
 	@kubectl delete service -n gitea gitea-valkey-cluster gitea-valkey-cluster-headless 2>/dev/null || true
 	@kubectl delete pvc -n gitea -l app.kubernetes.io/name=valkey 2>/dev/null || true
-	@echo "✅ Gitea hazır (TEK pod)"
+	@echo "✅ Gitea hazır"
 
-argocd: ## ArgoCD kur
+# ARGOCD
+install-argocd: ## ArgoCD kur
 	@echo "🚀 ArgoCD kuruluyor..."
 	@kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 	@kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/$(ARGOCD_VERSION)/manifests/install.yaml
-	@echo "⏳ ArgoCD pod'ların hazır olması bekleniyor..."
+	@echo "⏳ ArgoCD bekleniyor..."
 	@kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
-	@echo "🔑 ArgoCD admin şifresi alınıyor..."
-	@echo ""
-	@echo "ArgoCD Admin Password:"
-	@kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d && echo ""
-	@echo ""
-	@echo "✅ ArgoCD hazır!"
-	@echo "Port-forward: kubectl port-forward svc/argocd-server -n argocd 8080:443"
-	@echo "Login: admin / (yukarıdaki şifre)"
+	@echo "🔑 ArgoCD repository secret'ları oluşturuluyor..."
+	@kubectl create secret generic gitea-repo -n argocd \
+		--from-literal=type=git \
+		--from-literal=url=http://gitea-http.gitea.svc.cluster.local:3000/infraforge/voltran \
+		--from-literal=username=$(GITEA_ADMIN_USER) \
+		--from-literal=password=$(GITEA_ADMIN_PASS) \
+		--dry-run=client -o yaml | kubectl label -f - --local argocd.argoproj.io/secret-type=repository -o yaml | kubectl apply -f -
+	@echo "✅ ArgoCD hazır"
+	@echo "Admin Password: $$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
 
-operator: ## Operator deploy (GitHub'dan pull)
-	@echo "📋 CRD kuruluyor..."
+# CHARTMUSEUM
+install-chartmuseum: ## ChartMuseum kur
+	@echo "📊 ChartMuseum kuruluyor..."
+	@kubectl create namespace chartmuseum --dry-run=client -o yaml | kubectl apply -f -
+	@helm repo add chartmuseum https://chartmuseum.github.io/charts 2>/dev/null || true
+	@helm repo update chartmuseum
+	@helm upgrade --install chartmuseum chartmuseum/chartmuseum -n chartmuseum \
+		--set env.open.DISABLE_API=false \
+		--set service.type=NodePort \
+		--set service.nodePort=30880 \
+		--set persistence.enabled=false \
+		--wait --timeout 5m
+	@echo "⏳ ChartMuseum hazır olması bekleniyor..."
+	@kubectl wait --for=condition=available --timeout=180s deployment/chartmuseum -n chartmuseum
+	@kubectl create secret generic chartmuseum-repo -n argocd \
+		--from-literal=type=helm \
+		--from-literal=url=http://chartmuseum.chartmuseum.svc.cluster.local:8080 \
+		--from-literal=name=chartmuseum \
+		--dry-run=client -o yaml | kubectl label -f - --local argocd.argoproj.io/secret-type=repository -o yaml | kubectl apply -f -
+	@echo "✅ ChartMuseum hazır (http://localhost:30880)"
+
+# OPERATOR
+install-operator: ## Platform Operator kur
+	@echo "📋 CRD'ler kuruluyor..."
 	@kubectl apply -f infrastructure/platform-operator/config/crd/bases
-	@echo "🚀 Operator deploy ediliyor (GitHub Package'dan)..."
+	@echo "🚀 Operator namespace oluşturuluyor..."
 	@kubectl create namespace platform-operator-system --dry-run=client -o yaml | kubectl apply -f -
 	@echo "🔐 Image pull secret oluşturuluyor..."
 	@kubectl create secret docker-registry ghcr-secret \
-	  --docker-server=ghcr.io \
-	  --docker-username=$(GITHUB_USER) \
-	  --docker-password=$(GITHUB_TOKEN) \
-	  --namespace platform-operator-system \
-	  --dry-run=client -o yaml | kubectl apply -f -
+		--docker-server=ghcr.io \
+		--docker-username=$(GITHUB_USER) \
+		--docker-password=$(GITHUB_TOKEN) \
+		--namespace platform-operator-system \
+		--dry-run=client -o yaml | kubectl apply -f -
+	@echo "🔐 Gitea token oluşturuluyor..."
+	@sleep 5
+	@POD=$$(kubectl get pod -n gitea -l app.kubernetes.io/name=gitea -o jsonpath='{.items[0].metadata.name}') && \
+	TOKEN=$$(kubectl exec -n gitea $$POD -- gitea admin user generate-access-token \
+		--username $(GITEA_ADMIN_USER) \
+		--token-name platform-operator \
+		--scopes write:organization,write:repository,write:user \
+		--raw 2>/dev/null || echo "dummy-token") && \
+	kubectl create secret generic gitea-token -n platform-operator-system \
+		--from-literal=token=$$TOKEN \
+		--from-literal=username=$(GITEA_ADMIN_USER) \
+		--from-literal=url=http://gitea-http.gitea.svc.cluster.local:3000 \
+		--dry-run=client -o yaml | kubectl apply -f -
+	@echo "🚀 Operator deploy ediliyor..."
 	@kubectl apply -f infrastructure/platform-operator/config/default/rbac.yaml -n platform-operator-system
 	@cd infrastructure/platform-operator/config/manager && \
-	  kustomize edit set image controller=ghcr.io/nimbusprotch/platform-operator:latest && \
-	  kubectl apply -k . -n platform-operator-system
+		kustomize edit set image controller=ghcr.io/nimbusprotch/platform-operator:latest && \
+		kustomize edit add patch --path imagePullSecrets.yaml --kind Deployment && \
+		echo "- op: add\n  path: /spec/template/spec/imagePullSecrets\n  value:\n  - name: ghcr-secret" > imagePullSecrets.yaml && \
+		kubectl apply -k . -n platform-operator-system
 	@echo "⏳ Operator bekleniyor..."
-	@sleep 10
-	@echo "✅ Operator hazır (ghcr.io/nimbusprotch/platform-operator:latest)"
+	@kubectl wait --for=condition=available --timeout=180s deployment/controller-manager -n platform-operator-system 2>/dev/null || true
+	@echo "✅ Platform Operator hazır"
 
-github-secret: ## GitHub image pull secret oluştur
-	@echo "🔐 GitHub image pull secret oluşturuluyor..."
-	@kubectl create namespace platform-operator-system --dry-run=client -o yaml | kubectl apply -f -
-	@kubectl create secret docker-registry ghcr-pull-secret \
-	  --docker-server=ghcr.io \
-	  --docker-username=$(GITHUB_USER) \
-	  --docker-password=$(GITHUB_TOKEN) \
-	  --namespace platform-operator-system \
-	  --dry-run=client -o yaml | kubectl apply -f -
-	@echo "✅ GitHub image pull secret hazır"
-
-token: ## Gitea ve GitHub token oluştur
-	@echo "🔑 Gitea token oluşturuluyor..."
-	@sleep 5
-	@POD=$$(kubectl get pod -n gitea -l app.kubernetes.io/name=gitea -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && \
-	TOKEN=$$(kubectl exec -n gitea $$POD -- gitea admin user generate-access-token \
-	  --username $(GITEA_ADMIN_USER) \
-	  --token-name platform-operator \
-	  --scopes write:organization,write:repository,write:user \
-	  --raw 2>/dev/null) && \
-	kubectl create secret generic gitea-token -n platform-operator-system \
-	  --from-literal=token=$$TOKEN \
-	  --from-literal=username=$(GITEA_ADMIN_USER) \
-	  --from-literal=url=http://gitea-http.gitea.svc.cluster.local:3000 \
-	  --dry-run=client -o yaml | kubectl apply -f -
-	@echo "🔑 GitHub token oluşturuluyor..."
-	@kubectl create secret generic github-token -n platform-operator-system \
-	  --from-literal=token=$(GITHUB_TOKEN) \
-	  --dry-run=client -o yaml | kubectl apply -f -
-	@kubectl delete pod -n platform-operator-system -l control-plane=controller-manager 2>/dev/null || true
-	@echo "✅ Token'lar hazır, operator yeniden başlatıldı"
-
-bootstrap: ## Bootstrap deploy et
-	@echo "🚀 Bootstrap deploy ediliyor..."
-	@kubectl apply -f infrastructure/platform-operator/bootstrap-claim.yaml
-	@echo "⏳ Bootstrap'in hazır olması bekleniyor (30 saniye)..."
-	@sleep 30
-	@kubectl wait --for=condition=Ready bootstrapclaim/platform-bootstrap --timeout=60s 2>/dev/null || true
-	@echo "✅ Bootstrap tamamlandı"
-
-argocd-setup: ## ArgoCD setup (voltran'dan secret'ları ve root app'leri deploy et)
-	@echo "🔧 ArgoCD setup başlatılıyor..."
-	@echo "📂 Voltran repository clone ediliyor..."
-	@rm -rf /tmp/voltran 2>/dev/null || true
+# GITEA SETUP
+setup-gitea: ## Gitea'ya GitOps structure kur
+	@echo "🔧 Gitea repository oluşturuluyor..."
 	@kubectl port-forward -n gitea svc/gitea-http 3000:3000 > /dev/null 2>&1 & \
-	  PF_PID=$$! && \
-	  sleep 3 && \
-	  git clone http://$(GITEA_ADMIN_USER):$(GITEA_ADMIN_PASS)@localhost:3000/infraforge/voltran.git /tmp/voltran 2>/dev/null && \
-	  kill $$PF_PID 2>/dev/null || true
-	@echo "🔑 GitHub token'ları güncelleniyor..."
-	@cd /tmp/voltran && \
-	  sed -i.bak "s/GITHUB_TOKEN/$(GITHUB_TOKEN)/g" argocd-setup/02-helm-oci-secret.yaml && \
-	  sed -i.bak "s/GITHUB_TOKEN/$(GITHUB_TOKEN)/g" argocd-setup/03-github-token-secret.yaml && \
-	  AUTH_BASE64=$$(echo -n "$(GITHUB_USER):$(GITHUB_TOKEN)" | base64) && \
-	  sed -i.bak "s/BASE64_ENCODED_USERNAME:TOKEN/$$AUTH_BASE64/g" argocd-setup/03-github-token-secret.yaml
-	@echo "📋 ArgoCD secret'ları deploy ediliyor..."
-	@kubectl apply -f /tmp/voltran/argocd-setup/
-	@echo "🚀 Root applications deploy ediliyor..."
-	@kubectl apply -f /tmp/voltran/root-apps/nonprod/
-	@echo "⏳ ArgoCD sync bekleniyor (10 saniye)..."
-	@sleep 10
-	@echo "✅ ArgoCD setup tamamlandı!"
-	@echo "🔍 Kontrol: kubectl get applications -n argocd"
+		PF_PID=$$! && \
+		sleep 3 && \
+		curl -X POST "http://$(GITEA_ADMIN_USER):$(GITEA_ADMIN_PASS)@localhost:3000/api/v1/orgs" \
+			-H "Content-Type: application/json" \
+			-d '{"username": "infraforge", "full_name": "InfraForge", "description": "Platform Organization"}' 2>/dev/null || true && \
+		curl -X POST "http://$(GITEA_ADMIN_USER):$(GITEA_ADMIN_PASS)@localhost:3000/api/v1/orgs/infraforge/repos" \
+			-H "Content-Type: application/json" \
+			-d '{"name": "voltran", "description": "GitOps Repository", "private": false}' 2>/dev/null || true && \
+		kill $$PF_PID 2>/dev/null || true
+	@echo "📂 GitOps structure push ediliyor..."
+	@bash scripts/setup-gitea.sh
+	@echo "✅ Gitea GitOps structure hazır"
 
-claims: ## Minimal claims deploy et (2 apps + 2 DBs + Redis)
-	@echo "🚀 Platform infrastructure deploy ediliyor (2x PostgreSQL + Redis)..."
+# CHART UPLOAD
+upload-charts: ## ChartMuseum'a chart'ları yükle
+	@echo "📦 Helm chart'ları paketleniyor..."
+	@mkdir -p /tmp/charts
+	@helm package charts/microservice -d /tmp/charts
+	@helm package charts/postgresql -d /tmp/charts
+	@helm package charts/redis -d /tmp/charts
+	@helm package charts/mongodb -d /tmp/charts 2>/dev/null || true
+	@helm package charts/rabbitmq -d /tmp/charts 2>/dev/null || true
+	@helm package charts/kafka -d /tmp/charts 2>/dev/null || true
+	@echo "📤 ChartMuseum'a upload ediliyor..."
+	@for chart in /tmp/charts/*.tgz; do \
+		curl -X POST --data-binary "@$$chart" http://localhost:30880/api/charts 2>/dev/null || \
+		echo "Hata: $$chart upload edilemedi (ChartMuseum henüz hazır olmayabilir)"; \
+	done
+	@rm -rf /tmp/charts
+	@echo "✅ Chart'lar yüklendi"
+
+# CLAIMS DEPLOY
+deploy-claims: ## Dev ortamındaki enabled claim'leri deploy et
+	@echo "🚀 Bootstrap claim deploy ediliyor..."
+	@kubectl apply -f deployments/dev/bootstrap-claim.yaml
+	@echo "⏳ Bootstrap işleniyor (20 saniye)..."
+	@sleep 20
+	@echo "🚀 Platform infrastructure deploy ediliyor..."
 	@kubectl apply -f deployments/dev/platform-infrastructure-claim.yaml
 	@echo "⏳ Platform services işleniyor (15 saniye)..."
 	@sleep 15
-	@echo "🚀 Applications deploy ediliyor (2 microservices enabled)..."
+	@echo "🚀 Applications deploy ediliyor..."
 	@kubectl apply -f deployments/dev/apps-claim.yaml
 	@echo "⏳ Applications işleniyor (10 saniye)..."
 	@sleep 10
-	@echo "✅ Claims tamamlandı!"
-	@echo "Enabled: product-service, user-service, product-db, user-db, redis"
-	@echo "Disabled: order-service, payment-service, notification-service, etc."
-	@kubectl get applicationclaim,platformapplicationclaim
+	@echo "✅ Claims deploy edildi!"
+	@echo ""
+	@echo "Enabled Services:"
+	@echo "  - Apps: product-service, user-service"
+	@echo "  - DBs: product-db, user-db"
+	@echo "  - Cache: redis"
 
-claims-full: ## Tüm claims deploy et (5 app + 8 platform service)
-	@echo "🚀 Full application claims deploy ediliyor..."
-	@kubectl apply -f deployments/dev/apps-claim.yaml
-	@echo "⏳ Bekleniyor..."
-	@sleep 15
-	@echo "🚀 Full platform claims deploy ediliyor..."
-	@kubectl apply -f deployments/dev/platform-infrastructure-claim.yaml
-	@echo "⏳ Bekleniyor..."
-	@sleep 15
-	@echo "✅ Full claims tamamlandı"
-
-
-status: ## Status göster
-	@echo "📊 === CLUSTER STATUS ==="
+# STATUS & MONITORING
+status: ## Sistem durumunu göster
 	@echo ""
-	@echo "🔷 Gitea Pods:"
-	@kubectl get pods -n gitea 2>/dev/null || echo "Yok"
+	@echo "📊 ═══════════════ PLATFORM STATUS ═══════════════"
 	@echo ""
-	@echo "🔷 ArgoCD Pods:"
-	@kubectl get pods -n argocd 2>/dev/null || echo "Yok"
+	@echo "🔷 Core Services:"
+	@echo -n "  Gitea:        " && (kubectl get pod -n gitea -l app.kubernetes.io/name=gitea --no-headers 2>/dev/null | wc -l | xargs echo "pods running") || echo "❌ Not found"
+	@echo -n "  ArgoCD:       " && (kubectl get pod -n argocd -l app.kubernetes.io/name=argocd-server --no-headers 2>/dev/null | wc -l | xargs echo "pods running") || echo "❌ Not found"
+	@echo -n "  ChartMuseum:  " && (kubectl get pod -n chartmuseum --no-headers 2>/dev/null | wc -l | xargs echo "pods running") || echo "❌ Not found"
+	@echo -n "  Operator:     " && (kubectl get pod -n platform-operator-system --no-headers 2>/dev/null | wc -l | xargs echo "pods running") || echo "❌ Not found"
 	@echo ""
-	@echo "🔷 Operator Pods:"
-	@kubectl get pods -n platform-operator-system 2>/dev/null || echo "Yok"
-	@echo ""
-	@echo "🔷 Bootstrap:"
-	@kubectl get bootstrapclaim 2>/dev/null || echo "Yok"
-	@echo ""
-	@echo "🔷 Application Claims:"
-	@kubectl get applicationclaim 2>/dev/null || echo "Yok"
-	@echo ""
-	@echo "🔷 Platform Claims:"
-	@kubectl get platformapplicationclaim 2>/dev/null || echo "Yok"
+	@echo "🔷 Claims:"
+	@kubectl get bootstrapclaim,applicationclaim,platformapplicationclaim 2>/dev/null || echo "  ❌ No claims found"
 	@echo ""
 	@echo "🔷 ArgoCD Applications:"
-	@kubectl get applications -n argocd 2>/dev/null || echo "Yok"
+	@kubectl get applications -n argocd --no-headers 2>/dev/null | head -5 || echo "  ❌ No applications"
 	@echo ""
-	@echo "🔷 ArgoCD ApplicationSets:"
-	@kubectl get applicationsets -n argocd 2>/dev/null || echo "Yok"
+	@echo "🔷 ApplicationSets:"
+	@kubectl get applicationsets -n argocd --no-headers 2>/dev/null || echo "  ❌ No applicationsets"
+	@echo "══════════════════════════════════════════════════"
 
-logs: ## Operator logları göster
-	@kubectl logs -n platform-operator-system -l control-plane=controller-manager --tail=100 -f
+logs: ## Platform Operator loglarını göster
+	@kubectl logs -n platform-operator-system -l control-plane=controller-manager --tail=50 -f
 
-clean: ## Her şeyi sil
-	@echo "🧹 Temizleniyor..."
+clean: ## Her şeyi temizle
+	@echo "🧹 Cluster siliniyor..."
 	@kind delete cluster --name $(CLUSTER_NAME) 2>/dev/null || true
-	@echo "✅ Temizlendi"
+	@echo "✅ Temizlik tamamlandı"
 
-# Alias commands for consistency
-kind-create: cluster ## Kind cluster oluştur (alias)
+# Quick Access Commands
+port-forward-argocd: ## ArgoCD port-forward
+	@echo "ArgoCD Password: $$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
+	@echo "Opening https://localhost:8080"
+	@kubectl port-forward svc/argocd-server -n argocd 8080:443
 
-kind-delete: clean ## Kind cluster sil (alias)
+port-forward-gitea: ## Gitea port-forward
+	@echo "Opening http://localhost:3000 ($(GITEA_ADMIN_USER)/$(GITEA_ADMIN_PASS))"
+	@kubectl port-forward svc/gitea-http -n gitea 3000:3000
 
-install-gitea: gitea ## Gitea kur (alias)
+port-forward-chartmuseum: ## ChartMuseum port-forward
+	@echo "Opening http://localhost:8080"
+	@kubectl port-forward svc/chartmuseum -n chartmuseum 8080:8080
 
-install-argocd: argocd ## ArgoCD kur (alias)
-
-install-operator: operator ## Operator kur (alias)
+# Aliases for backward compatibility
+cluster: kind-create
+gitea: install-gitea
+argocd: install-argocd
+operator: install-operator
+chartmuseum: install-chartmuseum
+kind-delete: clean

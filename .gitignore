@@ -22,3 +22,15 @@ npm-debug.log*
 # Build artifacts
 bin/
 dist/
+# Environment variables
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.bak
+*~
+/tmp/
+
+# Helm package files in root
+*.tgz

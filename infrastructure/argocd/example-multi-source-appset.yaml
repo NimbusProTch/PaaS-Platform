@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: dev-microservices-multi
+  namespace: argocd
+spec:
+  generators:
+  - git:
+      repoURL: http://gitea-http.gitea.svc.cluster.local:3000/infraforge/voltran
+      revision: main
+      files:
+      - path: "environments/dev/*.yaml"
+
+  template:
+    metadata:
+      name: '{{path.basenameNormalized}}-dev'
+    spec:
+      project: default
+
+      # Multi-source configuration
+      sources:
+        # Source 1: Chart from GitHub Packages (OCI)
+        - repoURL: ghcr.io/nimbusprotch
+          chart: microservice  # veya postgresql, redis vs
+          targetRevision: "1.0.0"
+          helm:
+            valueFiles:
+              - $values/environments/dev/{{path.basename}}/values.yaml
+
+        # Source 2: Values from Gitea
+        - repoURL: http://gitea-http.gitea.svc.cluster.local:3000/infraforge/voltran
+          targetRevision: main
+          ref: values  # Reference name for values
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: dev
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true

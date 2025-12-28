@@ -7,3 +7,7 @@ images:
 - name: controller
   newName: ghcr.io/nimbusprotch/platform-operator
   newTag: latest
+patches:
+- path: imagePullSecrets.yaml
+  target:
+    kind: Deployment

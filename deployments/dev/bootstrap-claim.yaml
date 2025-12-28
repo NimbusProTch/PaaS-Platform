@@ -1,0 +1,25 @@
+apiVersion: platform.infraforge.io/v1
+kind: BootstrapClaim
+metadata:
+  name: platform-bootstrap
+  namespace: default
+spec:
+  # Gitea configuration
+  giteaURL: http://gitea-http.gitea.svc.cluster.local:3000
+  organization: infraforge
+  repository: voltran
+  branch: main
+
+  # Environment configuration
+  environment: dev
+  clusterType: nonprod
+
+  # Auto-create gitops structure
+  createGitOpsStructure: true
+
+  # ArgoCD root applications to deploy
+  argoCDApplications:
+    - name: dev-apps-root
+      path: appsets/nonprod/apps/root-app.yaml
+    - name: dev-platform-root
+      path: appsets/nonprod/platform/root-app.yaml

@@ -7,6 +7,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -101,6 +102,13 @@ func (r *PlatformApplicationClaimReconciler) Reconcile(ctx context.Context, req 
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
+	// Create ApplicationSet in ArgoCD namespace
+	appSet := r.generatePlatformApplicationSet(claim, giteaClient)
+	if err := r.createApplicationSet(ctx, appSet, claim); err != nil {
+		logger.Error(err, "failed to create ApplicationSet")
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+
 	// Update status to Ready only if not already ready
 	if claim.Status.Phase != "Ready" || !claim.Status.Ready {
 		claim.Status.Phase = "Ready"
@@ -151,11 +159,11 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 				"spec": map[string]interface{}{
 					"project": "default",
 					"source": map[string]interface{}{
-						"repoURL":        "oci://ghcr.io/nimbusprotch",
+						"repoURL":        "http://chartmuseum.chartmuseum.svc.cluster.local:8080",
 						"chart":          "{{chart}}",
 						"targetRevision": "{{version}}",
 						"helm": map[string]interface{}{
-							"valuesLiteral": "{{values}}",
+							"values": "{{values}}",
 						},
 					},
 					"destination": map[string]interface{}{
@@ -227,6 +235,45 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformValuesYAML(claim *p
 
 	data, _ := yaml.Marshal(customValues)
 	return string(data)
+}
+
+// createApplicationSet creates or updates the ApplicationSet in ArgoCD namespace
+func (r *PlatformApplicationClaimReconciler) createApplicationSet(ctx context.Context, appSetYAML string, claim *platformv1.PlatformApplicationClaim) error {
+	// Parse YAML to unstructured object
+	obj := &unstructured.Unstructured{}
+	if err := yaml.Unmarshal([]byte(appSetYAML), &obj.Object); err != nil {
+		return fmt.Errorf("failed to unmarshal ApplicationSet: %w", err)
+	}
+
+	// Set namespace to argocd
+	obj.SetNamespace("argocd")
+
+	// Create or update ApplicationSet
+	existing := &unstructured.Unstructured{}
+	existing.SetGroupVersionKind(obj.GroupVersionKind())
+	err := r.Get(ctx, client.ObjectKey{
+		Namespace: obj.GetNamespace(),
+		Name:      obj.GetName(),
+	}, existing)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Create new ApplicationSet
+			if err := r.Create(ctx, obj); err != nil {
+				return fmt.Errorf("failed to create ApplicationSet: %w", err)
+			}
+		} else {
+			return fmt.Errorf("failed to get ApplicationSet: %w", err)
+		}
+	} else {
+		// Update existing ApplicationSet
+		obj.SetResourceVersion(existing.GetResourceVersion())
+		if err := r.Update(ctx, obj); err != nil {
+			return fmt.Errorf("failed to update ApplicationSet: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager
