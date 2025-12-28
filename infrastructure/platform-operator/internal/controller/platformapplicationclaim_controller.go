@@ -112,15 +112,20 @@ func (r *PlatformApplicationClaimReconciler) Reconcile(ctx context.Context, req 
 
 	logger.Info("Successfully pushed platform files to Git")
 
-	// Create ApplicationSet in ArgoCD namespace
-	logger.Info("Creating platform ApplicationSet in ArgoCD", "name", fmt.Sprintf("%s-platform", claim.Spec.Environment))
-	appSet := r.generatePlatformApplicationSet(claim, giteaClient)
-	if err := r.createApplicationSet(ctx, appSet, claim); err != nil {
-		logger.Error(err, "failed to create ApplicationSet")
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-	}
+	// Create individual Applications in ArgoCD namespace for platform services
+	logger.Info("Creating Applications in ArgoCD for platform services")
+	for _, service := range claim.Spec.Services {
+		if !service.Enabled {
+			continue
+		}
 
-	logger.Info("Successfully created platform ApplicationSet")
+		appManifest := r.generatePlatformApplication(claim, service)
+		if err := r.createApplication(ctx, appManifest); err != nil {
+			logger.Error(err, "failed to create Application", "service", service.Name)
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		}
+		logger.Info("Created Application", "name", service.Name)
+	}
 
 	// Update status to Ready only if not already ready
 	if claim.Status.Phase != "Ready" || !claim.Status.Ready {
@@ -136,6 +141,114 @@ func (r *PlatformApplicationClaimReconciler) Reconcile(ctx context.Context, req 
 
 	logger.Info("PlatformApplicationClaim reconciliation completed successfully")
 	return ctrl.Result{}, nil
+}
+
+// generatePlatformApplication generates a simple ArgoCD Application manifest for platform services
+func (r *PlatformApplicationClaimReconciler) generatePlatformApplication(claim *platformv1.PlatformApplicationClaim, service platformv1.PlatformServiceSpec) string {
+	chartName := service.Chart.Name
+	if chartName == "" {
+		chartName = service.Type // fallback to type
+	}
+
+	version := service.Chart.Version
+	if version == "" {
+		version = "1.0.0"
+	}
+
+	// Parse custom values from CRD
+	var customValues map[string]interface{}
+	if service.Values.Raw != nil {
+		if err := yaml.Unmarshal(service.Values.Raw, &customValues); err != nil {
+			customValues = make(map[string]interface{})
+		}
+	} else {
+		customValues = make(map[string]interface{})
+	}
+
+	valuesYAML, _ := yaml.Marshal(customValues)
+
+	application := map[string]interface{}{
+		"apiVersion": "argoproj.io/v1alpha1",
+		"kind":       "Application",
+		"metadata": map[string]interface{}{
+			"name":      fmt.Sprintf("%s-%s", service.Name, claim.Spec.Environment),
+			"namespace": "argocd",
+			"labels": map[string]string{
+				"platform.infraforge.io/service":     service.Name,
+				"platform.infraforge.io/environment": claim.Spec.Environment,
+				"platform.infraforge.io/type":        "platform",
+			},
+		},
+		"spec": map[string]interface{}{
+			"project": "default",
+			"source": map[string]interface{}{
+				"repoURL":        "http://chartmuseum.chartmuseum.svc.cluster.local:8080",
+				"chart":          chartName,
+				"targetRevision": version,
+				"helm": map[string]interface{}{
+					"values": string(valuesYAML),
+				},
+			},
+			"destination": map[string]interface{}{
+				"server":    "https://kubernetes.default.svc",
+				"namespace": claim.Spec.Environment,
+			},
+			"syncPolicy": map[string]interface{}{
+				"automated": map[string]interface{}{
+					"prune":    true,
+					"selfHeal": true,
+				},
+				"syncOptions": []string{"CreateNamespace=true"},
+			},
+		},
+	}
+
+	data, _ := yaml.Marshal(application)
+	return string(data)
+}
+
+// createApplication creates or updates an Application in ArgoCD namespace
+func (r *PlatformApplicationClaimReconciler) createApplication(ctx context.Context, appYAML string) error {
+	logger := log.FromContext(ctx)
+
+	// Parse YAML to unstructured object
+	obj := &unstructured.Unstructured{}
+	if err := yaml.Unmarshal([]byte(appYAML), &obj.Object); err != nil {
+		return fmt.Errorf("failed to unmarshal Application: %w", err)
+	}
+
+	// Set namespace to argocd
+	obj.SetNamespace("argocd")
+	appName := obj.GetName()
+
+	// Create or update Application
+	existing := &unstructured.Unstructured{}
+	existing.SetGroupVersionKind(obj.GroupVersionKind())
+	err := r.Get(ctx, client.ObjectKey{
+		Namespace: obj.GetNamespace(),
+		Name:      obj.GetName(),
+	}, existing)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Create new Application
+			if err := r.Create(ctx, obj); err != nil {
+				return fmt.Errorf("failed to create Application: %w", err)
+			}
+			logger.Info("Successfully created Application", "name", appName)
+		} else {
+			return fmt.Errorf("failed to get Application: %w", err)
+		}
+	} else {
+		// Update existing Application
+		obj.SetResourceVersion(existing.GetResourceVersion())
+		if err := r.Update(ctx, obj); err != nil {
+			return fmt.Errorf("failed to update Application: %w", err)
+		}
+		logger.Info("Successfully updated Application", "name", appName)
+	}
+
+	return nil
 }
 
 // generatePlatformApplicationSet generates ArgoCD ApplicationSet for platform services
