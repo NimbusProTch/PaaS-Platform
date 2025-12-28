@@ -1,0 +1,67 @@
+apiVersion: platform.infraforge.io/v1
+kind: PlatformApplicationClaim
+metadata:
+  name: ecommerce-infrastructure
+  namespace: default
+spec:
+  environment: dev
+  clusterType: nonprod
+  giteaURL: http://gitea-http.gitea.svc.cluster.local:3000
+  organization: infraforge
+
+  owner:
+    team: platform-team
+    email: platform@infraforge.io
+    slack: "#platform-dev"
+
+  services:
+    - type: postgresql
+      name: product-db
+      enabled: true
+      chart:
+        name: postgresql
+        version: "1.0.0"
+      values:
+        persistence:
+          size: 5Gi
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+
+    - type: postgresql
+      name: user-db
+      enabled: true
+      chart:
+        name: postgresql
+        version: "1.0.0"
+      values:
+        persistence:
+          size: 5Gi
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+
+    - type: redis
+      name: redis
+      enabled: true
+      chart:
+        name: redis
+        version: "1.0.0"
+      values:
+        persistence:
+          size: 2Gi
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi

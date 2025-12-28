@@ -159,7 +159,7 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 				"spec": map[string]interface{}{
 					"project": "default",
 					"source": map[string]interface{}{
-						"repoURL":        "oci://ghcr.io",
+						"repoURL":        "oci://ghcr.io/nimbusprotch",
 						"chart":          "{{chart}}",
 						"targetRevision": "{{version}}",
 						"helm": map[string]interface{}{
@@ -190,7 +190,7 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 func (r *ApplicationClaimGitOpsReconciler) generateConfigJSON(claim *platformv1.ApplicationClaim, app platformv1.ApplicationSpec) string {
 	config := map[string]interface{}{
 		"name":    app.Name,
-		"chart":   "nimbusprotch/" + app.Chart.Name,  // Add namespace prefix for OCI
+		"chart":   app.Chart.Name,  // Just chart name, no prefix
 		"version": app.Chart.Version,
 		"values":  r.generateValuesYAML(claim, app),
 	}

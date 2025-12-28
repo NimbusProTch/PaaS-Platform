@@ -1,35 +1,44 @@
 # InfraForge Platform - Architecture Documentation
 
-**Last Updated**: 2025-12-26 11:45 UTC+3
-**Status**: ✅ Fully Configurable Platform Operator
-**Phase**: Production-Ready, Zero Hardcoded Values
+**Last Updated**: 2025-12-28 13:15 UTC+3
+**Status**: ⚠️ OCI Registry Authentication Issue
+**Phase**: Development - ArgoCD 3.2.3 OCI Support Problem
 
 ---
 
 ## 🎯 Current Status
 
-### ✅ Latest Update (2025-12-26)
+### ⚠️ Latest Update (2025-12-28)
 
-#### 🚀 Fully Dynamic & Configurable Architecture
-1. **Zero Hardcoded Values**
-   - All configuration from CRD claims
-   - GiteaURL, Organization, Repository names from claims
-   - Multi-environment & multi-organization ready
-   - No rebuild required for configuration changes
+#### 🔴 Known Issue: ArgoCD OCI Registry Authentication
+**Problem**: ArgoCD 3.2.3 cannot authenticate to GitHub Packages (ghcr.io) OCI registry
+- Applications stuck in "Unknown" sync status
+- Error: `cannot get digest for revision 1.0.0: response status code 400`
+- Multiple authentication methods tried but failed
 
-2. **Fixed Critical Issues**
-   - ✅ 401 Unauthorized → Added imagePullSecrets
-   - ✅ Helm pull syntax → Fixed --version flag
-   - ✅ Controller conflicts → Optimized status updates
-   - ✅ Missing charts → Removed unavailable services
-   - ✅ Build errors → Cleaned unused imports
+#### ✅ Working Components
+1. **Platform Operator v1.1.0**
+   - Fully dynamic configuration from CRDs
+   - Generates correct ApplicationSets
+   - Pushes GitOps structure to Gitea
+   - Uses correct OCI format: `oci://ghcr.io/nimbusprotch`
 
-3. **Production Improvements**
-   - Multi-platform builds (linux/amd64, linux/arm64)
-   - GitHub Actions automation
-   - Smart retry logic with exponential backoff
-   - Conflict-free status management
-   - Alpine-based image with git support
+2. **GitOps Structure**
+   - Bootstrap process works
+   - ApplicationSets are created
+   - Applications are generated from ApplicationSets
+   - Values and config properly structured
+
+3. **Infrastructure**
+   - Kind cluster running
+   - Gitea operational
+   - ArgoCD 3.2.3 installed
+   - Operator deployed and functioning
+
+#### ❌ Not Working
+- ArgoCD cannot pull Helm charts from OCI registry
+- Authentication secrets not recognized by ArgoCD
+- OCI format issues between ArgoCD and GitHub Packages
 
 ---
 
@@ -203,36 +212,56 @@ spec:
 
 ## 🚀 Quick Start
 
-### 1. Create Kind Cluster
+### Full Deployment (One Command)
 ```bash
+make full-deploy
+```
+
+This will:
+1. Create Kind cluster
+2. Install Gitea
+3. Install ArgoCD 3.2.3
+4. Deploy Platform Operator
+5. Setup GitOps structure
+6. Create sample claims
+
+### Manual Steps
+```bash
+# 1. Create cluster
 make kind-create
-```
 
-### 2. Install Platform Operator
-```bash
-make install-operator
-```
-
-### 3. Install Gitea
-```bash
+# 2. Install components
 make install-gitea
-```
-
-### 4. Install ArgoCD
-```bash
 make install-argocd
+make install-operator
+
+# 3. Setup GitOps
+make token
+make bootstrap
+make argocd-setup
+
+# 4. Deploy claims
+kubectl apply -f deployments/dev/
 ```
 
-### 5. Deploy Minimal Claims
+## 🔧 Quick Fix for OCI Issue
+
+### Option 1: Use Gitea for Charts (Recommended)
 ```bash
-kubectl apply -f deployments/lightweight/
+# Push charts to Gitea instead of using OCI registry
+# Modify operator to use git:// URLs instead of oci://
 ```
 
-### 6. Verify Deployment
+### Option 2: Make Charts Public
 ```bash
-kubectl get applicationclaim,platformapplicationclaim
-kubectl port-forward -n argocd svc/argocd-server 8080:443
-# Access: https://localhost:8080
+# Make GitHub Packages repositories public
+# Remove authentication requirement
+```
+
+### Option 3: Use ChartMuseum
+```bash
+# Install ChartMuseum as HTTP-based chart repository
+helm install chartmuseum chartmuseum/chartmuseum
 ```
 
 ---
@@ -292,20 +321,21 @@ kubectl port-forward -n argocd svc/argocd-server 8080:443
 
 ## 🔄 Next Steps
 
-1. **Deploy with ArgoCD** - Full end-to-end validation
-2. **Add Monitoring Stack** - Prometheus + Grafana
-3. **Implement RBAC** - Team-based access control
-4. **Production Deployment** - AWS EKS or GKE
-5. **Add More Charts** - Kafka, Elasticsearch templates
+1. **Fix OCI Authentication** - Resolve ArgoCD + GitHub Packages issue
+2. **Alternative: Use Gitea Charts** - Store charts in Git instead of OCI
+3. **Add Monitoring Stack** - Prometheus + Grafana
+4. **Implement RBAC** - Team-based access control
+5. **Production Deployment** - AWS EKS or GKE
 
 ---
 
 **Repository**: https://github.com/NimbusProTch/PaaS-Platform
 **Container Registry**: ghcr.io/nimbusprotch
 **Documentation**: This file (CLAUDE.md)
+**Operator Version**: v1.1.0 (Latest build: 2025-12-28)
 
 ---
 
-> **Version**: 3.0.0
-> **Status**: Production Ready
-> **Architecture**: Fully Configurable, Zero Hardcoded Values
+> **Version**: 3.1.0-dev
+> **Status**: Development - OCI Authentication Issue
+> **Architecture**: GitOps-based, Operator-driven, Configurable

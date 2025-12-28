@@ -3,16 +3,9 @@ kind: ApplicationClaim
 metadata:
   name: ecommerce-apps
   namespace: default
-  labels:
-    environment: dev
-    team: platform-team
-    project: ecommerce
-    type: applications
 spec:
   environment: dev
   clusterType: nonprod
-
-  # GitOps configuration
   giteaURL: http://gitea-http.gitea.svc.cluster.local:3000
   organization: infraforge
 
@@ -21,36 +14,28 @@ spec:
     email: platform@infraforge.io
     slack: "#platform-dev"
 
-  # E-commerce Microservices with enable/disable capability
   applications:
-    # Product Service (Node.js) - ENABLED for testing
     - name: product-service
-      enabled: true  # Set to false to disable this service
+      enabled: true
       chart:
         name: microservice
         version: "1.0.0"
       image:
         repository: ghcr.io/nimbusprotch/product-service
-        tag: "20251221-221634"  # Using actual published tag from GitHub
+        tag: "20251221-221634"
       serviceName: product-service
       version: v1.0.0
-      replicas: 1  # Reduced for Kind cluster
+      replicas: 1
 
       ports:
         - name: http
           port: 8080
           protocol: TCP
 
-      healthCheck:
-        path: /health
-        port: 8080
-        initialDelaySeconds: 30
-        periodSeconds: 10
-
       resources:
         requests:
-          cpu: "50m"     # Minimal CPU for Kind
-          memory: "64Mi" # Minimal memory for Kind
+          cpu: "50m"
+          memory: "64Mi"
         limits:
           cpu: "100m"
           memory: "128Mi"
@@ -60,12 +45,7 @@ spec:
           value: "development"
         - name: PORT
           value: "8080"
-        - name: DATABASE_URL
-          value: "postgresql://postgres:postgres@product-db-rw:5432/products"
-        - name: REDIS_URL
-          value: "redis://redis-master:6379"
 
-    # User Service (Go) - ENABLED for testing
     - name: user-service
       enabled: true
       chart:
@@ -73,7 +53,7 @@ spec:
         version: "1.0.0"
       image:
         repository: ghcr.io/nimbusprotch/user-service
-        tag: "20251221-221631"  # Using actual published tag
+        tag: "20251221-221631"
       serviceName: user-service
       version: v1.0.0
       replicas: 1
@@ -82,12 +62,6 @@ spec:
         - name: http
           port: 8081
           protocol: TCP
-
-      healthCheck:
-        path: /health
-        port: 8081
-        initialDelaySeconds: 30
-        periodSeconds: 10
 
       resources:
         requests:
@@ -102,131 +76,3 @@ spec:
           value: "development"
         - name: PORT
           value: "8081"
-        - name: DB_HOST
-          value: "user-db-rw"
-        - name: DB_PORT
-          value: "5432"
-        - name: DB_USER
-          value: "postgres"
-        - name: DB_PASSWORD
-          value: "postgres"
-        - name: DB_NAME
-          value: "users"
-        - name: REDIS_HOST
-          value: "redis-master"
-        - name: REDIS_PORT
-          value: "6379"
-
-    # Order Service (Go) - DISABLED to save resources
-    - name: order-service
-      enabled: false  # Disabled for minimal deployment
-      chart:
-        name: microservice
-        version: "1.0.0"
-      image:
-        repository: ghcr.io/nimbusprotch/order-service
-        tag: "latest"
-      serviceName: order-service
-      version: v1.0.0
-      replicas: 1
-
-      ports:
-        - name: http
-          port: 8082
-          protocol: TCP
-
-      healthCheck:
-        path: /health
-        port: 8082
-        initialDelaySeconds: 30
-        periodSeconds: 10
-
-      resources:
-        requests:
-          cpu: "50m"
-          memory: "64Mi"
-        limits:
-          cpu: "100m"
-          memory: "128Mi"
-
-      env:
-        - name: ENVIRONMENT
-          value: "development"
-        - name: PORT
-          value: "8082"
-
-    # Payment Service (Node.js) - DISABLED
-    - name: payment-service
-      enabled: false
-      chart:
-        name: microservice
-        version: "1.0.0"
-      image:
-        repository: ghcr.io/nimbusprotch/payment-service
-        tag: "20251221-221633"  # Using actual published tag
-      serviceName: payment-service
-      version: v1.0.0
-      replicas: 1
-
-      ports:
-        - name: http
-          port: 8083
-          protocol: TCP
-
-      healthCheck:
-        path: /health
-        port: 8083
-        initialDelaySeconds: 30
-        periodSeconds: 10
-
-      resources:
-        requests:
-          cpu: "50m"
-          memory: "64Mi"
-        limits:
-          cpu: "100m"
-          memory: "128Mi"
-
-      env:
-        - name: NODE_ENV
-          value: "development"
-        - name: PORT
-          value: "8083"
-
-    # Notification Service (Go) - DISABLED
-    - name: notification-service
-      enabled: false
-      chart:
-        name: microservice
-        version: "1.0.0"
-      image:
-        repository: ghcr.io/nimbusprotch/notification-service
-        tag: "20251221-221634"  # Using actual published tag
-      serviceName: notification-service
-      version: v1.0.0
-      replicas: 1
-
-      ports:
-        - name: http
-          port: 8084
-          protocol: TCP
-
-      healthCheck:
-        path: /health
-        port: 8084
-        initialDelaySeconds: 30
-        periodSeconds: 10
-
-      resources:
-        requests:
-          cpu: "50m"
-          memory: "64Mi"
-        limits:
-          cpu: "100m"
-          memory: "128Mi"
-
-      env:
-        - name: ENVIRONMENT
-          value: "development"
-        - name: PORT
-          value: "8084"

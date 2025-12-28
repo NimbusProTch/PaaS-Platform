@@ -151,7 +151,7 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 				"spec": map[string]interface{}{
 					"project": "default",
 					"source": map[string]interface{}{
-						"repoURL":        "oci://ghcr.io",
+						"repoURL":        "oci://ghcr.io/nimbusprotch",
 						"chart":          "{{chart}}",
 						"targetRevision": "{{version}}",
 						"helm": map[string]interface{}{
@@ -197,7 +197,7 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformElements(claim *pla
 
 		elements = append(elements, map[string]string{
 			"service":     service.Name,
-			"chart":       "nimbusprotch/" + chartName,  // Add namespace prefix for OCI
+			"chart":       chartName,  // Just chart name, no prefix
 			"environment": claim.Spec.Environment,
 			"version":     "1.0.0", // Chart version
 			"values":      valuesYAML,
