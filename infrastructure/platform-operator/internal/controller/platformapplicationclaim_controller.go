@@ -253,6 +253,7 @@ func (r *PlatformApplicationClaimReconciler) createApplication(ctx context.Conte
 
 // generatePlatformApplicationSet generates ArgoCD ApplicationSet for platform services
 func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(claim *platformv1.PlatformApplicationClaim, giteaClient *gitea.Client) string {
+	// Use Git Directories Generator to read from pushed values files
 	appSet := map[string]interface{}{
 		"apiVersion": "argoproj.io/v1alpha1",
 		"kind":       "ApplicationSet",
@@ -268,17 +269,24 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 		"spec": map[string]interface{}{
 			"generators": []map[string]interface{}{
 				{
-					"list": map[string]interface{}{
-						"elements": r.generatePlatformElements(claim, giteaClient),
+					"git": map[string]interface{}{
+						"repoURL":  giteaClient.ConstructCloneURL(claim.Spec.Organization, r.VoltranRepo),
+						"revision": r.Branch,
+						"directories": []map[string]interface{}{
+							{
+								"path": fmt.Sprintf("environments/%s/%s/platform/*",
+									claim.Spec.ClusterType, claim.Spec.Environment),
+							},
+						},
 					},
 				},
 			},
 			"template": map[string]interface{}{
 				"metadata": map[string]interface{}{
-					"name": "{{service}}-{{environment}}",
+					"name": fmt.Sprintf("{{path.basename}}-%s", claim.Spec.Environment),
 					"labels": map[string]string{
-						"platform.infraforge.io/service": "{{service}}",
-						"platform.infraforge.io/env":     "{{environment}}",
+						"platform.infraforge.io/service": "{{path.basename}}",
+						"platform.infraforge.io/env":     claim.Spec.Environment,
 						"platform.infraforge.io/type":    "platform",
 					},
 				},
@@ -286,10 +294,13 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 					"project": "default",
 					"source": map[string]interface{}{
 						"repoURL":        "http://chartmuseum.chartmuseum.svc.cluster.local:8080",
-						"chart":          "{{chart}}",
-						"targetRevision": "{{version}}",
+						"chart":          "{{chart | default path.basename}}",
+						"targetRevision": "{{version | default \"1.0.0\"}}",
 						"helm": map[string]interface{}{
-							"values": "{{values}}",
+							"valueFiles": []string{
+								fmt.Sprintf("https://gitea-http.gitea.svc.cluster.local:3000/infraforge/voltran/raw/branch/main/environments/%s/%s/platform/{{path.basename}}/values.yaml",
+									claim.Spec.ClusterType, claim.Spec.Environment),
+							},
 						},
 					},
 					"destination": map[string]interface{}{
@@ -312,43 +323,6 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 	return string(data)
 }
 
-// generatePlatformElements generates list elements for platform ApplicationSet
-func (r *PlatformApplicationClaimReconciler) generatePlatformElements(claim *platformv1.PlatformApplicationClaim, giteaClient *gitea.Client) []map[string]interface{} {
-	elements := []map[string]interface{}{}
-
-	for _, service := range claim.Spec.Services {
-		// Skip disabled services
-		if !service.Enabled {
-			continue
-		}
-
-		chartName := service.Chart.Name
-		if chartName == "" {
-			chartName = service.Type // fallback to type
-		}
-
-		// Parse values YAML to map
-		var valuesMap map[string]interface{}
-		if service.Values.Raw != nil {
-			if err := yaml.Unmarshal(service.Values.Raw, &valuesMap); err != nil {
-				valuesMap = make(map[string]interface{})
-			}
-		} else {
-			valuesMap = make(map[string]interface{})
-		}
-
-		valuesYAML, _ := yaml.Marshal(valuesMap)
-		elements = append(elements, map[string]interface{}{
-			"service":     service.Name,
-			"chart":       chartName, // Just chart name, no prefix
-			"environment": claim.Spec.Environment,
-			"version":     "1.0.0",           // Chart version
-			"values":      string(valuesYAML), // Send as YAML string
-		})
-	}
-
-	return elements
-}
 
 // generatePlatformValuesYAML generates Helm values.yaml for a platform service
 // Since charts are now in Gitea, we just generate values from CRD spec

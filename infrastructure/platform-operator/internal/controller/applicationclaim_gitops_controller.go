@@ -205,7 +205,7 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplication(claim *platformv1
 
 // generateApplicationSet generates ArgoCD ApplicationSet manifest - one per application
 func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platformv1.ApplicationClaim) string {
-	// Create a simple ApplicationSet using Git files generator
+	// Use Git Directories Generator to scan for application folders
 	appSet := map[string]interface{}{
 		"apiVersion": "argoproj.io/v1alpha1",
 		"kind":       "ApplicationSet",
@@ -221,11 +221,11 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 			"generators": []map[string]interface{}{
 				{
 					"git": map[string]interface{}{
-						"repoURL":  giteaClient.ConstructCloneURL(claim.Spec.Organization, "voltran"),
+						"repoURL":  fmt.Sprintf("http://gitea-http.gitea.svc.cluster.local:3000/%s/voltran", claim.Spec.Organization),
 						"revision": "main",
-						"files": []map[string]interface{}{
+						"directories": []map[string]interface{}{
 							{
-								"path": fmt.Sprintf("environments/%s/%s/applications/*/config.json",
+								"path": fmt.Sprintf("environments/%s/%s/applications/*",
 									claim.Spec.ClusterType, claim.Spec.Environment),
 							},
 						},
@@ -240,12 +240,11 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 					"project": "default",
 					"source": map[string]interface{}{
 						"repoURL":        "http://chartmuseum.chartmuseum.svc.cluster.local:8080",
-						"chart":          "{{chart}}",
-						"targetRevision": "{{version}}",
+						"chart":          "microservice", // All apps use same chart
+						"targetRevision": "1.0.0",
 						"helm": map[string]interface{}{
 							"valueFiles": []string{
-								fmt.Sprintf("environments/%s/%s/applications/{{path.basename}}/values.yaml",
-									claim.Spec.ClusterType, claim.Spec.Environment),
+								"{{path}}/values.yaml", // Read values from Gitea
 							},
 						},
 					},
@@ -341,12 +340,21 @@ func (r *ApplicationClaimGitOpsReconciler) buildCRDOverrides(app platformv1.Appl
 
 	// Image configuration
 	if app.Image.Repository != "" {
+		imageTag := app.Image.Tag
+		if imageTag == "" {
+			imageTag = "latest"
+		}
 		overrides["image"] = map[string]interface{}{
 			"repository": app.Image.Repository,
-			"tag":        app.Image.Tag,
+			"tag":        imageTag,
 		}
 		if app.Image.PullPolicy != "" {
 			overrides["image"].(map[string]interface{})["pullPolicy"] = app.Image.PullPolicy
+		}
+
+		// Add imagePullSecrets for GHCR
+		overrides["imagePullSecrets"] = []map[string]interface{}{
+			{"name": "ghcr-pull-secret"},
 		}
 	}
 

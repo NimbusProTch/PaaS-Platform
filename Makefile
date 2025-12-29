@@ -1,5 +1,9 @@
 .PHONY: help dev cluster gitea argocd operator token bootstrap argocd-setup claims clean logs status full-deploy kind-create kind-delete install-gitea install-argocd install-operator install-chartmuseum setup-gitea deploy-claims upload-charts
 
+# Include .env file if it exists
+-include .env
+export
+
 CLUSTER_NAME = infraforge-local
 GITEA_ADMIN_USER = gitea_admin
 GITEA_ADMIN_PASS = r8sA8CPHD9!bt6d

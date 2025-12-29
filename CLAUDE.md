@@ -1,98 +1,60 @@
-# InfraForge Platform - Architecture Documentation
+# InfraForge Platform - GitOps PaaS Architecture
 
-**Last Updated**: 2025-12-28 13:45 UTC+3
-**Status**: ✅ Platform Operational with New Token
-**Phase**: Production-Ready with OCI Authentication
-
----
-
-## 🎯 Current Status
-
-### ✅ Latest Update (2025-12-28)
-
-#### 🚀 Platform Fully Operational
-1. **GitHub Token Updated**
-   - ✅ New token with write:packages permission configured
-   - ✅ Token verified working with helm pull commands
-   - ✅ ArgoCD secret updated with new credentials
-   - ✅ Docker login successful for image pushes
-
-2. **Platform Operator v1.1.1**
-   - ✅ Updated to use `valuesLiteral` for proper YAML handling
-   - ✅ Fixed OCI repository format: `oci://ghcr.io/nimbusprotch`
-   - ✅ ImagePullSecret configured for operator deployment
-   - ✅ Successfully generates ApplicationSets
-   - ✅ Pushes GitOps structure to Gitea
-
-3. **Infrastructure Status**
-   - ✅ Kind cluster: Running
-   - ✅ Gitea: Operational (infraforge/voltran repository)
-   - ✅ ArgoCD: v3.2.3 with OCI support
-   - ✅ Platform Operator: v1.1.1 deployed
-   - ✅ ApplicationSets: Created and generating Applications
-   - ⚠️ Applications: Sync pending (OCI authentication being finalized)
-
-4. **Fixed Issues**
-   - ✅ Invalid token replaced with working token
-   - ✅ OCI URL format corrected
-   - ✅ Platform ApplicationSet values format fixed
-   - ✅ Operator image pull issues resolved
-   - ✅ Repository credentials configured in ArgoCD
+**Last Updated**: 2025-12-29 UTC+3
+**Status**: 🔧 ApplicationSet Fix in Progress
+**Phase**: Development - GitOps Flow Fix
 
 ---
 
-## 🏗️ System Architecture
+## 🎯 Current Issue & Solution
 
+### ❌ Problem
+- ApplicationSets use List Generator with `{{values}}` placeholder
+- ArgoCD cannot parse `{{values}}` string interpolation
+- Applications not being generated from ApplicationSets
+
+### ✅ Solution
+- Switch from List Generator to Git Directories Generator
+- Use `valueFiles` to read from Gitea instead of inline values
+- Simplify ApplicationSet structure
+
+---
+
+## 🏗️ Platform Architecture
+
+### 3-Level GitOps Pattern
+```
+Root Apps → ApplicationSets → Applications → K8s Resources
+```
+
+### Component Flow
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│          GitHub Packages (OCI Registry)                       │
+│                     1. INFRASTRUCTURE                         │
 ├──────────────────────────────────────────────────────────────┤
-│  📦 Helm Charts (Stable Templates):                           │
-│     • microservice:1.0.0                                      │
-│     • postgresql:1.0.0                                        │
-│     • mongodb:1.0.0                                           │
-│     • redis:1.0.0                                             │
-│     • rabbitmq:1.0.0                                          │
-│     • kafka:1.0.0                                             │
-│                                                              │
-│  🐳 Docker Images:                                            │
-│     • platform-operator:latest (multi-arch)                  │
-│     • microservices:v1.x.x                                   │
+│  • Kind Cluster      - Kubernetes environment                 │
+│  • Gitea            - Git server for GitOps state            │
+│  • ChartMuseum      - HTTP Helm repository                   │
+│  • ArgoCD           - GitOps engine (v3.2.3)                 │
+│  • Platform Operator - Claims processor                       │
 └──────────────────────────────────────────────────────────────┘
                               ↓
 ┌──────────────────────────────────────────────────────────────┐
-│                    Platform Operator                          │
+│                      2. GITOPS FLOW                          │
 ├──────────────────────────────────────────────────────────────┤
-│  CRDs with Full Configuration:                               │
-│  • BootstrapClaim    (GitOps initialization)                │
-│  • ApplicationClaim  (Microservices)                         │
-│  • PlatformApplicationClaim (Infrastructure)                 │
+│  BootstrapClaim → Creates Gitea structure & Root Apps        │
+│  ApplicationClaim → Writes values.yaml & ApplicationSet      │
+│  PlatformClaim → Writes values.yaml & ApplicationSet         │
 └──────────────────────────────────────────────────────────────┘
                               ↓
 ┌──────────────────────────────────────────────────────────────┐
-│              Gitea Repository Structure                       │
+│                    3. ARGOCD SYNC                            │
 ├──────────────────────────────────────────────────────────────┤
-│  infraforge/voltran/                                         │
-│  ├── appsets/                                                │
-│  │   └── {clusterType}/                                      │
-│  │       ├── apps/{env}-appset.yaml                          │
-│  │       └── platform/{env}-platform-appset.yaml             │
-│  └── environments/                                           │
-│      └── {clusterType}/{env}/                                │
-│          ├── applications/{service}/                         │
-│          │   ├── values.yaml                                 │
-│          │   └── config.yaml                                 │
-│          └── platform/{service}/                             │
-│              └── values.yaml                                 │
-└──────────────────────────────────────────────────────────────┘
-                              ↓
-┌──────────────────────────────────────────────────────────────┐
-│                  ArgoCD Deployment                            │
-├──────────────────────────────────────────────────────────────┤
-│  • Reads ApplicationSets from Gitea                          │
-│  • Pulls charts from OCI registry                            │
-│  • Deploys using merged values                               │
-│  • Auto-sync & self-healing enabled                          │
+│  Root Apps watch → appsets/ folders                          │
+│  ApplicationSets → Generate Applications                      │
+│  Applications → Pull charts from ChartMuseum                 │
+│  Applications → Read values from Gitea                       │
+│  Deploy → Kubernetes resources                               │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -100,241 +62,220 @@
 
 ## 📂 Repository Structure
 
+### Project Layout
 ```
 PaaS-Platform/
-├── .github/workflows/
-│   ├── build-operator.yml          # Multi-arch operator build
-│   ├── build-microservices.yml     # App container builds
-│   └── chart-publish.yml           # Helm chart publishing
+├── Makefile                      # One-command orchestrator
+├── .env                         # Credentials
 │
 ├── infrastructure/
-│   └── platform-operator/
-│       ├── api/v1/                 # CRD definitions
-│       ├── internal/controller/    # Reconcilers
-│       ├── pkg/
-│       │   ├── gitea/             # Git operations
-│       │   └── helm/              # OCI chart operations
-│       ├── config/                 # Kustomize manifests
-│       ├── Dockerfile             # Multi-arch build
-│       └── Makefile               # Development tasks
+│   └── platform-operator/       # Kubernetes Operator
+│       ├── api/v1/              # CRD definitions
+│       ├── internal/controller/ # Reconcile logic
+│       └── Dockerfile
+│
+├── charts/                      # Helm templates
+│   ├── microservice/           # App template
+│   ├── postgresql/             # DB template
+│   └── redis/                  # Cache template
 │
 ├── deployments/
-│   ├── dev/
-│   │   ├── apps-claim.yaml        # Microservices claim
-│   │   └── platform-infrastructure-claim.yaml
-│   └── lightweight/               # Minimal deployment
-│       ├── apps-minimal.yaml      # 2 microservices only
-│       └── platform-minimal.yaml  # 1 PostgreSQL + Redis
+│   └── dev/
+│       ├── bootstrap-claim.yaml
+│       ├── apps-claim.yaml
+│       └── platform-infrastructure-claim.yaml
 │
-├── charts/                        # Helm chart templates
-│   ├── microservice/
-│   ├── postgresql/
-│   ├── redis/
-│   ├── rabbitmq/
-│   ├── mongodb/
-│   └── kafka/
+└── scripts/
+    └── setup-gitea.sh          # GitOps helper
+```
+
+### Gitea Repository (voltran)
+```
+voltran/
+├── root-apps/
+│   └── nonprod/
+│       ├── nonprod-apps-root.yaml      # Watches appsets/nonprod/apps/
+│       └── nonprod-platform-root.yaml  # Watches appsets/nonprod/platform/
 │
-└── CLAUDE.md                      # This file
+├── appsets/
+│   └── nonprod/
+│       ├── apps/
+│       │   └── dev-appset.yaml        # Git generator for apps
+│       └── platform/
+│           └── dev-platform-appset.yaml # Git generator for platform
+│
+└── environments/
+    └── nonprod/
+        └── dev/
+            ├── applications/
+            │   ├── product-service/
+            │   │   └── values.yaml     # App config
+            │   └── user-service/
+            │       └── values.yaml
+            └── platform/
+                ├── product-db/
+                │   └── values.yaml     # DB config
+                ├── user-db/
+                │   └── values.yaml
+                └── redis/
+                    └── values.yaml     # Cache config
 ```
 
 ---
 
-## 🔧 Lightweight Test Deployment
+## 🚀 Deployment Flow
 
-For resource-constrained environments, use minimal claims:
+### `make full-deploy` Steps
 
-### Minimal ApplicationClaim (2 services)
+1. **Create Kind Cluster**
+   ```bash
+   kind create cluster --name infraforge-local
+   ```
+
+2. **Install Gitea**
+   ```bash
+   helm install gitea gitea-charts/gitea
+   ```
+
+3. **Install ArgoCD**
+   ```bash
+   kubectl apply -f argocd-install.yaml
+   ```
+
+4. **Install ChartMuseum**
+   ```bash
+   helm install chartmuseum chartmuseum/chartmuseum
+   ```
+
+5. **Deploy Platform Operator**
+   ```bash
+   kubectl apply -k infrastructure/platform-operator/config
+   ```
+
+6. **Bootstrap GitOps**
+   ```bash
+   kubectl apply -f deployments/dev/bootstrap-claim.yaml
+   ```
+   - Creates Gitea repos
+   - Creates folder structure
+   - Creates Root Applications
+
+7. **Upload Charts**
+   ```bash
+   helm package charts/* && curl to ChartMuseum
+   ```
+
+8. **Deploy Applications**
+   ```bash
+   kubectl apply -f deployments/dev/apps-claim.yaml
+   kubectl apply -f deployments/dev/platform-claim.yaml
+   ```
+
+---
+
+## 🔧 ApplicationSet Fix (Current Work)
+
+### Before (Broken - List Generator)
 ```yaml
-apiVersion: platform.infraforge.io/v1
-kind: ApplicationClaim
-metadata:
-  name: minimal-apps
-spec:
-  environment: dev
-  clusterType: nonprod
-  giteaURL: http://gitea-http.gitea.svc.cluster.local:3000
-  organization: infraforge
-
-  applications:
-    - name: user-service
-      chart:
-        name: microservice
-        version: "1.0.0"
-      image:
-        repository: ghcr.io/nimbusprotch/user-service
-        tag: v1.0.0
-      replicas: 1
-
+generators:
+- list:
+    elements:
     - name: product-service
-      chart:
-        name: microservice
-        version: "1.0.0"
-      image:
-        repository: ghcr.io/nimbusprotch/product-service
-        tag: v1.0.0
-      replicas: 1
+      values: "{{values}}"  # ❌ Doesn't work
 ```
 
-### Minimal PlatformClaim (PostgreSQL + Redis)
+### After (Fixed - Git Directories)
 ```yaml
-apiVersion: platform.infraforge.io/v1
-kind: PlatformApplicationClaim
-metadata:
-  name: minimal-platform
-spec:
-  environment: dev
-  clusterType: nonprod
-  giteaURL: http://gitea-http.gitea.svc.cluster.local:3000
-  organization: infraforge
-
-  services:
-    - type: postgresql
-      name: main-db
-      chart:
-        name: postgresql
-        version: "1.0.0"
-      values:
-        persistence:
-          size: 5Gi
-
-    - type: redis
-      name: cache
-      chart:
-        name: redis
-        version: "1.0.0"
-      values:
-        persistence:
-          size: 1Gi
+generators:
+- git:
+    repoURL: http://gitea.../voltran
+    directories:
+    - path: environments/nonprod/dev/applications/*
+template:
+  spec:
+    helm:
+      valueFiles:
+      - '{{path}}/values.yaml'  # ✅ Works
 ```
 
 ---
 
-## 🚀 Quick Start
+## ✅ Task List
 
-### Full Deployment (One Command)
+- [x] Create infrastructure setup
+- [x] Deploy Platform Operator
+- [x] Setup Gitea GitOps structure
+- [x] Create ChartMuseum repository
+- [ ] Fix ApplicationSet generator (IN PROGRESS)
+- [ ] Build and deploy fixed operator
+- [ ] Test end-to-end flow
+- [ ] Deploy sample microservices
+- [ ] Verify pod health
+
+---
+
+## 🎯 Key Commands
+
+### Quick Status Check
 ```bash
-make full-deploy
+# Check system
+kubectl get pods -n dev
+kubectl get applications -n argocd
+kubectl get applicationsets -n argocd
+
+# Check operator logs
+kubectl logs -n platform-operator-system deployment/controller-manager
 ```
 
-This will:
-1. Create Kind cluster
-2. Install Gitea
-3. Install ArgoCD 3.2.3
-4. Deploy Platform Operator
-5. Setup GitOps structure
-6. Create sample claims
-
-### Manual Steps
+### Rebuild Operator
 ```bash
-# 1. Create cluster
-make kind-create
+# Build locally
+cd infrastructure/platform-operator
+docker build -t ghcr.io/nimbusprotch/platform-operator:latest .
+docker push ghcr.io/nimbusprotch/platform-operator:latest
 
-# 2. Install components
-make install-gitea
-make install-argocd
-make install-operator
+# Restart operator
+kubectl rollout restart deployment/controller-manager -n platform-operator-system
+```
 
-# 3. Setup GitOps
-make token
-make bootstrap
-make argocd-setup
+### Clean Restart
+```bash
+# Delete broken ApplicationSets
+kubectl delete applicationset dev-apps dev-platform -n argocd
 
-# 4. Deploy claims
+# Re-apply claims
+kubectl delete -f deployments/dev/
 kubectl apply -f deployments/dev/
 ```
 
-## 🔧 Quick Fix for OCI Issue
-
-### Option 1: Use Gitea for Charts (Recommended)
-```bash
-# Push charts to Gitea instead of using OCI registry
-# Modify operator to use git:// URLs instead of oci://
-```
-
-### Option 2: Make Charts Public
-```bash
-# Make GitHub Packages repositories public
-# Remove authentication requirement
-```
-
-### Option 3: Use ChartMuseum
-```bash
-# Install ChartMuseum as HTTP-based chart repository
-helm install chartmuseum chartmuseum/chartmuseum
-```
-
 ---
 
-## 🎯 Key Features
+## 📋 Environment Variables
 
-### Platform Capabilities
-- **Zero Hardcoded Values** - Everything configurable via CRDs
-- **Multi-Environment** - Dev, QA, Staging, Prod support
-- **Multi-Organization** - Tenant isolation ready
-- **OCI Registry** - GitHub Packages for charts & images
-- **GitOps Native** - ArgoCD ApplicationSets
-- **Smart Merging** - Base + environment + custom values
-- **Production Ready** - Retry logic, conflict handling
-- **Multi-Architecture** - AMD64 + ARM64 support
-
-### Operational Excellence
-- **Automated Builds** - GitHub Actions CI/CD
-- **Version Control** - Git-based configuration
-- **Self-Healing** - ArgoCD auto-sync
-- **Scalable** - From minimal to enterprise deployments
-- **Observable** - Structured logging & metrics ready
-
----
-
-## 📋 Configuration Reference
-
-### Environment Variables
-- `GITEA_TOKEN` - Authentication for Gitea operations
-- `GITHUB_TOKEN` - Authentication for GHCR pulls
-
-### CRD Fields (All Optional Overrides)
-- `giteaURL` - Gitea server URL
-- `organization` - Git organization name
-- `environment` - Target environment (dev/qa/staging/prod)
-- `clusterType` - Cluster classification (nonprod/prod)
-
----
-
-## ✅ Production Checklist
-
-- [x] Remove all hardcoded values
-- [x] Multi-arch container builds
-- [x] OCI registry integration
-- [x] Conflict-free controllers
-- [x] Retry with backoff
-- [x] GitOps structure
-- [x] Dynamic configuration
-- [x] Chart templating
-- [ ] Monitoring (Prometheus)
-- [ ] Logging (Loki)
-- [ ] Tracing (Tempo)
-- [ ] Backup strategies
-- [ ] RBAC policies
+Create `.env` file with:
+```bash
+GITHUB_TOKEN_ENV=<your-github-token>
+GITEA_ADMIN_USER=gitea_admin
+GITEA_ADMIN_PASS=<generated-password>
+```
 
 ---
 
 ## 🔄 Next Steps
 
-1. **Fix OCI Authentication** - Resolve ArgoCD + GitHub Packages issue
-2. **Alternative: Use Gitea Charts** - Store charts in Git instead of OCI
-3. **Add Monitoring Stack** - Prometheus + Grafana
-4. **Implement RBAC** - Team-based access control
-5. **Production Deployment** - AWS EKS or GKE
+1. **Immediate**: Fix ApplicationSet generator code
+2. **Short-term**: Deploy and test fixed operator
+3. **Mid-term**: Build actual microservice images
+4. **Long-term**: Production deployment on cloud
 
 ---
 
 **Repository**: https://github.com/NimbusProTch/PaaS-Platform
 **Container Registry**: ghcr.io/nimbusprotch
 **Documentation**: This file (CLAUDE.md)
-**Operator Version**: v1.1.0 (Latest build: 2025-12-28)
 
 ---
 
-> **Version**: 3.1.0-dev
-> **Status**: Development - OCI Authentication Issue
-> **Architecture**: GitOps-based, Operator-driven, Configurable
+> **Version**: 4.0.0-dev
+> **Architecture**: GitOps-based, 3-Level Pattern
+> **Status**: Fixing ApplicationSet Generation
