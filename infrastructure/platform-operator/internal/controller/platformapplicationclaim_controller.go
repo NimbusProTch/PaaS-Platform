@@ -150,11 +150,6 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplication(claim *
 		chartName = service.Type // fallback to type
 	}
 
-	version := service.Chart.Version
-	if version == "" {
-		version = "1.0.0"
-	}
-
 	// Parse custom values from CRD
 	var customValues map[string]interface{}
 	if service.Values.Raw != nil {
@@ -182,9 +177,9 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplication(claim *
 		"spec": map[string]interface{}{
 			"project": "default",
 			"source": map[string]interface{}{
-				"repoURL":        "http://chartmuseum.chartmuseum.svc.cluster.local:8080",
-				"chart":          chartName,
-				"targetRevision": version,
+				"repoURL":        fmt.Sprintf("%s/%s/charts", claim.Spec.GiteaURL, claim.Spec.Organization),
+				"path":           chartName,
+				"targetRevision": "main",
 				"helm": map[string]interface{}{
 					"values": string(valuesYAML),
 				},
@@ -253,7 +248,7 @@ func (r *PlatformApplicationClaimReconciler) createApplication(ctx context.Conte
 
 // generatePlatformApplicationSet generates ArgoCD ApplicationSet for platform services
 func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(claim *platformv1.PlatformApplicationClaim, giteaClient *gitea.Client) string {
-	// Use Git Directories Generator to read from pushed values files
+	// Use Git Directories Generator to scan platform service directories
 	appSet := map[string]interface{}{
 		"apiVersion": "argoproj.io/v1alpha1",
 		"kind":       "ApplicationSet",
@@ -292,15 +287,24 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 				},
 				"spec": map[string]interface{}{
 					"project": "default",
-					"source": map[string]interface{}{
-						"repoURL":        "http://chartmuseum.chartmuseum.svc.cluster.local:8080",
-						"chart":          "{{chart | default path.basename}}",
-						"targetRevision": "{{version | default \"1.0.0\"}}",
-						"helm": map[string]interface{}{
-							"valueFiles": []string{
-								fmt.Sprintf("https://gitea-http.gitea.svc.cluster.local:3000/infraforge/voltran/raw/branch/main/environments/%s/%s/platform/{{path.basename}}/values.yaml",
-									claim.Spec.ClusterType, claim.Spec.Environment),
+					"sources": []map[string]interface{}{
+						{
+							// Source 1: Helm chart from charts repository
+							"repoURL":        fmt.Sprintf("%s/%s/charts", claim.Spec.GiteaURL, claim.Spec.Organization),
+							"path":           "{{path.basename}}",
+							"targetRevision": "main",
+							"helm": map[string]interface{}{
+								"valueFiles": []string{
+									fmt.Sprintf("$values/environments/%s/%s/platform/{{path.basename}}/values.yaml",
+										claim.Spec.ClusterType, claim.Spec.Environment),
+								},
 							},
+						},
+						{
+							// Source 2: Values from voltran repository
+							"repoURL":        giteaClient.ConstructCloneURL(claim.Spec.Organization, r.VoltranRepo),
+							"targetRevision": r.Branch,
+							"ref":            "values",
 						},
 					},
 					"destination": map[string]interface{}{

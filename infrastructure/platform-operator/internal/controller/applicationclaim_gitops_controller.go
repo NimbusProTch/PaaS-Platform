@@ -155,11 +155,6 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplication(claim *platformv1
 		chartName = "microservice"
 	}
 
-	version := app.Chart.Version
-	if version == "" {
-		version = "1.0.0"
-	}
-
 	// Get values as YAML string
 	valuesMap := r.buildCRDOverrides(app)
 	valuesYAML, _ := yaml.Marshal(valuesMap)
@@ -178,9 +173,9 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplication(claim *platformv1
 		"spec": map[string]interface{}{
 			"project": "default",
 			"source": map[string]interface{}{
-				"repoURL":        "http://chartmuseum.chartmuseum.svc.cluster.local:8080",
-				"chart":          chartName,
-				"targetRevision": version,
+				"repoURL":        fmt.Sprintf("%s/%s/charts", claim.Spec.GiteaURL, claim.Spec.Organization),
+				"path":           chartName,
+				"targetRevision": "main",
 				"helm": map[string]interface{}{
 					"values": string(valuesYAML),
 				},
@@ -205,7 +200,7 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplication(claim *platformv1
 
 // generateApplicationSet generates ArgoCD ApplicationSet manifest - one per application
 func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platformv1.ApplicationClaim) string {
-	// Use Git Directories Generator to scan for application folders
+	// Use Git Files Generator to read config.json from each application directory
 	appSet := map[string]interface{}{
 		"apiVersion": "argoproj.io/v1alpha1",
 		"kind":       "ApplicationSet",
@@ -221,11 +216,11 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 			"generators": []map[string]interface{}{
 				{
 					"git": map[string]interface{}{
-						"repoURL":  fmt.Sprintf("http://gitea-http.gitea.svc.cluster.local:3000/%s/voltran", claim.Spec.Organization),
-						"revision": "main",
-						"directories": []map[string]interface{}{
+						"repoURL":  fmt.Sprintf("%s/%s/%s", claim.Spec.GiteaURL, claim.Spec.Organization, r.VoltranRepo),
+						"revision": r.Branch,
+						"files": []map[string]interface{}{
 							{
-								"path": fmt.Sprintf("environments/%s/%s/applications/*",
+								"path": fmt.Sprintf("environments/%s/%s/applications/*/config.json",
 									claim.Spec.ClusterType, claim.Spec.Environment),
 							},
 						},
@@ -234,18 +229,32 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 			},
 			"template": map[string]interface{}{
 				"metadata": map[string]interface{}{
-					"name": "{{path.basename}}-" + claim.Spec.Environment,
+					"name": "{{name}}-" + claim.Spec.Environment,
+					"labels": map[string]string{
+						"platform.infraforge.io/app": "{{name}}",
+						"platform.infraforge.io/env": claim.Spec.Environment,
+					},
 				},
 				"spec": map[string]interface{}{
 					"project": "default",
-					"source": map[string]interface{}{
-						"repoURL":        "http://chartmuseum.chartmuseum.svc.cluster.local:8080",
-						"chart":          "microservice", // All apps use same chart
-						"targetRevision": "1.0.0",
-						"helm": map[string]interface{}{
-							"valueFiles": []string{
-								"{{path}}/values.yaml", // Read values from Gitea
+					"sources": []map[string]interface{}{
+						{
+							// Source 1: Helm chart from charts repository
+							"repoURL":        fmt.Sprintf("%s/%s/charts", claim.Spec.GiteaURL, claim.Spec.Organization),
+							"path":           "{{chart}}",
+							"targetRevision": "main",
+							"helm": map[string]interface{}{
+								"valueFiles": []string{
+									fmt.Sprintf("$values/environments/%s/%s/applications/{{name}}/values.yaml",
+										claim.Spec.ClusterType, claim.Spec.Environment),
+								},
 							},
+						},
+						{
+							// Source 2: Values from voltran repository
+							"repoURL":        fmt.Sprintf("%s/%s/%s", claim.Spec.GiteaURL, claim.Spec.Organization, r.VoltranRepo),
+							"targetRevision": r.Branch,
+							"ref":            "values",
 						},
 					},
 					"destination": map[string]interface{}{

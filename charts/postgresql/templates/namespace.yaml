@@ -4,6 +4,8 @@ kind: Namespace
 metadata:
   name: {{ .Values.namespace | default .Release.Namespace }}
   labels:
-    {{- include "microservice.labels" . | nindent 4 }}
+    app: postgresql
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    release: {{ .Release.Name }}
     environment: {{ .Values.environment | default "dev" }}
 {{- end }}
