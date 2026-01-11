@@ -66,16 +66,10 @@ func (r *ApplicationClaimGitOpsReconciler) Reconcile(ctx context.Context, req ct
 	// Create GiteaClient dynamically from claim
 	giteaClient := gitea.NewClient(claim.Spec.GiteaURL, r.GiteaUsername, r.GiteaToken)
 
-	// Generate ApplicationSet and values.yaml
-	logger.Info("Generating ApplicationSet and values", "environment", claim.Spec.Environment)
+	// Generate values.yaml for Gitea (if needed for future reference)
+	logger.Info("Generating values files for applications", "environment", claim.Spec.Environment)
 
 	files := make(map[string]string)
-
-	// Generate ApplicationSet
-	appSetPath := fmt.Sprintf("appsets/%s/apps/%s-appset.yaml", claim.Spec.ClusterType, claim.Spec.Environment)
-	appSetContent := r.generateApplicationSet(claim)
-	files[appSetPath] = appSetContent
-	logger.Info("Generated ApplicationSet content", "path", appSetPath, "length", len(appSetContent))
 
 	// Generate directory structure for each application
 	enabledCount := 0
@@ -87,50 +81,40 @@ func (r *ApplicationClaimGitOpsReconciler) Reconcile(ctx context.Context, req ct
 		}
 		enabledCount++
 
-		// values.yaml
+		// values.yaml for reference in Git
 		valuesPath := fmt.Sprintf("environments/%s/%s/applications/%s/values.yaml", claim.Spec.ClusterType, claim.Spec.Environment, app.Name)
 		valuesContent := r.generateValuesYAML(claim, app)
 		files[valuesPath] = valuesContent
 
-		// config.json (metadata for ApplicationSet)
-		configPath := fmt.Sprintf("environments/%s/%s/applications/%s/config.json", claim.Spec.ClusterType, claim.Spec.Environment, app.Name)
-		configContent := r.generateConfigJSON(claim, app)
-		files[configPath] = configContent
-
-		logger.Info("Generated application files", "app", app.Name, "valuesPath", valuesPath, "configPath", configPath)
+		logger.Info("Generated application files", "app", app.Name, "valuesPath", valuesPath)
 	}
 
-	logger.Info("Total files to push", "fileCount", len(files), "enabledApps", enabledCount)
+	logger.Info("Total values files to push", "fileCount", len(files), "enabledApps", enabledCount)
 
-	// Push to Gitea - use internal clone URL
-	voltranURL := giteaClient.ConstructCloneURL(claim.Spec.Organization, r.VoltranRepo)
-	commitMsg := fmt.Sprintf("Update %s environment applications by operator", claim.Spec.Environment)
+	// Push values to Gitea for reference (optional, not used by ApplicationSet)
+	if len(files) > 0 {
+		voltranURL := giteaClient.ConstructCloneURL(claim.Spec.Organization, r.VoltranRepo)
+		commitMsg := fmt.Sprintf("Update %s environment values by operator", claim.Spec.Environment)
 
-	logger.Info("Pushing files to Gitea", "url", voltranURL, "branch", r.Branch, "commitMsg", commitMsg)
+		logger.Info("Pushing values to Gitea for reference", "url", voltranURL, "branch", r.Branch, "commitMsg", commitMsg)
 
-	if err := giteaClient.PushFiles(ctx, voltranURL, r.Branch, files, commitMsg,
-		"Platform Operator", "operator@platform.local"); err != nil {
-		logger.Error(err, "failed to push to Git", "url", voltranURL)
-		// Don't update status on git errors, just retry
+		if err := giteaClient.PushFiles(ctx, voltranURL, r.Branch, files, commitMsg,
+			"Platform Operator", "operator@platform.local"); err != nil {
+			logger.Error(err, "failed to push values to Git (non-critical)", "url", voltranURL)
+			// Not critical, continue
+		} else {
+			logger.Info("Successfully pushed values files to Git for reference")
+		}
+	}
+
+	// Create ApplicationSet in ArgoCD namespace
+	logger.Info("Creating ApplicationSet in ArgoCD")
+	appSetContent := r.generateApplicationSet(claim)
+	if err := r.createApplicationSet(ctx, appSetContent, claim); err != nil {
+		logger.Error(err, "failed to create ApplicationSet")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
-
-	logger.Info("Successfully pushed files to Git")
-
-	// Create individual Applications in ArgoCD namespace
-	logger.Info("Creating Applications in ArgoCD for each service")
-	for _, app := range claim.Spec.Applications {
-		if !app.Enabled {
-			continue
-		}
-
-		appManifest := r.generateApplication(claim, app)
-		if err := r.createApplication(ctx, appManifest); err != nil {
-			logger.Error(err, "failed to create Application", "app", app.Name)
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-		}
-		logger.Info("Created Application", "name", app.Name)
-	}
+	logger.Info("Created ApplicationSet", "name", fmt.Sprintf("%s-apps", claim.Spec.Environment))
 
 	// Update status to Ready only if not already ready
 	if claim.Status.Phase != "Ready" || !claim.Status.Ready {
@@ -198,9 +182,16 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplication(claim *platformv1
 	return string(data)
 }
 
-// generateApplicationSet generates ArgoCD ApplicationSet manifest - one per application
+// generateApplicationSet generates ArgoCD ApplicationSet manifest using Git Directories generator
+// This uses multi-source: charts from ChartMuseum + values from Gitea
 func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platformv1.ApplicationClaim) string {
-	// Use Git Files Generator to read config.json from each application directory
+	// Create GiteaClient to construct proper URLs
+	giteaClient := gitea.NewClient(claim.Spec.GiteaURL, r.GiteaUsername, r.GiteaToken)
+	voltranURL := giteaClient.ConstructCloneURL(claim.Spec.Organization, r.VoltranRepo)
+
+	// Use ChartMuseum for charts
+	chartRepoURL := "http://chartmuseum.chartmuseum.svc.cluster.local:8080"
+
 	appSet := map[string]interface{}{
 		"apiVersion": "argoproj.io/v1alpha1",
 		"kind":       "ApplicationSet",
@@ -210,17 +201,18 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 			"labels": map[string]string{
 				"platform.infraforge.io/environment": claim.Spec.Environment,
 				"platform.infraforge.io/cluster":     claim.Spec.ClusterType,
+				"platform.infraforge.io/type":        "apps",
 			},
 		},
 		"spec": map[string]interface{}{
 			"generators": []map[string]interface{}{
 				{
 					"git": map[string]interface{}{
-						"repoURL":  fmt.Sprintf("%s/%s/%s", claim.Spec.GiteaURL, claim.Spec.Organization, r.VoltranRepo),
+						"repoURL":  voltranURL,
 						"revision": r.Branch,
-						"files": []map[string]interface{}{
+						"directories": []map[string]interface{}{
 							{
-								"path": fmt.Sprintf("environments/%s/%s/applications/*/config.json",
+								"path": fmt.Sprintf("environments/%s/%s/applications/*",
 									claim.Spec.ClusterType, claim.Spec.Environment),
 							},
 						},
@@ -229,30 +221,31 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 			},
 			"template": map[string]interface{}{
 				"metadata": map[string]interface{}{
-					"name": "{{name}}-" + claim.Spec.Environment,
+					"name": fmt.Sprintf("{{path.basename}}-%s", claim.Spec.Environment),
 					"labels": map[string]string{
-						"platform.infraforge.io/app": "{{name}}",
+						"platform.infraforge.io/app": "{{path.basename}}",
 						"platform.infraforge.io/env": claim.Spec.Environment,
+						"platform.infraforge.io/type": "apps",
 					},
 				},
 				"spec": map[string]interface{}{
 					"project": "default",
 					"sources": []map[string]interface{}{
 						{
-							// Source 1: Helm chart from charts repository
-							"repoURL":        fmt.Sprintf("%s/%s/charts", claim.Spec.GiteaURL, claim.Spec.Organization),
-							"path":           "{{chart}}",
-							"targetRevision": "main",
+							// Source 1: Helm chart from ChartMuseum
+							"repoURL":        chartRepoURL,
+							"chart":          "microservice",
+							"targetRevision": "1.0.0",
 							"helm": map[string]interface{}{
 								"valueFiles": []string{
-									fmt.Sprintf("$values/environments/%s/%s/applications/{{name}}/values.yaml",
+									fmt.Sprintf("$values/environments/%s/%s/applications/{{path.basename}}/values.yaml",
 										claim.Spec.ClusterType, claim.Spec.Environment),
 								},
 							},
 						},
 						{
-							// Source 2: Values from voltran repository
-							"repoURL":        fmt.Sprintf("%s/%s/%s", claim.Spec.GiteaURL, claim.Spec.Organization, r.VoltranRepo),
+							// Source 2: Values from Gitea voltran repository
+							"repoURL":        voltranURL,
 							"targetRevision": r.Branch,
 							"ref":            "values",
 						},
@@ -297,15 +290,14 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationElements(claim *pl
 			version = "1.0.0" // default version
 		}
 
-		// Get values as YAML string for ArgoCD
+		// Get values as map for ArgoCD ApplicationSet
 		valuesMap := r.buildCRDOverrides(app)
-		valuesYAML, _ := yaml.Marshal(valuesMap)
 
 		elements = append(elements, map[string]interface{}{
 			"name":    app.Name,
 			"chart":   chartName,
 			"version": version,
-			"values":  string(valuesYAML), // Send as YAML string
+			"values":  valuesMap, // Send as map object, not string
 		})
 	}
 
