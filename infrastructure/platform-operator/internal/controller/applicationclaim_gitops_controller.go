@@ -183,14 +183,14 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplication(claim *platformv1
 }
 
 // generateApplicationSet generates ArgoCD ApplicationSet manifest using Git Directories generator
-// This uses multi-source: charts from ChartMuseum + values from Gitea
+// This uses multi-source: charts from Gitea + values from Gitea voltran
 func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platformv1.ApplicationClaim) string {
 	// Create GiteaClient to construct proper URLs
 	giteaClient := gitea.NewClient(claim.Spec.GiteaURL, r.GiteaUsername, r.GiteaToken)
 	voltranURL := giteaClient.ConstructCloneURL(claim.Spec.Organization, r.VoltranRepo)
 
-	// Use ChartMuseum for charts
-	chartRepoURL := "http://chartmuseum.chartmuseum.svc.cluster.local:8080"
+	// Use Gitea charts repository (not ChartMuseum)
+	chartsRepoURL := giteaClient.ConstructCloneURL(claim.Spec.Organization, "charts")
 
 	appSet := map[string]interface{}{
 		"apiVersion": "argoproj.io/v1alpha1",
@@ -223,8 +223,8 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 				"metadata": map[string]interface{}{
 					"name": fmt.Sprintf("{{path.basename}}-%s", claim.Spec.Environment),
 					"labels": map[string]string{
-						"platform.infraforge.io/app": "{{path.basename}}",
-						"platform.infraforge.io/env": claim.Spec.Environment,
+						"platform.infraforge.io/app":  "{{path.basename}}",
+						"platform.infraforge.io/env":  claim.Spec.Environment,
 						"platform.infraforge.io/type": "apps",
 					},
 				},
@@ -232,10 +232,10 @@ func (r *ApplicationClaimGitOpsReconciler) generateApplicationSet(claim *platfor
 					"project": "default",
 					"sources": []map[string]interface{}{
 						{
-							// Source 1: Helm chart from ChartMuseum
-							"repoURL":        chartRepoURL,
-							"chart":          "microservice",
-							"targetRevision": "1.0.0",
+							// Source 1: Helm chart from Gitea charts repository
+							"repoURL":        chartsRepoURL,
+							"path":           "microservice",
+							"targetRevision": r.Branch,
 							"helm": map[string]interface{}{
 								"valueFiles": []string{
 									fmt.Sprintf("$values/environments/%s/%s/applications/{{path.basename}}/values.yaml",
