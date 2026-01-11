@@ -41,6 +41,8 @@ WORKDIR /
 COPY --from=builder /workspace/manager .
 # Copy helm binary
 COPY --from=builder /usr/local/bin/helm /usr/local/bin/helm
+# Copy charts directory
+COPY --from=builder /workspace/charts /charts
 
 USER 65532:65532
 

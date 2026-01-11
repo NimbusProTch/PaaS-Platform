@@ -104,18 +104,22 @@ install-operator: ## Platform Operator kur
 	@kubectl apply -f infrastructure/platform-operator/config/crd/bases
 	@echo "🚀 Operator namespace oluşturuluyor..."
 	@kubectl create namespace platform-operator-system --dry-run=client -o yaml | kubectl apply -f -
-	@echo "🔐 Image pull secret oluşturuluyor..."
-	@kubectl create secret docker-registry ghcr-secret \
-		--docker-server=ghcr.io \
-		--docker-username=$(GITHUB_USER) \
-		--docker-password=$(GITHUB_TOKEN) \
-		--namespace platform-operator-system \
-		--dry-run=client -o yaml | kubectl apply -f -
-	@echo "🔐 GitHub token secret oluşturuluyor..."
-	@kubectl create secret generic github-token \
-		--from-literal=token=$(GITHUB_TOKEN) \
-		--namespace platform-operator-system \
-		--dry-run=client -o yaml | kubectl apply -f -
+	@if [ -n "$(GITHUB_TOKEN)" ]; then \
+		echo "🔐 Image pull secret oluşturuluyor..."; \
+		kubectl create secret docker-registry ghcr-secret \
+			--docker-server=ghcr.io \
+			--docker-username=$(GITHUB_USER) \
+			--docker-password=$(GITHUB_TOKEN) \
+			--namespace platform-operator-system \
+			--dry-run=client -o yaml | kubectl apply -f -; \
+		echo "🔐 GitHub token secret oluşturuluyor..."; \
+		kubectl create secret generic github-token \
+			--from-literal=token=$(GITHUB_TOKEN) \
+			--namespace platform-operator-system \
+			--dry-run=client -o yaml | kubectl apply -f -; \
+	else \
+		echo "⚠️  GITHUB_TOKEN yok, public image kullanılacak"; \
+	fi
 	@echo "🔐 Gitea token oluşturuluyor..."
 	@sleep 5
 	@POD=$$(kubectl get pod -n gitea -l app.kubernetes.io/name=gitea -o jsonpath='{.items[0].metadata.name}') && \
