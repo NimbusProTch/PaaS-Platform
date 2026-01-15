@@ -21,8 +21,9 @@ spec:
         name: microservice
         version: "1.0.0"
       image:
-        repository: ghcr.io/nimbusprotch/product-service
-        tag: "latest"
+        repository: product-service
+        tag: "v1.0"
+        pullPolicy: Never
       serviceName: product-service
       version: v1.0.0
       replicas: 1
@@ -52,8 +53,9 @@ spec:
         name: microservice
         version: "1.0.0"
       image:
-        repository: ghcr.io/nimbusprotch/user-service
-        tag: "latest"
+        repository: user-service
+        tag: "v1.0"
+        pullPolicy: Never
       serviceName: user-service
       version: v1.0.0
       replicas: 1

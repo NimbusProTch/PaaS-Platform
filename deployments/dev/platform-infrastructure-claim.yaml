@@ -12,6 +12,9 @@ spec:
   environment: dev
   clusterType: nonprod
 
+  # Storage class for persistent volumes (Kind uses "standard")
+  storageClass: standard
+
   # GitOps configuration
   giteaURL: http://gitea-http.gitea.svc.cluster.local:3000
   organization: infraforge

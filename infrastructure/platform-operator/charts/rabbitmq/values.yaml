@@ -1,0 +1,20 @@
+rabbitmq:
+# Namespace configuration
+createNamespace: true
+namespace: ""  # Will use .Release.Namespace if empty
+environment: dev
+
+  replicas: 1
+  image: rabbitmq:3.12-management
+  
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  
+  persistence:
+    storage: 10Gi
+    storageClassName: gp3

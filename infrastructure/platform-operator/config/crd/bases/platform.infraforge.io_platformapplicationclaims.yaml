@@ -164,6 +164,10 @@ spec:
                   - type
                   type: object
                 type: array
+              storageClass:
+                default: standard
+                description: StorageClass default storage class for persistent volumes
+                type: string
             required:
             - clusterType
             - environment

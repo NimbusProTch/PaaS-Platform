@@ -1,0 +1,13 @@
+redis:
+  clusterSize: 3
+  
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  
+  storage:
+    size: 50Gi

@@ -29,6 +29,11 @@ type PlatformApplicationClaimSpec struct {
 
 	// Owner team ownership information
 	Owner OwnerSpec `json:"owner"`
+
+	// StorageClass default storage class for persistent volumes
+	// +kubebuilder:default="standard"
+	// +optional
+	StorageClass string `json:"storageClass,omitempty"`
 }
 
 // PlatformServiceSpec defines a platform service configuration

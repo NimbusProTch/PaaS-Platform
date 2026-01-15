@@ -1,0 +1,50 @@
+# Base values - development defaults
+
+# Namespace configuration
+createNamespace: true
+namespace: ""  # Will use .Release.Namespace if empty
+environment: dev
+postgresql:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:16
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  
+  storage:
+    size: 10Gi
+    storageClass: gp3
+  
+  highAvailability:
+    enabled: false
+    podDisruptionBudget:
+      enabled: false
+      minAvailable: 2
+  
+  backup:
+    enabled: false
+    retentionPolicy: 30d
+    barmanObjectStore:
+      destinationPath: ""
+      s3Credentials: {}
+      wal:
+        compression: gzip
+        encryption: AES256
+  
+  monitoring:
+    enabled: false
+    enablePodMonitor: false
+  
+  pooler:
+    enabled: false
+    instances: 1
+  
+  postgresql:
+    parameters:
+      max_connections: "100"
+      shared_buffers: "256MB"

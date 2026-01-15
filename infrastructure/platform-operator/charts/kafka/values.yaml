@@ -1,0 +1,25 @@
+kafka:
+# Namespace configuration
+createNamespace: true
+namespace: ""  # Will use .Release.Namespace if empty
+environment: dev
+
+  replicas: 1
+  version: 3.5.0
+  
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 1000m
+      memory: 4Gi
+  
+  storage:
+    size: 20Gi
+    class: gp3
+  
+  zookeeper:
+    replicas: 1
+    storage:
+      size: 10Gi

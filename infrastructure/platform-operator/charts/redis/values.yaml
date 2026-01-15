@@ -1,0 +1,20 @@
+# Namespace configuration
+createNamespace: true
+namespace: ""  # Will use .Release.Namespace if empty
+environment: dev
+
+redis:
+  clusterSize: 3
+  image: redis:7.0
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+  storage:
+    size: 10Gi
+    storageClassName: gp3

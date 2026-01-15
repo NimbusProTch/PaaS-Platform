@@ -1,0 +1,6 @@
+apiVersion: v2
+name: kafka
+description: Strimzi Kafka Operator
+type: application
+version: 1.0.0
+appVersion: "3.5"

@@ -1,0 +1,12 @@
+apiVersion: v2
+name: microservice
+description: Generic Helm chart for microservice applications
+type: application
+version: 1.0.0
+appVersion: "1.0"
+keywords:
+  - microservice
+  - application
+  - platform
+maintainers:
+  - name: Platform Team

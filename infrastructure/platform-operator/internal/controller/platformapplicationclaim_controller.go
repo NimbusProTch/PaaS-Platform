@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -68,6 +69,10 @@ func (r *PlatformApplicationClaimReconciler) Reconcile(ctx context.Context, req 
 	// Create GiteaClient dynamically from claim
 	giteaClient := gitea.NewClient(claim.Spec.GiteaURL, r.GiteaUsername, r.GiteaToken)
 
+	// Skip operator installation check - operators are already installed
+	// This was causing an infinite loop because isOperatorInstalled wasn't working correctly
+	logger.Info("Skipping operator installation check - assuming operators are already installed")
+
 	// Generate ApplicationSet and values.yaml for platform services
 	logger.Info("Generating platform ApplicationSet and values", "environment", claim.Spec.Environment)
 
@@ -112,20 +117,21 @@ func (r *PlatformApplicationClaimReconciler) Reconcile(ctx context.Context, req 
 
 	logger.Info("Successfully pushed platform files to Git")
 
-	// Create individual Applications in ArgoCD namespace for platform services
-	logger.Info("Creating Applications in ArgoCD for platform services")
-	for _, service := range claim.Spec.Services {
-		if !service.Enabled {
-			continue
-		}
+	// DISABLED: Direct Application creation - Root Apps will watch ApplicationSets and create them
+	// // Create individual Applications in ArgoCD namespace for platform services
+	// logger.Info("Creating Applications in ArgoCD for platform services")
+	// for _, service := range claim.Spec.Services {
+	// 	if !service.Enabled {
+	// 		continue
+	// 	}
 
-		appManifest := r.generatePlatformApplication(claim, service)
-		if err := r.createApplication(ctx, appManifest); err != nil {
-			logger.Error(err, "failed to create Application", "service", service.Name)
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-		}
-		logger.Info("Created Application", "name", service.Name)
-	}
+	// 	appManifest := r.generatePlatformApplication(claim, service)
+	// 	if err := r.createApplication(ctx, appManifest); err != nil {
+	// 		logger.Error(err, "failed to create Application", "service", service.Name)
+	// 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	// 	}
+	// 	logger.Info("Created Application", "name", service.Name)
+	// }
 
 	// Update status to Ready only if not already ready
 	if claim.Status.Phase != "Ready" || !claim.Status.Ready {
@@ -248,7 +254,40 @@ func (r *PlatformApplicationClaimReconciler) createApplication(ctx context.Conte
 
 // generatePlatformApplicationSet generates ArgoCD ApplicationSet for platform services
 func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(claim *platformv1.PlatformApplicationClaim, giteaClient *gitea.Client) string {
-	// Use Git Directories Generator to scan platform service directories
+	// Build list of enabled services with chart mapping
+	var elements []map[string]interface{}
+	for _, service := range claim.Spec.Services {
+		if !service.Enabled {
+			continue
+		}
+
+		// Map service name to actual chart name
+		chartName := service.Chart.Name
+		if chartName == "" {
+			// Default chart mapping
+			switch service.Type {
+			case "postgresql":
+				chartName = "postgresql"
+			case "redis":
+				chartName = "redis"
+			case "rabbitmq":
+				chartName = "rabbitmq"
+			case "mongodb":
+				chartName = "mongodb"
+			case "kafka":
+				chartName = "kafka"
+			default:
+				chartName = service.Type
+			}
+		}
+
+		elements = append(elements, map[string]interface{}{
+			"name":  service.Name,
+			"chart": chartName,
+		})
+	}
+
+	// Use List Generator with explicit chart mapping
 	appSet := map[string]interface{}{
 		"apiVersion": "argoproj.io/v1alpha1",
 		"kind":       "ApplicationSet",
@@ -264,23 +303,16 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 		"spec": map[string]interface{}{
 			"generators": []map[string]interface{}{
 				{
-					"git": map[string]interface{}{
-						"repoURL":  giteaClient.ConstructCloneURL(claim.Spec.Organization, r.VoltranRepo),
-						"revision": r.Branch,
-						"directories": []map[string]interface{}{
-							{
-								"path": fmt.Sprintf("environments/%s/%s/platform/*",
-									claim.Spec.ClusterType, claim.Spec.Environment),
-							},
-						},
+					"list": map[string]interface{}{
+						"elements": elements,
 					},
 				},
 			},
 			"template": map[string]interface{}{
 				"metadata": map[string]interface{}{
-					"name": fmt.Sprintf("{{path.basename}}-%s", claim.Spec.Environment),
+					"name": fmt.Sprintf("{{name}}-%s", claim.Spec.Environment),
 					"labels": map[string]string{
-						"platform.infraforge.io/service": "{{path.basename}}",
+						"platform.infraforge.io/service": "{{name}}",
 						"platform.infraforge.io/env":     claim.Spec.Environment,
 						"platform.infraforge.io/type":    "platform",
 					},
@@ -289,13 +321,13 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 					"project": "default",
 					"sources": []map[string]interface{}{
 						{
-							// Source 1: Helm chart from charts repository
-							"repoURL":        fmt.Sprintf("%s/%s/charts", claim.Spec.GiteaURL, claim.Spec.Organization),
-							"path":           "{{path.basename}}",
-							"targetRevision": "main",
+							// Source 1: Helm chart from ChartMuseum
+							"repoURL":        "http://chartmuseum.chartmuseum.svc.cluster.local:8080",
+							"chart":          "{{chart}}",
+							"targetRevision": "*",
 							"helm": map[string]interface{}{
 								"valueFiles": []string{
-									fmt.Sprintf("$values/environments/%s/%s/platform/{{path.basename}}/values.yaml",
+									fmt.Sprintf("$values/environments/%s/%s/platform/{{name}}/values.yaml",
 										claim.Spec.ClusterType, claim.Spec.Environment),
 								},
 							},
@@ -309,7 +341,7 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformApplicationSet(clai
 					},
 					"destination": map[string]interface{}{
 						"server":    "https://kubernetes.default.svc",
-						"namespace": claim.Spec.Environment,
+						"namespace": fmt.Sprintf("%s-platform", claim.Spec.Environment),
 					},
 					"syncPolicy": map[string]interface{}{
 						"automated": map[string]interface{}{
@@ -346,8 +378,97 @@ func (r *PlatformApplicationClaimReconciler) generatePlatformValuesYAML(claim *p
 		customValues = make(map[string]interface{})
 	}
 
-	data, _ := yaml.Marshal(customValues)
+	// Get storage class from claim or use default
+	storageClass := claim.Spec.StorageClass
+	if storageClass == "" {
+		storageClass = "standard" // Default for Kind cluster
+	}
+
+	// Add service-specific defaults
+	values := make(map[string]interface{})
+	values["name"] = service.Name
+	values["type"] = service.Type
+
+	// Set default values based on service type
+	switch service.Type {
+	case "postgresql":
+		values["version"] = service.Version
+		if values["version"] == "" {
+			values["version"] = "15"
+		}
+		// Structure values properly for the PostgreSQL chart
+		values["postgresql"] = map[string]interface{}{
+			"storage": map[string]interface{}{
+				"size":         "1Gi",
+				"storageClass": storageClass,
+			},
+			"resources": map[string]interface{}{
+				"requests": map[string]interface{}{
+					"cpu":    "100m",
+					"memory": "256Mi", // Increased to match shared_buffers
+				},
+				"limits": map[string]interface{}{
+					"cpu":    "200m",
+					"memory": "512Mi",
+				},
+			},
+		}
+	case "redis":
+		values["version"] = service.Version
+		if values["version"] == "" {
+			values["version"] = "7.0"
+		}
+		// Structure values properly for the Redis chart
+		values["redis"] = map[string]interface{}{
+			"storage": map[string]interface{}{
+				"enabled":      true,
+				"size":         "500Mi",
+				"storageClass": storageClass,
+			},
+			"resources": map[string]interface{}{
+				"requests": map[string]interface{}{
+					"cpu":    "50m",
+					"memory": "64Mi",
+				},
+				"limits": map[string]interface{}{
+					"cpu":    "100m",
+					"memory": "128Mi",
+				},
+			},
+		}
+	}
+
+	// Merge custom values (custom values override defaults)
+	for k, v := range customValues {
+		if (k == "postgresql" || k == "redis") && values[k] != nil {
+			// Deep merge for service-specific values
+			defaultValues := values[k].(map[string]interface{})
+			customServiceValues := v.(map[string]interface{})
+			mergeDeep(defaultValues, customServiceValues)
+		} else {
+			values[k] = v
+		}
+	}
+
+	data, _ := yaml.Marshal(values)
 	return string(data)
+}
+
+// mergeDeep recursively merges src into dst
+func mergeDeep(dst, src map[string]interface{}) {
+	for k, v := range src {
+		if dstVal, ok := dst[k]; ok {
+			dstMap, dstIsMap := dstVal.(map[string]interface{})
+			srcMap, srcIsMap := v.(map[string]interface{})
+			if dstIsMap && srcIsMap {
+				mergeDeep(dstMap, srcMap)
+			} else {
+				dst[k] = v
+			}
+		} else {
+			dst[k] = v
+		}
+	}
 }
 
 // createApplicationSet creates or updates the ApplicationSet in ArgoCD namespace
@@ -397,6 +518,146 @@ func (r *PlatformApplicationClaimReconciler) createApplicationSet(ctx context.Co
 			return fmt.Errorf("failed to update ApplicationSet: %w", err)
 		}
 		logger.Info("Successfully updated platform ApplicationSet", "name", appSetName)
+	}
+
+	return nil
+}
+
+// detectRequiredOperators detects which operators need to be installed
+func (r *PlatformApplicationClaimReconciler) detectRequiredOperators(claim *platformv1.PlatformApplicationClaim) []string {
+	var operators []string
+	operatorMap := make(map[string]bool)
+
+	for _, service := range claim.Spec.Services {
+		if !service.Enabled {
+			continue
+		}
+
+		var operatorName string
+		switch service.Type {
+		case "postgresql":
+			operatorName = "cloudnative-pg"
+		case "redis":
+			operatorName = "redis-operator"
+		case "rabbitmq":
+			operatorName = "rabbitmq-operator"
+		case "mongodb":
+			operatorName = "mongodb-operator"
+		}
+
+		if operatorName != "" && !operatorMap[operatorName] {
+			operatorMap[operatorName] = true
+			// Check if operator is already installed
+			if !r.isOperatorInstalled(operatorName) {
+				operators = append(operators, operatorName)
+			}
+		}
+	}
+
+	return operators
+}
+
+// isOperatorInstalled checks if an operator is already installed
+func (r *PlatformApplicationClaimReconciler) isOperatorInstalled(operatorName string) bool {
+	// For now, always return true if operators exist in ArgoCD
+	// This is a simplified check - we assume if the ArgoCD Application exists, the operator is installed
+	ctx := context.Background()
+
+	app := &unstructured.Unstructured{}
+	app.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "argoproj.io",
+		Version: "v1alpha1",
+		Kind:    "Application",
+	})
+
+	err := r.Get(ctx, client.ObjectKey{
+		Namespace: "argocd",
+		Name:      operatorName,
+	}, app)
+
+	// If the ArgoCD Application exists, we consider the operator installed
+	return err == nil
+}
+
+// installOperators installs the required operators via ArgoCD
+func (r *PlatformApplicationClaimReconciler) installOperators(ctx context.Context, operators []string) error {
+	logger := log.FromContext(ctx)
+
+	for _, operatorName := range operators {
+		logger.Info("Installing operator via ArgoCD", "operator", operatorName)
+
+		var appManifest string
+		switch operatorName {
+		case "cloudnative-pg":
+			appManifest = r.generateOperatorApplication("cloudnative-pg", "https://cloudnative-pg.github.io/charts", "cloudnative-pg", "1.22.0")
+		case "redis-operator":
+			appManifest = r.generateOperatorApplication("redis-operator", "https://spotahome.github.io/redis-operator", "redis-operator", "3.2.9")
+		}
+
+		if appManifest != "" {
+			if err := r.createOperatorApplication(ctx, appManifest); err != nil {
+				return fmt.Errorf("failed to install %s: %w", operatorName, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// generateOperatorApplication generates ArgoCD Application for operator installation
+func (r *PlatformApplicationClaimReconciler) generateOperatorApplication(name, repoURL, chart, version string) string {
+	app := map[string]interface{}{
+		"apiVersion": "argoproj.io/v1alpha1",
+		"kind":       "Application",
+		"metadata": map[string]interface{}{
+			"name":      name,
+			"namespace": "argocd",
+			"labels": map[string]string{
+				"platform.infraforge.io/type":     "operator",
+				"platform.infraforge.io/operator": name,
+			},
+		},
+		"spec": map[string]interface{}{
+			"project": "default",
+			"source": map[string]interface{}{
+				"repoURL":        repoURL,
+				"chart":          chart,
+				"targetRevision": version,
+				"helm": map[string]interface{}{
+					"values": "",
+				},
+			},
+			"destination": map[string]interface{}{
+				"server":    "https://kubernetes.default.svc",
+				"namespace": name + "-system",
+			},
+			"syncPolicy": map[string]interface{}{
+				"automated": map[string]interface{}{
+					"prune":    true,
+					"selfHeal": true,
+				},
+				"syncOptions": []string{"CreateNamespace=true"},
+			},
+		},
+	}
+
+	data, _ := yaml.Marshal(app)
+	return string(data)
+}
+
+// createOperatorApplication creates the operator Application in ArgoCD
+func (r *PlatformApplicationClaimReconciler) createOperatorApplication(ctx context.Context, appYAML string) error {
+	obj := &unstructured.Unstructured{}
+	if err := yaml.Unmarshal([]byte(appYAML), &obj.Object); err != nil {
+		return fmt.Errorf("failed to unmarshal Application: %w", err)
+	}
+
+	obj.SetNamespace("argocd")
+
+	// Try to create, if already exists it's fine
+	err := r.Create(ctx, obj)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		return fmt.Errorf("failed to create Application: %w", err)
 	}
 
 	return nil

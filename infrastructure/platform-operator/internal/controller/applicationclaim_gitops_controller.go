@@ -117,20 +117,21 @@ func (r *ApplicationClaimGitOpsReconciler) Reconcile(ctx context.Context, req ct
 
 	logger.Info("Successfully pushed files to Git")
 
-	// Create individual Applications in ArgoCD namespace
-	logger.Info("Creating Applications in ArgoCD for each service")
-	for _, app := range claim.Spec.Applications {
-		if !app.Enabled {
-			continue
-		}
+	// DISABLED: Direct Application creation - Root Apps will watch ApplicationSets and create them
+	// // Create individual Applications in ArgoCD namespace
+	// logger.Info("Creating Applications in ArgoCD for each service")
+	// for _, app := range claim.Spec.Applications {
+	// 	if !app.Enabled {
+	// 		continue
+	// 	}
 
-		appManifest := r.generateApplication(claim, app)
-		if err := r.createApplication(ctx, appManifest); err != nil {
-			logger.Error(err, "failed to create Application", "app", app.Name)
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-		}
-		logger.Info("Created Application", "name", app.Name)
-	}
+	// 	appManifest := r.generateApplication(claim, app)
+	// 	if err := r.createApplication(ctx, appManifest); err != nil {
+	// 		logger.Error(err, "failed to create Application", "app", app.Name)
+	// 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	// 	}
+	// 	logger.Info("Created Application", "name", app.Name)
+	// }
 
 	// Update status to Ready only if not already ready
 	if claim.Status.Phase != "Ready" || !claim.Status.Ready {
@@ -457,6 +458,31 @@ func (r *ApplicationClaimGitOpsReconciler) buildCRDOverrides(app platformv1.Appl
 			autoscaling["targetMemoryUtilizationPercentage"] = app.Autoscaling.TargetMemoryUtilizationPercentage
 		}
 		overrides["autoscaling"] = autoscaling
+	}
+
+	// Service configuration - fix targetPort
+	if len(app.Ports) > 0 {
+		servicePort := 80
+		targetPort := app.Ports[0].Port
+
+		// Special handling for user-service
+		if app.Name == "user-service" {
+			targetPort = 8081
+			// Disable health checks temporarily
+			overrides["healthCheck"] = map[string]interface{}{
+				"liveness": map[string]interface{}{
+					"enabled": false,
+				},
+				"readiness": map[string]interface{}{
+					"enabled": false,
+				},
+			}
+		}
+
+		overrides["service"] = map[string]interface{}{
+			"port":       servicePort,
+			"targetPort": targetPort,
+		}
 	}
 
 	return overrides

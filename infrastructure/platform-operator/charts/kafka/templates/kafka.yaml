@@ -1,0 +1,56 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  kafka:
+    version: {{ .Values.kafka.version }}
+    replicas: {{ .Values.kafka.replicas }}
+    
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+    
+    config:
+      offsets.topic.replication.factor: {{ .Values.kafka.replicas }}
+      transaction.state.log.replication.factor: {{ .Values.kafka.replicas }}
+      transaction.state.log.min.isr: {{ max 2 (sub .Values.kafka.replicas 1) }}
+    
+    storage:
+      type: persistent-claim
+      size: {{ .Values.kafka.storage.size }}
+      class: {{ .Values.kafka.storage.class }}
+    
+    resources:
+      requests:
+        cpu: {{ .Values.kafka.resources.requests.cpu }}
+        memory: {{ .Values.kafka.resources.requests.memory }}
+      limits:
+        cpu: {{ .Values.kafka.resources.limits.cpu }}
+        memory: {{ .Values.kafka.resources.limits.memory }}
+  
+  zookeeper:
+    replicas: {{ .Values.kafka.zookeeper.replicas }}
+    
+    storage:
+      type: persistent-claim
+      size: {{ .Values.kafka.zookeeper.storage.size }}
+      class: {{ .Values.kafka.storage.class }}
+    
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+  
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
